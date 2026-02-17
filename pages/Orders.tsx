@@ -4,6 +4,7 @@ import { useOrders } from '../context/OrderContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { Order, OrderStatus } from '../types';
+import { mockApi } from '../services/mockService';
 
 const statusColors: Record<OrderStatus, string> = {
     'Processing': 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -40,6 +41,20 @@ export const Orders: React.FC = () => {
     }
 
     const userOrders = getUserOrders(user.email);
+
+    // Rating State
+    const [ratingModalOpen, setRatingModalOpen] = useState(false);
+    const [ratingProduct, setRatingProduct] = useState<{ id: string, name: string } | null>(null);
+    const [ratingValue, setRatingValue] = useState(5);
+
+    const handleRateProduct = async () => {
+        if (ratingProduct) {
+            await mockApi.addReview(ratingProduct.id, ratingValue);
+            setRatingModalOpen(false);
+            setRatingProduct(null);
+            alert('Thank you for your rating!');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-black pt-24 pb-12 px-4">
@@ -146,13 +161,27 @@ export const Orders: React.FC = () => {
                                     <h3 className="text-white font-bold mb-3">Items ({selectedOrder.items.length})</h3>
                                     <div className="space-y-3">
                                         {selectedOrder.items.map((item, idx) => (
-                                            <div key={idx} className="flex gap-4 bg-white/5 p-3 rounded-lg">
+                                            <div key={idx} className="flex gap-4 bg-white/5 p-3 rounded-lg flex-wrap sm:flex-nowrap">
                                                 <img src={item.image} alt={item.name} className="w-16 h-16 rounded object-cover" />
-                                                <div className="flex-1">
+                                                <div className="flex-1 min-w-[200px]">
                                                     <h4 className="text-white font-semibold">{item.name}</h4>
                                                     <p className="text-gray-400 text-sm">Qty: {item.quantity}</p>
                                                 </div>
-                                                <p className="text-white font-bold">₹{(item.price * item.quantity).toLocaleString()}</p>
+                                                <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                                                    <p className="text-white font-bold">₹{(item.price * item.quantity).toLocaleString()}</p>
+                                                    {selectedOrder.status === OrderStatus.DELIVERED && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setRatingProduct({ id: item._id, name: item.name });
+                                                                setRatingModalOpen(true);
+                                                            }}
+                                                            className="text-xs bg-gold-500 text-black px-3 py-1 rounded font-bold hover:bg-gold-400"
+                                                        >
+                                                            Rate Product
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -179,6 +208,43 @@ export const Orders: React.FC = () => {
                                         <span className="text-gold-500 font-bold text-2xl">₹{selectedOrder.totalAmount.toLocaleString()}</span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Rating Modal */}
+                {ratingModalOpen && ratingProduct && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                        <div className="bg-midnight-900 border border-gold-500/30 p-6 rounded-xl w-full max-w-sm text-center animate-fade-in-up">
+                            <h3 className="text-xl font-bold text-white mb-2">Rate Product</h3>
+                            <p className="text-gray-400 text-sm mb-6">{ratingProduct.name}</p>
+
+                            <div className="flex justify-center gap-2 mb-6">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                        key={star}
+                                        onClick={() => setRatingValue(star)}
+                                        className={`text-2xl transition-transform hover:scale-110 ${star <= ratingValue ? 'text-gold-500' : 'text-gray-600'}`}
+                                    >
+                                        <i className="fas fa-star"></i>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setRatingModalOpen(false)}
+                                    className="flex-1 px-4 py-2 rounded-lg border border-white/10 text-gray-300 hover:bg-white/5"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleRateProduct}
+                                    className="flex-1 px-4 py-2 rounded-lg bg-gold-500 text-black font-bold hover:bg-gold-400"
+                                >
+                                    Submit
+                                </button>
                             </div>
                         </div>
                     </div>

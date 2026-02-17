@@ -249,14 +249,40 @@ export const AdminDashboard: React.FC = () => {
                                                 required
                                             />
 
-                                            <input
-                                                placeholder="Stock Quantity"
-                                                type="number"
-                                                className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
-                                                value={editingProduct?.stock || ''}
-                                                onChange={e => setEditingProduct({ ...editingProduct, stock: Number(e.target.value) })}
-                                                required
-                                            />
+                                            <div className="flex gap-4">
+                                                <div className="flex-1">
+                                                    <input
+                                                        placeholder="Stock Quantity"
+                                                        type="number"
+                                                        className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
+                                                        value={editingProduct?.stock || ''}
+                                                        onChange={e => setEditingProduct({ ...editingProduct, stock: Number(e.target.value) })}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <input
+                                                        placeholder="Initial Rating (0-5)"
+                                                        type="number"
+                                                        step="0.1"
+                                                        max="5"
+                                                        className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
+                                                        value={editingProduct?.rating || ''}
+                                                        onChange={e => setEditingProduct({ ...editingProduct, rating: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 bg-white/5 p-3 rounded border border-white/10">
+                                                <input
+                                                    type="checkbox"
+                                                    id="isBestseller"
+                                                    className="w-5 h-5 accent-gold-500"
+                                                    checked={editingProduct?.isBestseller || false}
+                                                    onChange={e => setEditingProduct({ ...editingProduct, isBestseller: e.target.checked })}
+                                                />
+                                                <label htmlFor="isBestseller" className="text-white cursor-pointer select-none">Mark as Bestseller</label>
+                                            </div>
                                         </div>
 
                                         <button type="submit" className="w-full bg-gradient-to-r from-gold-500 to-amber-600 text-black font-bold py-3 mt-6 rounded-lg hover:shadow-lg transition-all">
@@ -282,7 +308,10 @@ export const AdminDashboard: React.FC = () => {
                                         {products.map(p => (
                                             <tr key={p._id} className="hover:bg-white/5">
                                                 <td className="p-3"><img src={p.image} className="w-10 h-10 rounded object-cover" alt={p.name} /></td>
-                                                <td className="p-3 font-medium text-white">{p.name}</td>
+                                                <td className="p-3 font-medium text-white">
+                                                    {p.name}
+                                                    {p.isBestseller && <span className="ml-2 text-xs bg-gold-500 text-black px-1 rounded font-bold">BESTSELLER</span>}
+                                                </td>
                                                 <td className="p-3">₹{p.price.toLocaleString()}</td>
                                                 <td className="p-3 text-sm">{p.category}</td>
                                                 <td className={`p-3 font-mono ${p.stock < 10 ? 'text-red-400 font-bold' : 'text-gray-300'}`}>
@@ -350,6 +379,19 @@ export const AdminDashboard: React.FC = () => {
                                             >
                                                 {Object.values(OrderStatus).map(s => <option key={s} value={s} className="bg-midnight-900">{s}</option>)}
                                             </select>
+
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('Delete this order?')) {
+                                                        await mockApi.deleteOrder(order._id);
+                                                        fetchData();
+                                                    }
+                                                }}
+                                                className="text-red-400 hover:text-red-300 w-8 h-8 rounded hover:bg-white/10"
+                                                title="Delete Order"
+                                            >
+                                                <i className="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

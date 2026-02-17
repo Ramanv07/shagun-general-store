@@ -22,6 +22,7 @@ export interface Product {
   image: string;
   rating?: number;
   reviews?: number;
+  isBestseller?: boolean;
 }
 
 export interface CartItem extends Product {

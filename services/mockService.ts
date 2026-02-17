@@ -91,6 +91,18 @@ export const mockApi = {
     });
   },
 
+  // Optimization: Check for updates
+  checkUpdates: async (clientTimestamp: number): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const serverTimestamp = Number(localStorage.getItem('shagun_data_version') || 0);
+      resolve(serverTimestamp > clientTimestamp);
+    });
+  },
+
+  updateTimestamp: () => {
+    localStorage.setItem('shagun_data_version', Date.now().toString());
+  },
+
   getProducts: async (): Promise<Product[]> => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -111,12 +123,13 @@ export const mockApi = {
           const newProduct = {
             ...product,
             _id: mockApi.generateId('PROD'),
-            rating: 0,
-            reviews: 0
+            rating: product.rating || 0, // Allow manual initial rating
+            reviews: product.reviews || 0
           };
           products.push(newProduct);
         }
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        mockApi.updateTimestamp(); // Trigger update
         resolve(product as Product);
       }, 600);
     });
@@ -127,6 +140,7 @@ export const mockApi = {
       const products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
       const newProducts = products.filter((p: Product) => p._id !== id);
       localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(newProducts));
+      mockApi.updateTimestamp(); // Trigger update
       resolve();
     });
   },
@@ -156,6 +170,7 @@ export const mockApi = {
         });
 
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updatedProducts));
+        mockApi.updateTimestamp(); // Stock change triggers update
 
         const newOrder = {
           ...order,
@@ -179,6 +194,15 @@ export const mockApi = {
     });
   },
 
+  deleteOrder: async (id: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const orders = JSON.parse(localStorage.getItem(STORAGE_KEYS.ORDERS) || '[]');
+      const newOrders = orders.filter((o: Order) => o._id !== id);
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(newOrders));
+      resolve();
+    });
+  },
+
   updateOrderStatus: async (id: string, status: OrderStatus): Promise<void> => {
     return new Promise((resolve) => {
       const orders = JSON.parse(localStorage.getItem(STORAGE_KEYS.ORDERS) || '[]');
@@ -186,6 +210,25 @@ export const mockApi = {
       if (index > -1) {
         orders[index].status = status;
         localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+      }
+      resolve();
+    });
+  },
+
+  addReview: async (productId: string, rating: number): Promise<void> => {
+    return new Promise((resolve) => {
+      const products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
+      const index = products.findIndex((p: Product) => p._id === productId);
+      if (index > -1) {
+        const product = products[index];
+        const newReviewsCount = (product.reviews || 0) + 1;
+        // Calculate new average
+        const currentTotal = (product.rating || 0) * (product.reviews || 0);
+        const newRating = (currentTotal + rating) / newReviewsCount;
+
+        products[index] = { ...product, rating: parseFloat(newRating.toFixed(1)), reviews: newReviewsCount };
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        mockApi.updateTimestamp();
       }
       resolve();
     });
