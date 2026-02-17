@@ -26,13 +26,18 @@ const initData = () => {
 initData();
 
 export const mockApi = {
+  // Utility for short IDs
+  generateId: (prefix: string = ''): string => {
+    return prefix + Math.random().toString(36).substr(2, 6).toUpperCase();
+  },
+
   login: async (email: string, password: string): Promise<User> => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         // Hardcoded Admin - Always Allow
         if (email.toLowerCase() === 'admin@shagun.com' && password === 'admin123') {
           const adminUser = {
-            _id: 'admin1',
+            _id: 'ADMIN001',
             name: 'Shagun Admin',
             email: email.toLowerCase(),
             role: UserRole.ADMIN,
@@ -49,7 +54,7 @@ export const mockApi = {
         }
 
         if (email === 'user@shagun.com' && password === 'user123') {
-          resolve({ _id: 'user1', name: 'Demo User', email, role: UserRole.USER, token: 'mock_user_token' });
+          resolve({ _id: 'USER001', name: 'Demo User', email, role: UserRole.USER, token: 'mock_user_token' });
           return;
         }
 
@@ -71,7 +76,13 @@ export const mockApi = {
     return new Promise((resolve) => {
       setTimeout(() => {
         const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
-        const newUser = { _id: Date.now().toString(), name, email, password, role: UserRole.USER };
+        const newUser = {
+          _id: mockApi.generateId('USR'),
+          name,
+          email,
+          password,
+          role: UserRole.USER
+        };
         users.push(newUser);
         localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
         const { password: _, ...safeUser } = newUser;
@@ -97,7 +108,12 @@ export const mockApi = {
           const index = products.findIndex((p: Product) => p._id === product._id);
           products[index] = { ...products[index], ...product };
         } else {
-          const newProduct = { ...product, _id: Date.now().toString(), rating: 0, reviews: 0 };
+          const newProduct = {
+            ...product,
+            _id: mockApi.generateId('PROD'),
+            rating: 0,
+            reviews: 0
+          };
           products.push(newProduct);
         }
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
@@ -143,7 +159,7 @@ export const mockApi = {
 
         const newOrder = {
           ...order,
-          _id: Date.now().toString(),
+          _id: mockApi.generateId('ORD'),
           status: OrderStatus.PROCESSING,
           createdAt: new Date().toISOString()
         };
@@ -192,7 +208,7 @@ export const mockApi = {
           const index = lehengas.findIndex((l: any) => l._id === lehenga._id);
           lehengas[index] = { ...lehengas[index], ...lehenga };
         } else {
-          lehenga._id = Date.now().toString();
+          lehenga._id = mockApi.generateId('LEG');
           lehengas.push(lehenga);
         }
         localStorage.setItem('shagun_lehengas', JSON.stringify(lehengas));
@@ -221,6 +237,15 @@ export const mockApi = {
         });
         resolve(safeUsers);
       }, 500);
+    });
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      const newUsers = users.filter((u: User) => u._id !== id);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(newUsers));
+      resolve();
     });
   }
 };

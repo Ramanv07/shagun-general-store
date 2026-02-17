@@ -2,8 +2,9 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Hero3D } from '../components/Hero3D';
-import { MOCK_PRODUCTS, MOCK_REVIEWS } from '../constants';
+import { MOCK_REVIEWS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
+import { mockApi } from '../services/mockService';
 import { LehengaSection } from '../components/LehengaSection';
 
 const Typewriter = ({ text, delay = 100 }: { text: string, delay?: number }) => {
@@ -54,7 +55,20 @@ const Typewriter = ({ text, delay = 100 }: { text: string, delay?: number }) => 
 };
 
 export const Home: React.FC = () => {
+  const [products, setProducts] = React.useState<any[]>([]);
   const trendingRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const fetchTrending = () => {
+      mockApi.getProducts().then(data => {
+        setProducts(data);
+      });
+    };
+
+    fetchTrending();
+    const interval = setInterval(fetchTrending, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToTrending = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -119,7 +133,7 @@ export const Home: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {MOCK_PRODUCTS.slice(0, 4).map(product => (
+            {products.slice(0, 4).map(product => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>

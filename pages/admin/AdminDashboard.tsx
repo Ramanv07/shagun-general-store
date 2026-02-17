@@ -472,6 +472,7 @@ export const AdminDashboard: React.FC = () => {
                                             <th className="p-3">Email</th>
                                             <th className="p-3">Role</th>
                                             <th className="p-3">ID</th>
+                                            <th className="p-3">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/10">
@@ -485,6 +486,22 @@ export const AdminDashboard: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="p-3 font-mono text-xs text-gray-500">{user._id}</td>
+                                                <td className="p-3">
+                                                    {user.role !== 'admin' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (confirm(`Delete user ${user.name}? This cannot be undone.`)) {
+                                                                    await mockApi.deleteUser(user._id);
+                                                                    fetchData();
+                                                                }
+                                                            }}
+                                                            className="text-red-400 hover:text-red-300 w-8 h-8 rounded hover:bg-white/10 transition-colors"
+                                                            title="Delete User"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
