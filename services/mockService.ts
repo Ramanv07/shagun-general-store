@@ -25,11 +25,28 @@ const initData = () => {
 
 initData();
 
+// Helpers
+const generateId = (prefix: string = ''): string => {
+  return prefix + Math.random().toString(36).substr(2, 6).toUpperCase();
+};
+
+const updateTimestamp = () => {
+  const ts = Date.now().toString();
+  localStorage.setItem('shagun_data_version', ts);
+  return ts;
+};
+
+const checkUpdates = async (clientTimestamp: number): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const serverTimestamp = Number(localStorage.getItem('shagun_data_version') || 0);
+    resolve(serverTimestamp > clientTimestamp);
+  });
+};
+
 export const mockApi = {
-  // Utility for short IDs
-  generateId: (prefix: string = ''): string => {
-    return prefix + Math.random().toString(36).substr(2, 6).toUpperCase();
-  },
+  generateId,
+  updateTimestamp,
+  checkUpdates,
 
   login: async (email: string, password: string): Promise<User> => {
     return new Promise((resolve, reject) => {
@@ -77,7 +94,7 @@ export const mockApi = {
       setTimeout(() => {
         const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
         const newUser = {
-          _id: mockApi.generateId('USR'),
+          _id: generateId('USR'),
           name,
           email,
           password,
@@ -89,18 +106,6 @@ export const mockApi = {
         resolve({ ...safeUser, token: 'mock_user_token' });
       }, 800);
     });
-  },
-
-  // Optimization: Check for updates
-  checkUpdates: async (clientTimestamp: number): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const serverTimestamp = Number(localStorage.getItem('shagun_data_version') || 0);
-      resolve(serverTimestamp > clientTimestamp);
-    });
-  },
-
-  updateTimestamp: () => {
-    localStorage.setItem('shagun_data_version', Date.now().toString());
   },
 
   getProducts: async (): Promise<Product[]> => {
@@ -122,14 +127,14 @@ export const mockApi = {
         } else {
           const newProduct = {
             ...product,
-            _id: mockApi.generateId('PROD'),
+            _id: generateId('PROD'),
             rating: product.rating || 0, // Allow manual initial rating
             reviews: product.reviews || 0
           };
           products.push(newProduct);
         }
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-        mockApi.updateTimestamp(); // Trigger update
+        updateTimestamp(); // Trigger update
         resolve(product as Product);
       }, 600);
     });
@@ -140,7 +145,7 @@ export const mockApi = {
       const products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
       const newProducts = products.filter((p: Product) => p._id !== id);
       localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(newProducts));
-      mockApi.updateTimestamp(); // Trigger update
+      updateTimestamp(); // Trigger update
       resolve();
     });
   },
@@ -170,11 +175,11 @@ export const mockApi = {
         });
 
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updatedProducts));
-        mockApi.updateTimestamp(); // Stock change triggers update
+        updateTimestamp(); // Stock change triggers update
 
         const newOrder = {
           ...order,
-          _id: mockApi.generateId('ORD'),
+          _id: generateId('ORD'),
           status: OrderStatus.PROCESSING,
           createdAt: new Date().toISOString()
         };
@@ -228,7 +233,7 @@ export const mockApi = {
 
         products[index] = { ...product, rating: parseFloat(newRating.toFixed(1)), reviews: newReviewsCount };
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-        mockApi.updateTimestamp();
+        updateTimestamp();
       }
       resolve();
     });
@@ -251,7 +256,7 @@ export const mockApi = {
           const index = lehengas.findIndex((l: any) => l._id === lehenga._id);
           lehengas[index] = { ...lehengas[index], ...lehenga };
         } else {
-          lehenga._id = mockApi.generateId('LEG');
+          lehenga._id = generateId('LEG');
           lehengas.push(lehenga);
         }
         localStorage.setItem('shagun_lehengas', JSON.stringify(lehengas));

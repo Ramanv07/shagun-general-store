@@ -14,17 +14,25 @@ export const Shop: React.FC = () => {
   const [sort, setSort] = useState('newest');
 
   useEffect(() => {
-    const fetchProducts = () => {
-      mockApi.getProducts().then(data => {
-        setProducts(data);
-        // Only set filtered initially or if empty to avoid overriding user search
-        setFilteredProducts(prev => prev.length === 0 ? data : prev);
-        setLoading(false);
-      });
+    let lastTimestamp = 0;
+
+    const fetchProducts = async (force = false) => {
+      try {
+        const needsUpdate = await mockApi.checkUpdates(lastTimestamp);
+        if (needsUpdate || force) {
+          const data = await mockApi.getProducts();
+          setProducts(data);
+          setFilteredProducts(prev => prev.length === 0 ? data : prev);
+          setLoading(false);
+          lastTimestamp = Number(localStorage.getItem('shagun_data_version') || Date.now());
+        }
+      } catch (error) {
+        console.error("Fetch failed", error);
+      }
     };
 
-    fetchProducts();
-    const interval = setInterval(fetchProducts, 5000); // Poll every 5 seconds for admin updates
+    fetchProducts(true);
+    const interval = setInterval(() => fetchProducts(), 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,8 +86,8 @@ export const Shop: React.FC = () => {
                 key={cat}
                 onClick={() => setCategory(cat)}
                 className={`whitespace-nowrap px-6 py-2 rounded-full border transition-all ${category === cat
-                    ? 'bg-gold-500 text-black border-gold-500 font-bold'
-                    : 'bg-transparent text-gray-300 border-white/20 hover:border-white'
+                  ? 'bg-gold-500 text-black border-gold-500 font-bold'
+                  : 'bg-transparent text-gray-300 border-white/20 hover:border-white'
                   }`}
               >
                 {cat}

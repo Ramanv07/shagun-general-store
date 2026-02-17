@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { mockApi } from '../../services/mockService';
-import { Order, Product, OrderStatus } from '../../types';
+import { Order, Product, OrderStatus, User } from '../../types';
 import { CATEGORIES } from '../../constants';
 
 const statusColors: Record<OrderStatus, string> = {
@@ -37,35 +37,57 @@ export const AdminDashboard: React.FC = () => {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     useEffect(() => {
-        fetchData();
-        const interval = setInterval(fetchData, 5000); // Poll every 5 seconds
+        let lastTimestamp = 0;
+
+        const pollData = async (force = false) => {
+            try {
+                const needsUpdate = await mockApi.checkUpdates(lastTimestamp);
+                if (needsUpdate || force) {
+                    await fetchData();
+                    lastTimestamp = Number(localStorage.getItem('shagun_data_version') || Date.now());
+                }
+            } catch (error) {
+                console.error("Admin poll failed", error);
+            }
+        };
+
+        pollData(true);
+        const interval = setInterval(() => pollData(), 2000);
         return () => clearInterval(interval);
     }, []);
 
     const fetchData = async () => {
-        // Don't show loading spinner on background refreshes if data exists
-        if (products.length === 0) setLoading(true);
-
-        const [pData, oData, lData, uData] = await Promise.all([
-            mockApi.getProducts(),
-            mockApi.getOrders(),
-            mockApi.getLehengas(),
-            mockApi.getUsers()
-        ]);
-        setProducts(pData);
-        setOrders(oData);
-        setLehengas(lData);
-        setUsers(uData);
-        setLoading(false);
+        try {
+            const [pData, oData, lData, uData] = await Promise.all([
+                mockApi.getProducts(),
+                mockApi.getOrders(),
+                mockApi.getLehengas(),
+                mockApi.getUsers()
+            ]);
+            setProducts(pData);
+            setOrders(oData);
+            setLehengas(lData);
+            setUsers(uData);
+            setLoading(false);
+        } catch (error) {
+            console.error("Data fetch failed", error);
+        }
     };
 
     const handleSaveProduct = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (editingProduct) {
-            await mockApi.saveProduct(editingProduct);
-            setIsFormOpen(false);
-            setEditingProduct(null);
-            fetchData();
+        try {
+            if (editingProduct) {
+                console.log('Saving product:', editingProduct);
+                await mockApi.saveProduct(editingProduct);
+                console.log('Product saved successfully');
+                setIsFormOpen(false);
+                setEditingProduct(null);
+                fetchData();
+            }
+        } catch (error) {
+            console.error('Error saving product:', error);
+            alert('Failed to save product. Check console for details.');
         }
     };
 

@@ -59,14 +59,23 @@ export const Home: React.FC = () => {
   const trendingRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    const fetchTrending = () => {
-      mockApi.getProducts().then(data => {
-        setProducts(data);
-      });
+    let lastTimestamp = 0;
+
+    const fetchTrending = async (force = false) => {
+      try {
+        const needsUpdate = await mockApi.checkUpdates(lastTimestamp);
+        if (needsUpdate || force) {
+          const data = await mockApi.getProducts();
+          setProducts(data);
+          lastTimestamp = Number(localStorage.getItem('shagun_data_version') || Date.now());
+        }
+      } catch (error) {
+        console.error("Home fetch failed", error);
+      }
     };
 
-    fetchTrending();
-    const interval = setInterval(fetchTrending, 5000);
+    fetchTrending(true);
+    const interval = setInterval(() => fetchTrending(), 2000);
     return () => clearInterval(interval);
   }, []);
 

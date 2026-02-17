@@ -1,7 +1,7 @@
 
 import { Product, Review, UserRole } from './types';
 
-export const ADMIN_WHATSAPP = "917987367845";
+export const ADMIN_WHATSAPP = "918827259023";
 
 export const CATEGORIES = [
   "All",
