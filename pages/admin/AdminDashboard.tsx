@@ -19,11 +19,13 @@ const statusIcons: Record<OrderStatus, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'lehengas'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'lehengas' | 'users'>('overview');
     const [products, setProducts] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [lehengas, setLehengas] = useState<any[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [orderSearch, setOrderSearch] = useState('');
 
     // Product Form State
     const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -44,14 +46,16 @@ export const AdminDashboard: React.FC = () => {
         // Don't show loading spinner on background refreshes if data exists
         if (products.length === 0) setLoading(true);
 
-        const [pData, oData, lData] = await Promise.all([
+        const [pData, oData, lData, uData] = await Promise.all([
             mockApi.getProducts(),
             mockApi.getOrders(),
-            mockApi.getLehengas()
+            mockApi.getLehengas(),
+            mockApi.getUsers()
         ]);
         setProducts(pData);
         setOrders(oData);
         setLehengas(lData);
+        setUsers(uData);
         setLoading(false);
     };
 
@@ -116,6 +120,10 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
+    const filteredOrders = orders.filter(order =>
+        order._id.toLowerCase().includes(orderSearch.toLowerCase())
+    );
+
     if (loading && products.length === 0) return <div className="p-10 text-white">Loading Dashboard...</div>;
 
     return (
@@ -125,7 +133,7 @@ export const AdminDashboard: React.FC = () => {
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-8 overflow-x-auto pb-2 no-scrollbar">
-                    {['overview', 'products', 'orders', 'lehengas'].map(tab => (
+                    {['overview', 'products', 'orders', 'lehengas', 'users'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
@@ -295,13 +303,23 @@ export const AdminDashboard: React.FC = () => {
                     {/* ORDERS */}
                     {activeTab === 'orders' && (
                         <div className="space-y-4">
-                            <h2 className="text-xl text-white font-bold mb-4">Manage Orders</h2>
-                            {orders.length === 0 && <p className="text-gray-400">No orders found.</p>}
-                            {orders.map(order => (
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl text-white font-bold">Manage Orders</h2>
+                                <input
+                                    type="text"
+                                    placeholder="Search by Order ID..."
+                                    className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-gold-500 w-64"
+                                    value={orderSearch}
+                                    onChange={(e) => setOrderSearch(e.target.value)}
+                                />
+                            </div>
+
+                            {filteredOrders.length === 0 && <p className="text-gray-400">No orders found.</p>}
+                            {filteredOrders.map(order => (
                                 <div key={order._id} className="bg-white/5 p-4 rounded-xl border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-white/10 transition-colors">
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
-                                            <h4 className="text-gold-500 font-bold text-lg">#{order._id.slice(-6)}</h4>
+                                            <h4 className="text-gold-500 font-bold text-lg">#{order._id}</h4>
                                             <span className="text-xs text-gray-400">• {new Date(order.createdAt).toLocaleDateString()}</span>
                                         </div>
                                         <div className="space-y-1">
@@ -434,6 +452,39 @@ export const AdminDashboard: React.FC = () => {
                                                     <button onClick={() => { setEditingLehenga(l); setIsLehengaFormOpen(true); }} className="text-blue-400 hover:text-blue-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-edit"></i></button>
                                                     <button onClick={() => handleDeleteLehenga(l._id)} className="text-red-400 hover:text-red-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-trash"></i></button>
                                                 </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* USERS */}
+                    {activeTab === 'users' && (
+                        <div className="space-y-4">
+                            <h2 className="text-xl text-white font-bold mb-4">Registered Users</h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-gray-300">
+                                    <thead className="bg-white/5 text-xs uppercase">
+                                        <tr>
+                                            <th className="p-3">Name</th>
+                                            <th className="p-3">Email</th>
+                                            <th className="p-3">Role</th>
+                                            <th className="p-3">ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/10">
+                                        {users.map((user, idx) => (
+                                            <tr key={idx} className="hover:bg-white/5">
+                                                <td className="p-3 font-medium text-white">{user.name}</td>
+                                                <td className="p-3">{user.email}</td>
+                                                <td className="p-3">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-gold-500/20 text-gold-500' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                        {user.role.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 font-mono text-xs text-gray-500">{user._id}</td>
                                             </tr>
                                         ))}
                                     </tbody>

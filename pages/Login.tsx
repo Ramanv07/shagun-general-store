@@ -25,6 +25,11 @@ export const Login: React.FC = () => {
                 login(user);
                 navigate(user.role === 'admin' ? '/admin' : '/');
             } else {
+                if (!formData.email.endsWith('@gmail.com')) {
+                    alert('Only @gmail.com accounts are allowed.');
+                    setLoading(false);
+                    return;
+                }
                 const user = await mockApi.register(formData.name, formData.email, formData.password);
                 login(user);
                 navigate('/');

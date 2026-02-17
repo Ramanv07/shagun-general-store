@@ -208,5 +208,19 @@ export const mockApi = {
       localStorage.setItem('shagun_lehengas', JSON.stringify(newLehengas));
       resolve();
     });
+  },
+
+  getUsers: async (): Promise<User[]> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+        // Don't return passwords
+        const safeUsers = users.map((u: any) => {
+          const { password, ...safe } = u;
+          return safe;
+        });
+        resolve(safeUsers);
+      }, 500);
+    });
   }
 };

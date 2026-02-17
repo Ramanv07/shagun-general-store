@@ -34,6 +34,13 @@ export const Checkout: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
+    // 0. Validate Pincode
+    if (formData.pinCode !== '471105') {
+      alert('Delivery is available only for Pincode 471105');
+      setLoading(false);
+      return;
+    }
+
     // 1. Create Order
     const newOrder = await addOrder({
       user: user!,
