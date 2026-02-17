@@ -100,12 +100,6 @@ export const Login: React.FC = () => {
                         {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
                     </button>
                 </div>
-
-                {isLogin && (
-                    <div className="mt-4 p-3 bg-white/5 rounded text-xs text-gray-400 text-center">
-
-                    </div>
-                )}
             </div>
         </div>
     );
