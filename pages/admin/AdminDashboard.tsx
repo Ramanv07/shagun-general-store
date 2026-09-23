@@ -124,21 +124,69 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
-    // Image Upload Handler
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'lehenga') => {
+    // Compress image to prevent localStorage QuotaExceededError
+    const [imageUploading, setImageUploading] = useState(false);
+
+    const compressImage = (file: File, maxWidth = 500, maxHeight = 500, quality = 0.7): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            if (file.type === 'image/svg+xml') {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (readerEvent) => {
+                const img = new Image();
+                img.onload = () => {
+                    let { width, height } = img;
+                    if (width > maxWidth || height > maxHeight) {
+                        if (width > height) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        } else {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(readerEvent.target?.result as string);
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = () => reject(new Error('Image failed to load for compression'));
+                img.src = readerEvent.target?.result as string;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    // Image Upload Handler with automatic compression
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'lehenga') => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (typeof reader.result === 'string') {
-                    if (type === 'product') {
-                        setEditingProduct(prev => prev ? ({ ...prev, image: reader.result as string }) : null);
-                    } else {
-                        setEditingLehenga(prev => prev ? ({ ...prev, image: reader.result as string }) : null);
-                    }
+            try {
+                setImageUploading(true);
+                const compressed = await compressImage(file, 500, 500, 0.7);
+                if (type === 'product') {
+                    setEditingProduct(prev => prev ? ({ ...prev, image: compressed }) : null);
+                } else {
+                    setEditingLehenga(prev => prev ? ({ ...prev, image: compressed }) : null);
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch (err) {
+                console.error("Failed to compress image:", err);
+                alert("Failed to process image. You can also paste an image URL instead.");
+            } finally {
+                setImageUploading(false);
+            }
         }
     };
 
@@ -241,24 +289,34 @@ export const AdminDashboard: React.FC = () => {
                                                 ))}
                                             </select>
 
-                                            {/* Image Upload */}
+                                            {/* Image Upload / URL */}
                                             <div className="space-y-2">
-                                                <label className="text-gray-400 text-sm">Product Image</label>
+                                                <label className="text-gray-400 text-sm font-medium">Product Image</label>
                                                 <div className="flex items-center gap-4">
-                                                    <div className="relative w-24 h-24 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+                                                    <div className="relative w-20 h-20 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
                                                         {editingProduct?.image ? (
                                                             <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
                                                         ) : (
                                                             <i className="fas fa-image text-gray-500 text-2xl"></i>
                                                         )}
                                                     </div>
-                                                    <div className="flex-1">
+                                                    <div className="flex-1 space-y-2">
                                                         <input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            onChange={(e) => handleImageUpload(e, 'product')}
-                                                            className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gold-500 file:text-black hover:file:bg-gold-400 cursor-pointer"
+                                                            type="text"
+                                                            placeholder="Paste Image URL (or upload below)"
+                                                            className="w-full bg-white/5 p-2 rounded text-white text-xs border border-white/10 focus:border-gold-500 outline-none"
+                                                            value={editingProduct?.image && !editingProduct.image.startsWith('data:') ? editingProduct.image : ''}
+                                                            onChange={e => setEditingProduct({ ...editingProduct, image: e.target.value })}
                                                         />
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(e) => handleImageUpload(e, 'product')}
+                                                                className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold-500 file:text-black hover:file:bg-gold-400 cursor-pointer"
+                                                            />
+                                                            {imageUploading && <span className="text-xs text-gold-400 font-semibold animate-pulse whitespace-nowrap">Optimizing...</span>}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -458,24 +516,34 @@ export const AdminDashboard: React.FC = () => {
                                                 required
                                             />
 
-                                            {/* Image Upload */}
+                                            {/* Image Upload / URL */}
                                             <div className="space-y-2">
-                                                <label className="text-gray-400 text-sm">Lehenga Image</label>
+                                                <label className="text-gray-400 text-sm font-medium">Lehenga Image</label>
                                                 <div className="flex items-center gap-4">
-                                                    <div className="relative w-24 h-24 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+                                                    <div className="relative w-20 h-20 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
                                                         {editingLehenga?.image ? (
                                                             <img src={editingLehenga.image} alt="Preview" className="w-full h-full object-cover" />
                                                         ) : (
                                                             <i className="fas fa-image text-gray-500 text-2xl"></i>
                                                         )}
                                                     </div>
-                                                    <div className="flex-1">
+                                                    <div className="flex-1 space-y-2">
                                                         <input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            onChange={(e) => handleImageUpload(e, 'lehenga')}
-                                                            className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gold-500 file:text-black hover:file:bg-gold-400 cursor-pointer"
+                                                            type="text"
+                                                            placeholder="Paste Image URL (or upload below)"
+                                                            className="w-full bg-white/5 p-2 rounded text-white text-xs border border-white/10 focus:border-gold-500 outline-none"
+                                                            value={editingLehenga?.image && !editingLehenga.image.startsWith('data:') ? editingLehenga.image : ''}
+                                                            onChange={e => setEditingLehenga({ ...editingLehenga, image: e.target.value })}
                                                         />
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(e) => handleImageUpload(e, 'lehenga')}
+                                                                className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold-500 file:text-black hover:file:bg-gold-400 cursor-pointer"
+                                                            />
+                                                            {imageUploading && <span className="text-xs text-gold-400 font-semibold animate-pulse whitespace-nowrap">Optimizing...</span>}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

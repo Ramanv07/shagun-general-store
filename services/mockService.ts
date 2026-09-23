@@ -62,6 +62,28 @@ const initData = () => {
 
 initData();
 
+// Safe LocalStorage setter to catch and handle QuotaExceededError
+export const safeSetItem = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error: any) {
+    if (error?.name === 'QuotaExceededError' || error?.code === 22 || error?.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+      console.warn(`[Storage] Quota exceeded for "${key}". Attempting to save...`);
+      try {
+        localStorage.removeItem('shagun_data_version');
+        localStorage.setItem(key, value);
+        return true;
+      } catch (innerErr) {
+        console.error(`[Storage] Unable to save to localStorage (storage full).`, innerErr);
+        return false;
+      }
+    }
+    console.error(`[Storage] Error setting "${key}":`, error);
+    return false;
+  }
+};
+
 // Helpers
 const generateId = (prefix: string = ''): string => {
   return prefix + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -69,7 +91,7 @@ const generateId = (prefix: string = ''): string => {
 
 const updateTimestamp = () => {
   const ts = Date.now().toString();
-  localStorage.setItem('shagun_data_version', ts);
+  safeSetItem('shagun_data_version', ts);
   return ts;
 };
 
@@ -203,7 +225,7 @@ export const mockApi = {
           };
           products.push(newProduct);
         }
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+        safeSetItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
         updateTimestamp(); // Trigger update
         resolve(product as Product);
       }, 600);
@@ -214,7 +236,7 @@ export const mockApi = {
     return new Promise((resolve) => {
       const products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
       const newProducts = products.filter((p: Product) => p._id !== id);
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(newProducts));
+      safeSetItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(newProducts));
       updateTimestamp(); // Trigger update
       resolve();
     });
@@ -244,7 +266,7 @@ export const mockApi = {
           return p;
         });
 
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updatedProducts));
+        safeSetItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updatedProducts));
         updateTimestamp(); // Stock change triggers update
 
         const newOrder = {
@@ -254,7 +276,7 @@ export const mockApi = {
           createdAt: new Date().toISOString()
         };
         orders.unshift(newOrder); // Add to top
-        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+        safeSetItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
         resolve(newOrder as Order);
       }, 800);
     });
@@ -329,7 +351,7 @@ export const mockApi = {
           lehenga._id = generateId('LEG');
           lehengas.push(lehenga);
         }
-        localStorage.setItem('shagun_lehengas', JSON.stringify(lehengas));
+        safeSetItem('shagun_lehengas', JSON.stringify(lehengas));
         resolve(lehenga);
       }, 600);
     });
@@ -339,7 +361,7 @@ export const mockApi = {
     return new Promise((resolve) => {
       const lehengas = JSON.parse(localStorage.getItem('shagun_lehengas') || '[]');
       const newLehengas = lehengas.filter((l: any) => l._id !== id);
-      localStorage.setItem('shagun_lehengas', JSON.stringify(newLehengas));
+      safeSetItem('shagun_lehengas', JSON.stringify(newLehengas));
       resolve();
     });
   },
