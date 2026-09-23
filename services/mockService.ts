@@ -62,6 +62,48 @@ const initData = () => {
 
 initData();
 
+// Clean oversized base64 images that might have bloated localStorage in past sessions
+const cleanBloatedStorage = () => {
+  try {
+    const prodStr = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+    if (prodStr && prodStr.includes('data:image')) {
+      const prods = JSON.parse(prodStr);
+      let changed = false;
+      const cleaned = prods.map((p: any) => {
+        if (p.image && p.image.startsWith('data:') && p.image.length > 50000) {
+          changed = true;
+          return { ...p, image: 'https://picsum.photos/400/400?random=1' };
+        }
+        return p;
+      });
+      if (changed) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(cleaned));
+      }
+    }
+
+    const ordStr = localStorage.getItem(STORAGE_KEYS.ORDERS);
+    if (ordStr && ordStr.includes('data:image')) {
+      const ords = JSON.parse(ordStr);
+      let changed = false;
+      const cleaned = ords.map((o: any) => ({
+        ...o,
+        items: (o.items || []).map((it: any) => {
+          if (it.image && it.image.startsWith('data:') && it.image.length > 1000) {
+            changed = true;
+            return { ...it, image: '' };
+          }
+          return it;
+        })
+      }));
+      if (changed) {
+        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(cleaned));
+      }
+    }
+  } catch (e) {
+    console.warn("[Storage] Cleanup warning:", e);
+  }
+};
+
 // Safe LocalStorage setter to catch and handle QuotaExceededError
 export const safeSetItem = (key: string, value: string): boolean => {
   try {
@@ -69,8 +111,9 @@ export const safeSetItem = (key: string, value: string): boolean => {
     return true;
   } catch (error: any) {
     if (error?.name === 'QuotaExceededError' || error?.code === 22 || error?.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-      console.warn(`[Storage] Quota exceeded for "${key}". Attempting to save...`);
+      console.warn(`[Storage] Quota exceeded for "${key}". Cleaning up bloat and retrying...`);
       try {
+        cleanBloatedStorage();
         localStorage.removeItem('shagun_data_version');
         localStorage.setItem(key, value);
         return true;

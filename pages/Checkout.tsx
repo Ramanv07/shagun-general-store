@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 export const Checkout: React.FC = () => {
   const { cart, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { addOrder } = useOrders();
   const navigate = useNavigate();
 
@@ -66,70 +66,82 @@ export const Checkout: React.FC = () => {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     // 0. Validate Pincode
     if (formData.pinCode !== '471105') {
       alert('Delivery is available only for Pincode 471105');
-      setLoading(false);
       return;
     }
 
-    // 1. Create Order
-    const newOrder = await addOrder({
-      user: user!,
-      items: cart, // CartItem[] matches Order.items
-      totalAmount: totalPrice,
-      shippingAddress: formData,
-      status: 'Processing' as any,
-      paymentMethod: 'COD',
-      paymentStatus: 'Pending'
-    });
+    setLoading(true);
 
-    // If user checked save to profile and it's a new address
-    if (saveToProfile && user) {
-      const alreadyHas = savedAddresses.some(
-        a => a.houseNo === formData.houseNo && a.pinCode === formData.pinCode
-      );
-      if (!alreadyHas) {
-        const newAddressList = [
-          ...savedAddresses,
-          {
-            _id: 'ADDR_' + Date.now(),
-            ...formData,
-            isDefault: savedAddresses.length === 0
-          }
-        ];
-        updateUser({
-          ...user,
-          phone: user.phone || formData.mobile,
-          addresses: newAddressList
-        });
+    try {
+      // 1. Sanitize items to remove heavy base64 strings from bloating localStorage
+      const sanitizedItems = cart.map(item => ({
+        ...item,
+        image: item.image?.startsWith('data:') && item.image.length > 500 ? '' : item.image
+      }));
+
+      // 2. Create Order
+      const newOrder = await addOrder({
+        user: user!,
+        items: sanitizedItems,
+        totalAmount: totalPrice,
+        shippingAddress: formData,
+        status: 'Processing' as any,
+        paymentMethod: 'COD',
+        paymentStatus: 'Pending'
+      });
+
+      // If user checked save to profile and it's a new address
+      if (saveToProfile && user && updateUser) {
+        const alreadyHas = savedAddresses.some(
+          a => a.houseNo === formData.houseNo && a.pinCode === formData.pinCode
+        );
+        if (!alreadyHas) {
+          const newAddressList = [
+            ...savedAddresses,
+            {
+              _id: 'ADDR_' + Date.now(),
+              ...formData,
+              isDefault: savedAddresses.length === 0
+            }
+          ];
+          updateUser({
+            ...user,
+            phone: user.phone || formData.mobile,
+            addresses: newAddressList
+          });
+        }
       }
+
+      setOrderId(newOrder._id);
+
+      // 3. Generate WhatsApp Link
+      const orderItems = cart.map(i => `- ${i.name} (x${i.quantity}) - ₹${i.price * i.quantity}`).join('%0a');
+
+      const message = `*New Order from Shagun Store*%0a%0a` +
+        `*Order ID:* ${newOrder._id}%0a` +
+        `*Customer:* ${formData.fullName}%0a` +
+        `*Mobile:* ${formData.mobile}%0a` +
+        `*Address:* ${formData.houseNo}, ${formData.street}, ${formData.city}, ${formData.state} - ${formData.pinCode}%0a%0a` +
+        `*Items:*%0a${orderItems}%0a%0a` +
+        `*Total Amount: ₹${totalPrice}*`;
+
+      const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP}?text=${message}`;
+
+      // 4. Clear Cart & Show Thank You Modal
+      clearCart();
+      setShowThankYou(true);
+
+      // Open WhatsApp in new tab
+      window.open(whatsappUrl, '_blank');
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('There was an issue processing your order. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setOrderId(newOrder._id);
-
-    // 2. Generate WhatsApp Link
-    const orderItems = cart.map(i => `- ${i.name} (x${i.quantity}) - ₹${i.price * i.quantity}`).join('%0a');
-
-    const message = `*New Order from Shagun Store*%0a%0a` +
-      `*Order ID:* ${newOrder._id}%0a` +
-      `*Customer:* ${formData.fullName}%0a` +
-      `*Mobile:* ${formData.mobile}%0a` +
-      `*Address:* ${formData.houseNo}, ${formData.street}, ${formData.city}, ${formData.state} - ${formData.pinCode}%0a%0a` +
-      `*Items:*%0a${orderItems}%0a%0a` +
-      `*Total Amount: ₹${totalPrice}*`;
-
-    const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP}?text=${message}`;
-
-    // 3. Clear Cart & Show Thank You Modal
-    clearCart();
-    setLoading(false);
-    setShowThankYou(true);
-
-    // Open WhatsApp in new tab
-    window.open(whatsappUrl, '_blank');
   };
 
   const handleGoToOrders = () => {
