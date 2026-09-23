@@ -26,14 +26,11 @@ app.get('/', (req, res) => {
 });
 
 // Database Connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/shagun-store';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shagun-store';
 
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
+mongoose.connect(MONGODB_URI)
     .then(() => {
-        console.log('MongoDB Connected');
+        console.log('Atlas Connected');
         app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     })
     .catch(err => {
