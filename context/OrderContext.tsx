@@ -43,8 +43,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     const getUserOrders = (userId: string): Order[] => {
-        return orders.filter(order => order.user?.email === userId || (order as any).userId === userId);
+        return orders.filter(order => 
+            order.user?._id === userId || 
+            order.user?.email === userId || 
+            (order as any).userId === userId
+        );
     };
+
 
     const getAllOrders = (): Order[] => {
         return orders;

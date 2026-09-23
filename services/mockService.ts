@@ -9,10 +9,47 @@ const initData = () => {
   }
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
     // Add a default admin
-    const admin: User = { _id: 'admin1', name: 'Shagun Admin', email: 'admin@shagun.com', role: UserRole.ADMIN, token: 'mock_admin_token' };
-    const demoUser: User = { _id: 'user1', name: 'Demo User', email: 'user@shagun.com', role: UserRole.USER, token: 'mock_user_token' };
+    const admin: User = { 
+      _id: 'admin1', 
+      name: 'Shagun Admin', 
+      email: 'admin@shagun.com', 
+      phone: '9876543200',
+      role: UserRole.ADMIN, 
+      addresses: [{
+        _id: 'ADDR_ADMIN',
+        fullName: 'Shagun Admin',
+        mobile: '9876543200',
+        houseNo: 'Shop No. 12',
+        street: 'Main Bazaar Road',
+        city: 'New Delhi',
+        state: 'Delhi',
+        pinCode: '110001',
+        isDefault: true
+      }],
+      token: 'mock_admin_token' 
+    };
+    const demoUser: User = { 
+      _id: 'user1', 
+      name: 'Demo User', 
+      email: 'user@shagun.com', 
+      phone: '9876543210',
+      role: UserRole.USER, 
+      addresses: [{
+        _id: 'ADDR_DEMO',
+        fullName: 'Demo User',
+        mobile: '9876543210',
+        houseNo: 'Plot 42',
+        street: 'Main Market Road',
+        city: 'New Delhi',
+        state: 'Delhi',
+        pinCode: '110001',
+        isDefault: true
+      }],
+      token: 'mock_user_token' 
+    };
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([admin, demoUser]));
   }
+
   if (!localStorage.getItem('shagun_lehengas')) {
     const mockLehengas = [
       { _id: 'l1', name: 'Royal Red Bridal Lehenga', price: 45000, image: 'https://images.unsplash.com/photo-1594463750939-ebb6bd2d5337?auto=format&fit=crop&q=80&w=800', description: 'Hand-embroidered traditional red lehenga with heavy zari work.' },
@@ -53,11 +90,23 @@ export const mockApi = {
       setTimeout(() => {
         // Hardcoded Admin - Always Allow
         if (email.toLowerCase() === 'admin@shagun.com' && password === 'admin123') {
-          const adminUser = {
+          const adminUser: User = {
             _id: 'ADMIN001',
             name: 'Shagun Admin',
             email: email.toLowerCase(),
+            phone: '9876543200',
             role: UserRole.ADMIN,
+            addresses: [{
+              _id: 'ADDR_ADMIN',
+              fullName: 'Shagun Admin',
+              mobile: '9876543200',
+              houseNo: 'Shop No. 12',
+              street: 'Main Bazaar Road',
+              city: 'New Delhi',
+              state: 'Delhi',
+              pinCode: '110001',
+              isDefault: true
+            }],
             token: 'mock_admin_token'
           };
           // Ensure admin is in local storage for persistence across reloads if needed
@@ -71,7 +120,25 @@ export const mockApi = {
         }
 
         if (email === 'user@shagun.com' && password === 'user123') {
-          resolve({ _id: 'USER001', name: 'Demo User', email, role: UserRole.USER, token: 'mock_user_token' });
+          resolve({ 
+            _id: 'USER001', 
+            name: 'Demo User', 
+            email, 
+            phone: '9876543210',
+            role: UserRole.USER, 
+            addresses: [{
+              _id: 'ADDR_DEMO',
+              fullName: 'Demo User',
+              mobile: '9876543210',
+              houseNo: 'Plot 42',
+              street: 'Main Market Road',
+              city: 'New Delhi',
+              state: 'Delhi',
+              pinCode: '110001',
+              isDefault: true
+            }],
+            token: 'mock_user_token' 
+          });
           return;
         }
 
@@ -89,16 +156,18 @@ export const mockApi = {
     });
   },
 
-  register: async (name: string, email: string, password: string): Promise<User> => {
+  register: async (name: string, email: string, password: string, phone?: string): Promise<User> => {
     return new Promise((resolve) => {
       setTimeout(() => {
         const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
-        const newUser = {
+        const newUser: any = {
           _id: generateId('USR'),
           name,
           email,
+          phone: phone || '',
           password,
-          role: UserRole.USER
+          role: UserRole.USER,
+          addresses: []
         };
         users.push(newUser);
         localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
@@ -107,6 +176,7 @@ export const mockApi = {
       }, 800);
     });
   },
+
 
   getProducts: async (): Promise<Product[]> => {
     return new Promise((resolve) => {
@@ -295,5 +365,63 @@ export const mockApi = {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(newUsers));
       resolve();
     });
+  },
+
+  updateProfile: async (userId: string, data: { name?: string; email?: string; phone?: string }): Promise<User> => {
+    return new Promise((resolve, reject) => {
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      const index = users.findIndex((u: any) => u._id === userId || u.email === userId);
+      if (index === -1) {
+        reject(new Error('User not found'));
+        return;
+      }
+      users[index] = { ...users[index], ...data };
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      const { password, ...safeUser } = users[index];
+      resolve(safeUser);
+    });
+  },
+
+  addAddress: async (userId: string, address: any): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      const index = users.findIndex((u: any) => u._id === userId || u.email === userId);
+      if (index === -1) {
+        reject(new Error('User not found'));
+        return;
+      }
+      const user = users[index];
+      user.addresses = user.addresses || [];
+      const newAddr = {
+        _id: generateId('ADDR'),
+        ...address,
+        isDefault: address.isDefault || user.addresses.length === 0
+      };
+      if (newAddr.isDefault) {
+        user.addresses.forEach((a: any) => { a.isDefault = false; });
+      }
+      user.addresses.push(newAddr);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      resolve(user.addresses);
+    });
+  },
+
+  deleteAddress: async (userId: string, addressId: string): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      const index = users.findIndex((u: any) => u._id === userId || u.email === userId);
+      if (index === -1) {
+        reject(new Error('User not found'));
+        return;
+      }
+      const user = users[index];
+      user.addresses = (user.addresses || []).filter((a: any) => a._id !== addressId);
+      if (user.addresses.length > 0 && !user.addresses.some((a: any) => a.isDefault)) {
+        user.addresses[0].isDefault = true;
+      }
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      resolve(user.addresses);
+    });
   }
 };
+

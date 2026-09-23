@@ -8,7 +8,9 @@ export interface User {
   _id: string;
   name: string;
   email: string;
+  phone?: string;
   role: UserRole;
+  addresses?: Address[];
   token?: string;
 }
 
@@ -33,7 +35,8 @@ export enum OrderStatus {
   PROCESSING = 'Processing',
   PACKED = 'Packed',
   OUT_FOR_DELIVERY = 'Out for Delivery',
-  DELIVERED = 'Delivered'
+  DELIVERED = 'Delivered',
+  CANCELLED = 'Cancelled'
 }
 
 export interface Order {
@@ -42,11 +45,14 @@ export interface Order {
   items: CartItem[];
   totalAmount: number;
   shippingAddress: Address;
+  paymentMethod?: string;
+  paymentStatus?: string;
   status: OrderStatus;
   createdAt: string;
 }
 
 export interface Address {
+  _id?: string;
   fullName: string;
   mobile: string;
   houseNo: string;
@@ -54,7 +60,9 @@ export interface Address {
   city: string;
   state: string;
   pinCode: string;
+  isDefault?: boolean;
 }
+
 
 export interface Review {
   id: string;

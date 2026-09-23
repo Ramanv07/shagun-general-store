@@ -7,21 +7,23 @@ import { Order, OrderStatus } from '../types';
 import { mockApi } from '../services/mockService';
 
 const statusColors: Record<OrderStatus, string> = {
-    'Processing': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    'Packed': 'bg-blue-100 text-blue-800 border-blue-300',
-    'Out for Delivery': 'bg-purple-100 text-purple-800 border-purple-300',
-    'Delivered': 'bg-green-100 text-green-800 border-green-300',
+    [OrderStatus.PROCESSING]: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    [OrderStatus.PACKED]: 'bg-blue-100 text-blue-800 border-blue-300',
+    [OrderStatus.OUT_FOR_DELIVERY]: 'bg-purple-100 text-purple-800 border-purple-300',
+    [OrderStatus.DELIVERED]: 'bg-green-100 text-green-800 border-green-300',
+    [OrderStatus.CANCELLED]: 'bg-red-100 text-red-800 border-red-300',
 };
 
 const statusIcons: Record<OrderStatus, string> = {
-    'Processing': 'fa-clock',
-    'Packed': 'fa-box',
-    'Out for Delivery': 'fa-truck',
-    'Delivered': 'fa-check-circle',
+    [OrderStatus.PROCESSING]: 'fa-clock',
+    [OrderStatus.PACKED]: 'fa-box',
+    [OrderStatus.OUT_FOR_DELIVERY]: 'fa-truck',
+    [OrderStatus.DELIVERED]: 'fa-check-circle',
+    [OrderStatus.CANCELLED]: 'fa-ban',
 };
 
 export const Orders: React.FC = () => {
-    const { getUserOrders } = useOrders();
+    const { getUserOrders, updateOrderStatus } = useOrders();
     const { user } = useAuth();
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
@@ -40,7 +42,18 @@ export const Orders: React.FC = () => {
         );
     }
 
-    const userOrders = getUserOrders(user.email);
+    const userOrders = getUserOrders(user._id || user.email);
+
+    const handleCancelOrder = async (orderId: string) => {
+        if (window.confirm('Are you sure you want to cancel this order?')) {
+            await updateOrderStatus(orderId, OrderStatus.CANCELLED);
+            if (selectedOrder && selectedOrder._id === orderId) {
+                setSelectedOrder({ ...selectedOrder, status: OrderStatus.CANCELLED });
+            }
+            alert('Order has been cancelled.');
+        }
+    };
+
 
     // Rating State
     const [ratingModalOpen, setRatingModalOpen] = useState(false);
@@ -201,15 +214,40 @@ export const Orders: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* Payment Method & Status */}
+                                <div>
+                                    <h3 className="text-white font-bold mb-3">Payment Information</h3>
+                                    <div className="bg-white/5 p-4 rounded-lg flex justify-between items-center">
+                                        <div>
+                                            <p className="text-white font-medium">{selectedOrder.paymentMethod || 'Cash on Delivery (COD)'}</p>
+                                            <p className="text-gray-400 text-xs mt-0.5">Pay upon delivery to courier</p>
+                                        </div>
+                                        <span className="px-2.5 py-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-xs font-semibold rounded-full">
+                                            {selectedOrder.paymentStatus || 'Pending'}
+                                        </span>
+                                    </div>
+                                </div>
+
                                 {/* Total */}
                                 <div className="border-t border-white/10 pt-4">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-between items-center mb-4">
                                         <span className="text-white font-bold text-lg">Total Amount</span>
                                         <span className="text-gold-500 font-bold text-2xl">₹{selectedOrder.totalAmount.toLocaleString()}</span>
                                     </div>
+
+                                    {(selectedOrder.status === OrderStatus.PROCESSING || selectedOrder.status === OrderStatus.PACKED) && (
+                                        <button
+                                            onClick={() => handleCancelOrder(selectedOrder._id)}
+                                            className="w-full py-2.5 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fas fa-times-circle"></i>
+                                            Cancel Order
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 )}
 
