@@ -206,7 +206,7 @@ export const AdminDashboard: React.FC = () => {
     if (loading && products.length === 0) return <div className="p-10 text-white">Loading Dashboard...</div>;
 
     return (
-        <div className="min-h-screen bg-midnight-950 pt-24 px-4 pb-10">
+        <div className="min-h-screen bg-gray-900 pt-24 px-4 pb-10">
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-bold text-white mb-8">Admin Dashboard</h1>
 
@@ -216,7 +216,7 @@ export const AdminDashboard: React.FC = () => {
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
-                            className={`px-6 py-2 rounded-lg capitalize font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-gold-500 text-black' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
+                            className={`px-6 py-2 rounded-lg capitalize font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-maroon-600 text-white shadow-lg' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
                         >
                             {tab}
                         </button>
@@ -224,7 +224,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Content */}
-                <div className="glass p-6 rounded-2xl min-h-[500px]">
+                <div className="bg-gray-800/50 border border-gray-700 p-6 rounded-2xl min-h-[500px]">
 
                     {/* OVERVIEW */}
                     {activeTab === 'overview' && (
@@ -264,8 +264,8 @@ export const AdminDashboard: React.FC = () => {
                             {/* Product Form Modal */}
                             {isFormOpen && (
                                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                                    <form onSubmit={handleSaveProduct} className="glass bg-midnight-900 p-8 rounded-2xl w-full max-w-lg relative animate-fade-in-up border border-white/10">
-                                        <button type="button" onClick={() => setIsFormOpen(false)} className="absolute top-4 right-4 text-white hover:text-red-400"><i className="fas fa-times text-xl"></i></button>
+                                    <form onSubmit={handleSaveProduct} className="bg-gray-900 p-8 rounded-2xl w-full max-w-lg relative animate-fade-in-up border border-gray-700 shadow-2xl">
+                                        <button type="button" onClick={() => setIsFormOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-400"><i className="fas fa-times text-xl"></i></button>
                                         <h3 className="text-xl text-white font-bold mb-6">{editingProduct?._id ? 'Edit' : 'Add'} Product</h3>
 
                                         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -292,9 +292,9 @@ export const AdminDashboard: React.FC = () => {
                                                 onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
                                                 required
                                             >
-                                                <option value="" className="bg-midnight-900 text-gray-400">Select Category</option>
+                                                <option value="" className="bg-gray-900 text-gray-400">Select Category</option>
                                                 {CATEGORIES.filter(c => c !== 'All').map(c => (
-                                                    <option key={c} value={c} className="bg-midnight-900 text-white">{c}</option>
+                                                    <option key={c} value={c} className="bg-gray-900 text-white">{c}</option>
                                                 ))}
                                             </select>
 

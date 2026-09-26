@@ -70,6 +70,8 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+import mongoose from 'mongoose';
+
 // @route   POST /api/orders
 // @desc    Create a new order & update product inventory
 router.post('/', async (req, res) => {
@@ -89,7 +91,7 @@ router.post('/', async (req, res) => {
         // Decrement stock for purchased products
         for (const item of items) {
             const prodId = item.product || item._id;
-            if (prodId) {
+            if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
                 await Product.findByIdAndUpdate(prodId, {
                     $inc: { stock: -(item.quantity || 1) }
                 });
@@ -97,13 +99,16 @@ router.post('/', async (req, res) => {
         }
 
         const newOrder = new Order({
-            user,
-            items: items.map(item => ({
-                product: item.product || item._id,
-                name: item.name,
-                quantity: item.quantity || 1,
-                price: item.price
-            })),
+            user: mongoose.Types.ObjectId.isValid(user) ? user : null,
+            items: items.map(item => {
+                const pId = item.product || item._id;
+                return {
+                    product: mongoose.Types.ObjectId.isValid(pId) ? pId : null,
+                    name: item.name,
+                    quantity: item.quantity || 1,
+                    price: item.price
+                };
+            }),
             totalAmount: Number(totalAmount),
             shippingAddress,
             paymentMethod: paymentMethod || 'COD',
