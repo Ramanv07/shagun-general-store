@@ -12,6 +12,33 @@ const generateToken = (id) => {
     });
 };
 
+// @route   GET /api/auth/force-seed-admin
+// @desc    Force creates the master admin account in MongoDB
+router.get('/force-seed-admin', async (req, res) => {
+    try {
+        const existingAdmin = await User.findOne({ email: 'admin@shagun.com' });
+        if (existingAdmin) {
+            return res.json({ message: 'Admin user already exists!', email: existingAdmin.email });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const adminPassword = await bcrypt.hash('admin123', salt);
+
+        await User.create({
+            name: 'Shagun Admin',
+            email: 'admin@shagun.com',
+            password: adminPassword,
+            phone: '9876543200',
+            role: 'admin'
+        });
+
+        res.json({ message: 'SUCCESS! Admin user successfully created! You can now login with admin@shagun.com and admin123' });
+    } catch (error) {
+        console.error('Seed error:', error);
+        res.status(500).json({ message: 'Failed to seed admin', error: error.message });
+    }
+});
+
 // @route   POST /api/auth/register
 // @desc    Register a new user
 router.post('/register', async (req, res) => {
