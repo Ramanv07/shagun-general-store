@@ -286,26 +286,29 @@ export const mockApi = {
   },
 
   getLehengas: async (): Promise<any[]> => {
+    try {
+      const res = await fetch('/api/products?category=Bridal Lehenga');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch lehengas from backend', e);
+    }
     return JSON.parse(localStorage.getItem('shagun_lehengas') || '[]');
   },
 
   saveLehenga: async (lehenga: any): Promise<any> => {
-    const lehengas = JSON.parse(localStorage.getItem('shagun_lehengas') || '[]');
-    if (lehenga._id) {
-      const index = lehengas.findIndex((l: any) => l._id === lehenga._id);
-      lehengas[index] = { ...lehengas[index], ...lehenga };
-    } else {
-      lehenga._id = generateId('LEG');
-      lehengas.push(lehenga);
-    }
-    safeSetItem('shagun_lehengas', JSON.stringify(lehengas));
-    return lehenga;
+    // Treat lehenga as a product with category "Bridal Lehenga"
+    lehenga.category = 'Bridal Lehenga';
+    // Provide a dummy stock and description if missing
+    lehenga.stock = lehenga.stock || 1;
+    lehenga.description = lehenga.description || 'Exclusive bridal lehenga';
+    
+    return await mockApi.saveProduct(lehenga);
   },
 
   deleteLehenga: async (id: string): Promise<void> => {
-    const lehengas = JSON.parse(localStorage.getItem('shagun_lehengas') || '[]');
-    const newLehengas = lehengas.filter((l: any) => l._id !== id);
-    safeSetItem('shagun_lehengas', JSON.stringify(newLehengas));
+    return await mockApi.deleteProduct(id);
   },
 
   getUsers: async (): Promise<User[]> => {

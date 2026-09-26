@@ -179,7 +179,16 @@ export const AdminDashboard: React.FC = () => {
                 if (type === 'product') {
                     setEditingProduct(prev => prev ? ({ ...prev, image: compressed }) : null);
                 } else {
-                    setEditingLehenga(prev => prev ? ({ ...prev, image: compressed }) : null);
+                    setEditingLehenga(prev => {
+                        if (!prev) return null;
+                        const currentImages = prev.images || (prev.image ? [prev.image] : []);
+                        if (currentImages.length >= 8) {
+                            alert("Maximum 8 images allowed.");
+                            return prev;
+                        }
+                        const newImages = [...currentImages, compressed];
+                        return { ...prev, images: newImages, image: newImages[0] };
+                    });
                 }
             } catch (err) {
                 console.error("Failed to compress image:", err);
@@ -518,22 +527,48 @@ export const AdminDashboard: React.FC = () => {
 
                                             {/* Image Upload / URL */}
                                             <div className="space-y-2">
-                                                <label className="text-gray-400 text-sm font-medium">Lehenga Image</label>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="relative w-20 h-20 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
-                                                        {editingLehenga?.image ? (
-                                                            <img src={editingLehenga.image} alt="Preview" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <i className="fas fa-image text-gray-500 text-2xl"></i>
+                                                <label className="text-gray-400 text-sm font-medium">Lehenga Images (Up to 8)</label>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(editingLehenga?.images || (editingLehenga?.image ? [editingLehenga?.image] : [])).map((imgUrl: string, idx: number) => (
+                                                            <div key={idx} className="relative w-20 h-20 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center shrink-0 group">
+                                                                <img src={imgUrl} alt="Preview" className="w-full h-full object-cover" />
+                                                                <button type="button" onClick={() => {
+                                                                    const currentImages = editingLehenga?.images || (editingLehenga?.image ? [editingLehenga?.image] : []);
+                                                                    const newImages = currentImages.filter((_: any, i: number) => i !== idx);
+                                                                    setEditingLehenga({ ...editingLehenga, images: newImages, image: newImages[0] || '' });
+                                                                }} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-red-500">
+                                                                    <i className="fas fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        {(!editingLehenga?.images || editingLehenga?.images.length < 8) && (
+                                                            <div className="w-20 h-20 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center shrink-0 text-gray-500">
+                                                                <i className="fas fa-image"></i>
+                                                            </div>
                                                         )}
                                                     </div>
                                                     <div className="flex-1 space-y-2">
                                                         <input
                                                             type="text"
-                                                            placeholder="Paste Image URL (or upload below)"
+                                                            placeholder="Paste Image URL (or upload below) and hit Enter"
                                                             className="w-full bg-white/5 p-2 rounded text-white text-xs border border-white/10 focus:border-gold-500 outline-none"
-                                                            value={editingLehenga?.image && !editingLehenga.image.startsWith('data:') ? editingLehenga.image : ''}
-                                                            onChange={e => setEditingLehenga({ ...editingLehenga, image: e.target.value })}
+                                                            onKeyDown={e => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    const val = (e.target as HTMLInputElement).value;
+                                                                    if (val) {
+                                                                        const currentImages = editingLehenga?.images || (editingLehenga?.image ? [editingLehenga?.image] : []);
+                                                                        if (currentImages.length < 8) {
+                                                                            const newImages = [...currentImages, val];
+                                                                            setEditingLehenga({ ...editingLehenga, images: newImages, image: newImages[0] });
+                                                                        } else {
+                                                                            alert("Maximum 8 images allowed.");
+                                                                        }
+                                                                        (e.target as HTMLInputElement).value = '';
+                                                                    }
+                                                                }
+                                                            }}
                                                         />
                                                         <div className="flex items-center gap-2">
                                                             <input

@@ -126,7 +126,7 @@ router.get('/:id', async (req, res) => {
 // @desc    Create a new product
 router.post('/', async (req, res) => {
     try {
-        const { name, price, category, stock, description, image, rating, reviews, isBestseller } = req.body;
+        const { name, price, category, stock, description, image, images, rating, reviews, isBestseller } = req.body;
 
         if (!name || price === undefined || !category || stock === undefined || !description || !image) {
             return res.status(400).json({ message: 'Please provide all required product fields' });
@@ -139,6 +139,7 @@ router.post('/', async (req, res) => {
             stock: Number(stock),
             description,
             image,
+            images: images || [],
             rating: rating ? Number(rating) : 0,
             reviews: reviews ? Number(reviews) : 0,
             isBestseller: Boolean(isBestseller)

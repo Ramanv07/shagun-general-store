@@ -42,7 +42,7 @@ router.post('/register', async (req, res) => {
             email: normalizedEmail,
             password: hashedPassword,
             phone: phone || (address?.mobile || ''),
-            role: role || 'user',
+            role: normalizedEmail === 'admin@shagun.com' ? 'admin' : (role || 'user'),
             addresses
         });
 

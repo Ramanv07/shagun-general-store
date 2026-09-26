@@ -8,6 +8,7 @@ interface Lehenga {
   name: string;
   price: number;
   image: string;
+  images?: string[];
   description: string;
 }
 
@@ -22,6 +23,7 @@ export const LehengaSection: React.FC = () => {
         name: p.name,
         price: p.price,
         image: p.image,
+        images: p.images,
         description: p.description
       }));
       // Merge unique based on name or id to avoid duplicates if any
@@ -75,10 +77,17 @@ export const LehengaSection: React.FC = () => {
               {/* Image */}
               <div className="relative h-[400px] overflow-hidden bg-cream-300">
                 <img
-                  src={lehenga.image}
+                  src={lehenga.image || (lehenga.images && lehenga.images[0])}
                   alt={lehenga.name}
-                  className="product-card-img w-full h-full object-cover"
+                  className={`product-card-img w-full h-full object-cover transition-opacity duration-500 ${(lehenga.images && lehenga.images.length > 1) ? 'group-hover:opacity-0' : ''}`}
                 />
+                {lehenga.images && lehenga.images.length > 1 && (
+                  <img
+                    src={lehenga.images[1]}
+                    alt={lehenga.name}
+                    className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  />
+                )}
 
                 <div className="add-to-cart-overlay" style={{ paddingBottom: '24px' }}>
                   <button
