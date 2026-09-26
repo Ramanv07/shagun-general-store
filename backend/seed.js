@@ -16,7 +16,7 @@ const PRODUCTS_DATA = [
         category: "General Use",
         stock: 50,
         description: "Aged perfection, extra long grain aromatic basmati rice. Perfect for Biryani.",
-        image: "https://picsum.photos/400/400?random=1",
+        image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800",
         rating: 4.8,
         reviews: 120,
         isBestseller: true
@@ -27,7 +27,7 @@ const PRODUCTS_DATA = [
         category: "Skin Care",
         stock: 100,
         description: "Hydrating skin cream with vitamin E for a radiant glow.",
-        image: "https://picsum.photos/400/400?random=2",
+        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800",
         rating: 4.5,
         reviews: 85,
         isBestseller: true
@@ -38,7 +38,7 @@ const PRODUCTS_DATA = [
         category: "General Use",
         stock: 200,
         description: "Decadent dark chocolate cookies with melted chips inside.",
-        image: "https://picsum.photos/400/400?random=3",
+        image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&q=80&w=800",
         rating: 4.9,
         reviews: 210,
         isBestseller: false
@@ -49,7 +49,7 @@ const PRODUCTS_DATA = [
         category: "Personal Care",
         stock: 30,
         description: "100% pure almond oil for hair and skin. No additives.",
-        image: "https://picsum.photos/400/400?random=4",
+        image: "https://images.unsplash.com/photo-1608248597359-54378f8449fa?auto=format&fit=crop&q=80&w=800",
         rating: 4.7,
         reviews: 55,
         isBestseller: false
@@ -60,7 +60,7 @@ const PRODUCTS_DATA = [
         category: "Toy",
         stock: 15,
         description: "Interactive educational robot for kids aged 5+.",
-        image: "https://picsum.photos/400/400?random=5",
+        image: "https://images.unsplash.com/photo-1535378917042-10a22c95931a?auto=format&fit=crop&q=80&w=800",
         rating: 4.2,
         reviews: 300,
         isBestseller: false
@@ -71,7 +71,7 @@ const PRODUCTS_DATA = [
         category: "Bangle",
         stock: 80,
         description: "Traditional gold plated bangle set with intricate design.",
-        image: "https://picsum.photos/400/400?random=6",
+        image: "https://images.unsplash.com/photo-1611591475819-79b8b730ab8c?auto=format&fit=crop&q=80&w=800",
         rating: 4.8,
         reviews: 90,
         isBestseller: true
@@ -82,7 +82,7 @@ const PRODUCTS_DATA = [
         category: "Powder",
         stock: 60,
         description: "Refreshing sandalwood talcum powder for all day freshness.",
-        image: "https://picsum.photos/400/400?random=7",
+        image: "https://images.unsplash.com/photo-1585238342024-78d387f4a707?auto=format&fit=crop&q=80&w=800",
         rating: 4.6,
         reviews: 110,
         isBestseller: false
@@ -93,7 +93,7 @@ const PRODUCTS_DATA = [
         category: "General Use",
         stock: 45,
         description: "Disinfectant floor cleaner with long lasting lavender fragrance.",
-        image: "https://picsum.photos/400/400?random=8",
+        image: "https://images.unsplash.com/photo-1585751119414-ef2636f8aede?auto=format&fit=crop&q=80&w=800",
         rating: 4.4,
         reviews: 75,
         isBestseller: false
@@ -104,7 +104,7 @@ const PRODUCTS_DATA = [
         category: "Skin Care",
         stock: 90,
         description: "Pure Aloe Vera gel for soothing skin and hair.",
-        image: "https://picsum.photos/400/400?random=9",
+        image: "https://images.unsplash.com/photo-1567928815104-b7980ee5032e?auto=format&fit=crop&q=80&w=800",
         rating: 4.3,
         reviews: 65,
         isBestseller: false
@@ -115,7 +115,7 @@ const PRODUCTS_DATA = [
         category: "General Use",
         stock: 40,
         description: "Premium mix of berries, nuts, and seeds.",
-        image: "https://picsum.photos/400/400?random=10",
+        image: "https://images.unsplash.com/photo-1596560548464-f010549b84d7?auto=format&fit=crop&q=80&w=800",
         rating: 4.9,
         reviews: 150,
         isBestseller: true
@@ -126,7 +126,7 @@ const PRODUCTS_DATA = [
         category: "Personal Care",
         stock: 55,
         description: "Sulphate free herbal shampoo for daily use.",
-        image: "https://picsum.photos/400/400?random=11",
+        image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&q=80&w=800",
         rating: 4.5,
         reviews: 95,
         isBestseller: false
@@ -137,7 +137,7 @@ const PRODUCTS_DATA = [
         category: "Cream",
         stock: 25,
         description: "Intense moisturizing cream for dry skin repair.",
-        image: "https://picsum.photos/400/400?random=12",
+        image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&q=80&w=800",
         rating: 4.8,
         reviews: 180,
         isBestseller: false

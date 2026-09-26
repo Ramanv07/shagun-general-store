@@ -1,54 +1,112 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
+import { FALLBACK_IMAGE } from '../constants';
 
 interface Props {
   product: Product;
 }
 
+const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5;
+  return (
+    <span className="text-gold-500 text-xs">
+      {[...Array(full)].map((_, i) => <i key={i} className="fas fa-star" />)}
+      {half && <i className="fas fa-star-half-alt" />}
+    </span>
+  );
+};
+
 export const ProductCard: React.FC<Props> = ({ product }) => {
   const { addToCart } = useCart();
+  const [imgSrc, setImgSrc] = useState<string>(product.image || FALLBACK_IMAGE);
+  const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(product.image || FALLBACK_IMAGE);
+  }, [product.image]);
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
 
   return (
-    <div className="group relative h-[420px] w-full cursor-pointer">
-      <div className="absolute inset-0 glass-card rounded-2xl overflow-hidden shadow-lg border border-white/5 transition-all duration-300 hover:shadow-gold-500/10 hover:border-white/20">
+    <div className="product-card card group cursor-pointer animate-fade-in">
+      {/* ── Image ── */}
+      <div className="relative h-56 overflow-hidden bg-cream-300">
+        <img
+          src={imgSrc}
+          alt={product.name}
+          onError={() => setImgSrc(FALLBACK_IMAGE)}
+          className="product-card-img w-full h-full object-cover"
+          loading="lazy"
+        />
 
-        {/* Image */}
-        <div className="h-64 w-full overflow-hidden bg-white/5 relative">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
-            <button
-              onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-              className="bg-gold-500 text-black font-bold py-2 px-6 rounded-full shadow-lg hover:bg-gold-400 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300"
-            >
-              Add to Cart
-            </button>
-          </div>
+        {/* Hover overlay */}
+        <div className="add-to-cart-overlay">
+          <button
+            onClick={handleAdd}
+            className={`add-to-cart-btn-hover btn btn-gold btn-sm ${added ? 'opacity-80' : ''}`}
+          >
+            {added
+              ? <><i className="fas fa-check mr-1.5" /> Added!</>
+              : <><i className="fas fa-bag-shopping mr-1.5" /> Add to Cart</>
+            }
+          </button>
+        </div>
+
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           {product.isBestseller && (
-            <div className="absolute top-2 left-2 bg-gradient-to-r from-gold-500 to-amber-500 text-black text-xs font-bold px-2 py-1 rounded shadow-lg">
-              BESTSELLER
-            </div>
+            <span className="badge badge-gold">
+              <i className="fas fa-trophy text-[8px]" /> Bestseller
+            </span>
+          )}
+          {product.stock <= 10 && product.stock > 0 && (
+            <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-5 text-left">
-          <p className="text-gold-500 text-xs font-bold tracking-wider mb-1 uppercase">{product.category}</p>
-          <h3 className="text-xl font-semibold text-white mb-2 line-clamp-1">{product.name}</h3>
+        {/* Category chip top-right */}
+        <div className="absolute top-3 right-3">
+          <span className="badge badge-cream text-[10px]">{product.category}</span>
+        </div>
+      </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-2xl font-bold text-white">₹{product.price}</span>
-            <div className="flex items-center text-yellow-500 text-sm">
-              <i className="fas fa-star mr-1"></i>
-              <span>{product.rating}</span>
-            </div>
+      {/* ── Content ── */}
+      <div className="p-4">
+        <h3 className="font-semibold text-cream-900 text-base leading-tight mb-1 line-clamp-2 group-hover:text-maroon-600 transition-colors">
+          {product.name}
+        </h3>
+
+        {/* Rating row */}
+        <div className="flex items-center gap-2 mb-3">
+          <StarRating rating={product.rating} />
+          <span className="text-xs text-cream-700">{product.rating.toFixed(1)}</span>
+          <span className="text-xs text-cream-600">({product.reviews})</span>
+        </div>
+
+        {/* Price + Quick Add */}
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-xl font-bold text-maroon-600">₹{product.price.toLocaleString('en-IN')}</span>
           </div>
+          <button
+            onClick={handleAdd}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all text-sm
+              ${added
+                ? 'bg-gold-500 text-maroon-800'
+                : 'bg-cream-200 text-maroon-600 hover:bg-maroon-600 hover:text-white'
+              }`}
+            title="Add to cart"
+          >
+            <i className={`fas ${added ? 'fa-check' : 'fa-plus'}`} />
+          </button>
         </div>
       </div>
     </div>

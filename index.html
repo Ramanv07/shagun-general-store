@@ -4,12 +4,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shagun General Store | Premium Shopping</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Shagun General Store | Everything You Need Under One Roof</title>
+  <meta name="description" content="Shagun General Store — premium groceries, personal care, bangles, toys and more. Fast delivery across India.">
+
+  <!-- Google Fonts -->
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
     rel="stylesheet">
+
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -19,86 +26,83 @@
             serif: ['Playfair Display', 'serif'],
           },
           colors: {
-            gold: {
-              400: '#FACC15',
-              500: '#EAB308',
-              600: '#CA8A04',
+            maroon: {
+              50:  '#FDF2F4',
+              100: '#FAE2E6',
+              200: '#F2B8C1',
+              300: '#E88A99',
+              400: '#D45C72',
+              500: '#9B3345',
+              600: '#7A1F2E',
+              700: '#5C1622',
+              800: '#3E0E17',
+              900: '#20080C',
             },
-            midnight: {
-              800: '#1e1b4b',
-              900: '#0f172a',
-              950: '#020617',
-            }
+            gold: {
+              50:  '#FDFAF2',
+              100: '#FAF1D9',
+              200: '#F2DFA8',
+              300: '#E8C96E',
+              400: '#E2C070',
+              500: '#C9A24B',
+              600: '#A8832E',
+              700: '#7D6022',
+              800: '#543F17',
+              900: '#2B200C',
+            },
+            cream: {
+              50:  '#FFFFFF',
+              100: '#FFF9F2',
+              200: '#FBF3E7',
+              300: '#F0E4CC',
+              400: '#E2CFA8',
+              500: '#D4BA84',
+              600: '#B09880',
+              700: '#7A6650',
+              800: '#4A3C30',
+              900: '#2C1A0E',
+            },
           },
           animation: {
-            'float': 'float 6s ease-in-out infinite',
-            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            'fade-in-up': 'fadeInUp 1s ease-out forwards',
-            'reveal': 'reveal 1.2s cubic-bezier(0.77, 0, 0.175, 1) forwards',
+            'float':       'float 6s ease-in-out infinite',
+            'fade-in-up':  'fadeInUp 0.7s ease-out forwards',
+            'fade-in':     'fadeIn 0.5s ease-out forwards',
+            'scale-in':    'scaleIn 0.5s ease-out forwards',
+            'slide-left':  'slideInLeft 0.6s ease-out forwards',
+            'bounce-slow': 'bounce 2.5s infinite',
           },
           keyframes: {
             float: {
               '0%, 100%': { transform: 'translateY(0)' },
-              '50%': { transform: 'translateY(-20px)' },
+              '50%':       { transform: 'translateY(-14px)' },
             },
             fadeInUp: {
-              '0%': { opacity: '0', transform: 'translateY(30px)' },
+              '0%':   { opacity: '0', transform: 'translateY(24px)' },
               '100%': { opacity: '1', transform: 'translateY(0)' },
             },
-            reveal: {
-              '0%': { width: '0%' },
-              '100%': { width: '100%' },
-            }
-          }
+            fadeIn: {
+              '0%':   { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            scaleIn: {
+              '0%':   { opacity: '0', transform: 'scale(0.92)' },
+              '100%': { opacity: '1', transform: 'scale(1)' },
+            },
+            slideInLeft: {
+              '0%':   { opacity: '0', transform: 'translateX(-30px)' },
+              '100%': { opacity: '1', transform: 'translateX(0)' },
+            },
+          },
+          boxShadow: {
+            'maroon-sm': '0 2px 8px rgba(122, 31, 46, 0.08)',
+            'maroon-md': '0 6px 24px rgba(122, 31, 46, 0.12)',
+            'maroon-lg': '0 16px 48px rgba(122, 31, 46, 0.18)',
+            'gold':      '0 4px 20px rgba(201, 162, 75, 0.35)',
+          },
         }
       }
     }
   </script>
-  <style>
-    body {
-      background-color: #020617;
-      color: #f8fafc;
-      overflow-x: hidden;
-    }
-
-    .glass {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .glass-card {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    }
-
-    .text-gradient {
-      background: linear-gradient(to right, #FACC15, #EAB308, #CA8A04);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
-  </style>
 
   <link rel="stylesheet" href="/index.css">
 </head>

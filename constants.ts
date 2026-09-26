@@ -7,6 +7,8 @@ export const CATEGORIES = [
   "All",
   "Personal Care",
   "Skin Care",
+  "Makeup",
+  "Bridal Lehenga",
   "Toy",
   "General Use",
   "Bangle",
@@ -14,6 +16,8 @@ export const CATEGORIES = [
   "Powder",
   "Other"
 ];
+
+export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800";
 
 export const MOCK_PRODUCTS: Product[] = [
   {
@@ -23,9 +27,10 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "General Use",
     stock: 50,
     description: "Aged perfection, extra long grain aromatic basmati rice. Perfect for Biryani.",
-    image: "https://picsum.photos/400/400?random=1",
+    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800",
     rating: 4.8,
-    reviews: 120
+    reviews: 120,
+    isBestseller: true
   },
   {
     _id: "2",
@@ -34,9 +39,10 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Skin Care",
     stock: 100,
     description: "Hydrating skin cream with vitamin E for a radiant glow.",
-    image: "https://picsum.photos/400/400?random=2",
+    image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800",
     rating: 4.5,
-    reviews: 85
+    reviews: 85,
+    isBestseller: true
   },
   {
     _id: "3",
@@ -45,7 +51,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "General Use",
     stock: 200,
     description: "Decadent dark chocolate cookies with melted chips inside.",
-    image: "https://picsum.photos/400/400?random=3",
+    image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&q=80&w=800",
     rating: 4.9,
     reviews: 210
   },
@@ -56,7 +62,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Personal Care",
     stock: 30,
     description: "100% pure almond oil for hair and skin. No additives.",
-    image: "https://picsum.photos/400/400?random=4",
+    image: "https://images.unsplash.com/photo-1608248597359-54378f8449fa?auto=format&fit=crop&q=80&w=800",
     rating: 4.7,
     reviews: 55
   },
@@ -67,7 +73,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Toy",
     stock: 15,
     description: "Interactive educational robot for kids aged 5+.",
-    image: "https://picsum.photos/400/400?random=5",
+    image: "https://images.unsplash.com/photo-1535378917042-10a22c95931a?auto=format&fit=crop&q=80&w=800",
     rating: 4.2,
     reviews: 300
   },
@@ -78,9 +84,10 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Bangle",
     stock: 80,
     description: "Traditional gold plated bangle set with intricate design.",
-    image: "https://picsum.photos/400/400?random=6",
+    image: "https://images.unsplash.com/photo-1611591475819-79b8b730ab8c?auto=format&fit=crop&q=80&w=800",
     rating: 4.8,
-    reviews: 90
+    reviews: 90,
+    isBestseller: true
   },
   {
     _id: "7",
@@ -89,7 +96,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Powder",
     stock: 60,
     description: "Refreshing sandalwood talcum powder for all day freshness.",
-    image: "https://picsum.photos/400/400?random=7",
+    image: "https://images.unsplash.com/photo-1585238342024-78d387f4a707?auto=format&fit=crop&q=80&w=800",
     rating: 4.6,
     reviews: 110
   },
@@ -100,7 +107,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "General Use",
     stock: 45,
     description: "Disinfectant floor cleaner with long lasting lavender fragrance.",
-    image: "https://picsum.photos/400/400?random=8",
+    image: "https://images.unsplash.com/photo-1585751119414-ef2636f8aede?auto=format&fit=crop&q=80&w=800",
     rating: 4.4,
     reviews: 75
   },
@@ -111,7 +118,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Skin Care",
     stock: 90,
     description: "Pure Aloe Vera gel for soothing skin and hair.",
-    image: "https://picsum.photos/400/400?random=9",
+    image: "https://images.unsplash.com/photo-1567928815104-b7980ee5032e?auto=format&fit=crop&q=80&w=800",
     rating: 4.3,
     reviews: 65
   },
@@ -122,9 +129,10 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "General Use",
     stock: 40,
     description: "Premium mix of berries, nuts, and seeds.",
-    image: "https://picsum.photos/400/400?random=10",
+    image: "https://images.unsplash.com/photo-1596560548464-f010549b84d7?auto=format&fit=crop&q=80&w=800",
     rating: 4.9,
-    reviews: 150
+    reviews: 150,
+    isBestseller: true
   },
   {
     _id: "11",
@@ -133,7 +141,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Personal Care",
     stock: 55,
     description: "Sulphate free herbal shampoo for daily use.",
-    image: "https://picsum.photos/400/400?random=11",
+    image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&q=80&w=800",
     rating: 4.5,
     reviews: 95
   },
@@ -144,9 +152,79 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Cream",
     stock: 25,
     description: "Intense moisturizing cream for dry skin repair.",
-    image: "https://picsum.photos/400/400?random=12",
+    image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&q=80&w=800",
     rating: 4.8,
     reviews: 180
+  },
+  {
+    _id: "13",
+    name: "Matte Lipstick Set",
+    price: 599,
+    category: "Makeup",
+    stock: 40,
+    description: "Long-lasting matte lipstick collection in 6 rich Indian shades.",
+    image: "https://images.unsplash.com/photo-1586495777744-4e6232bf2a6b?auto=format&fit=crop&q=80&w=800",
+    rating: 4.7,
+    reviews: 130,
+    isBestseller: true
+  },
+  {
+    _id: "14",
+    name: "Kajal & Eyeliner Duo",
+    price: 299,
+    category: "Makeup",
+    stock: 60,
+    description: "Intense black kajal with smudge-proof eyeliner for dramatic eyes.",
+    image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=800",
+    rating: 4.5,
+    reviews: 95
+  },
+  {
+    _id: "15",
+    name: "Bridal Foundation",
+    price: 849,
+    category: "Makeup",
+    stock: 25,
+    description: "Full coverage bridal foundation — sweat-proof & long wearing up to 24 hours.",
+    image: "https://images.unsplash.com/photo-1631214524020-3c69b9fe0bb9?auto=format&fit=crop&q=80&w=800",
+    rating: 4.8,
+    reviews: 200,
+    isBestseller: true
+  },
+  {
+    _id: "16",
+    name: "Red Bridal Lehenga",
+    price: 12500,
+    category: "Bridal Lehenga",
+    stock: 5,
+    description: "Classic red bridal lehenga with heavy zari embroidery and dupatta. Book via WhatsApp for trials.",
+    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800",
+    rating: 4.9,
+    reviews: 42,
+    isBestseller: true
+  },
+  {
+    _id: "17",
+    name: "Pink Floral Lehenga",
+    price: 8999,
+    category: "Bridal Lehenga",
+    stock: 8,
+    description: "Soft pink lehenga with floral prints and mirror work — perfect for engagement ceremonies.",
+    image: "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800",
+    rating: 4.7,
+    reviews: 31
+  },
+  {
+    _id: "18",
+    name: "Maroon Velvet Lehenga",
+    price: 15000,
+    category: "Bridal Lehenga",
+    stock: 3,
+    description: "Royal maroon velvet bridal lehenga with golden border and kundan work.",
+    image: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800",
+    rating: 5.0,
+    reviews: 18,
+    isBestseller: true
   }
 ];
 

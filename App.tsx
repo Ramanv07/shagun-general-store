@@ -12,6 +12,8 @@ import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { Orders } from './pages/Orders';
 import { Account } from './pages/Account';
+import { BeautyParlor } from './pages/BeautyParlor';
+import { BridalLehenga } from './pages/BridalLehenga';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { Login } from './pages/Login';
 import { UserRole } from './types';
@@ -32,6 +34,8 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
+        <Route path="/beauty-parlor" element={<BeautyParlor />} />
+        <Route path="/bridal-lehenga" element={<BridalLehenga />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/login" element={<Login />} />
         <Route path="/orders" element={<Orders />} />
