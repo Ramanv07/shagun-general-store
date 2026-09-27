@@ -100,6 +100,7 @@ router.post('/', async (req, res) => {
 
         const newOrder = new Order({
             user: mongoose.Types.ObjectId.isValid(user) ? user : null,
+            legacyUserId: mongoose.Types.ObjectId.isValid(user) ? null : user,
             items: items.map(item => {
                 const pId = item.product || item._id;
                 return {
