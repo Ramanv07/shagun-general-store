@@ -175,6 +175,25 @@ router.put('/profile', protect, async (req, res) => {
     }
 });
 
+// @route   DELETE /api/auth/profile
+// @desc    Delete current user account and data (Google Play requirement)
+router.delete('/profile', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        if (user.role === 'admin') {
+            return res.status(400).json({ message: 'Master admin account cannot be deleted' });
+        }
+        await User.findByIdAndDelete(req.user._id);
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        res.status(500).json({ message: 'Error deleting account', error: error.message });
+    }
+});
+
 // @route   POST /api/auth/address
 // @desc    Add a saved address to current user
 router.post('/address', protect, async (req, res) => {

@@ -16,6 +16,7 @@ import { BeautyParlor } from './pages/BeautyParlor';
 import { BridalLehenga } from './pages/BridalLehenga';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { Login } from './pages/Login';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { UserRole } from './types';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement, adminOnly?: boolean }> = ({ children, adminOnly }) => {
@@ -40,6 +41,7 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         <Route path="/checkout" element={
           <ProtectedRoute>

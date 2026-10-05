@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Shagun General Store",
+    "slug": "shagun-general-store",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#7c1f3e"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.shagun.generalstore"
+    },
+    "android": {
+      "package": "com.shagun.generalstore",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#7c1f3e",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["INTERNET"],
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "scheme": "shagun",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

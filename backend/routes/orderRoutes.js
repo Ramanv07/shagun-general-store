@@ -1,16 +1,26 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // @route   GET /api/orders
-// @desc    Get all orders (admin / general)
-router.get('/', async (req, res) => {
+// @desc    Get all orders (admin) or user's own orders (customer)
+router.get('/', protect, async (req, res) => {
     try {
-        const orders = await Order.find({})
+        let query = {};
+        if (req.user.role !== 'admin') {
+            query = {
+                $or: [
+                    { user: req.user._id },
+                    { legacyUserId: req.user._id.toString() }
+                ]
+            };
+        }
+        const orders = await Order.find(query)
             .populate('user', 'name email phone role')
             .populate('items.product', 'name price image category')
             .sort({ createdAt: -1 });
@@ -25,7 +35,12 @@ router.get('/', async (req, res) => {
 // @desc    Get orders of logged-in user
 router.get('/myorders', protect, async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user._id })
+        const orders = await Order.find({
+            $or: [
+                { user: req.user._id },
+                { legacyUserId: req.user._id.toString() }
+            ]
+        })
             .populate('user', 'name email phone role')
             .populate('items.product', 'name price image category')
             .sort({ createdAt: -1 });
@@ -38,10 +53,18 @@ router.get('/myorders', protect, async (req, res) => {
 
 // @route   GET /api/orders/user/:userId
 // @desc    Get all past orders for a specific user ID
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', protect, async (req, res) => {
     try {
         const { userId } = req.params;
-        const orders = await Order.find({ user: userId })
+        if (req.user.role !== 'admin' && req.user._id.toString() !== userId) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+        const orders = await Order.find({
+            $or: [
+                { user: userId },
+                { legacyUserId: userId }
+            ]
+        })
             .populate('user', 'name email phone role')
             .populate('items.product', 'name price image category')
             .sort({ createdAt: -1 });
@@ -54,7 +77,7 @@ router.get('/user/:userId', async (req, res) => {
 
 // @route   GET /api/orders/:id
 // @desc    Get single order by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
     try {
         const order = await Order.findById(req.params.id)
             .populate('user', 'name email phone role')
@@ -63,6 +86,17 @@ router.get('/:id', async (req, res) => {
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
+
+        const isOwner = order.user && (
+            (order.user._id && order.user._id.toString() === req.user._id.toString()) ||
+            order.user.toString() === req.user._id.toString() ||
+            order.legacyUserId === req.user._id.toString()
+        );
+
+        if (req.user.role !== 'admin' && !isOwner) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
         res.json(order);
     } catch (error) {
         console.error('Error fetching order:', error);
@@ -70,15 +104,13 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-import mongoose from 'mongoose';
-
 // @route   POST /api/orders
 // @desc    Create a new order & update product inventory
-router.post('/', async (req, res) => {
+router.post('/', protect, async (req, res) => {
     try {
-        const { user, items, totalAmount, shippingAddress, paymentMethod, saveAddressToProfile } = req.body;
+        const { items, totalAmount, shippingAddress, paymentMethod, saveAddressToProfile } = req.body;
 
-        if (!user || !items || items.length === 0 || !totalAmount || !shippingAddress) {
+        if (!items || items.length === 0 || !totalAmount || !shippingAddress) {
             return res.status(400).json({ message: 'Missing required order fields or empty items' });
         }
 
@@ -99,8 +131,7 @@ router.post('/', async (req, res) => {
         }
 
         const newOrder = new Order({
-            user: mongoose.Types.ObjectId.isValid(user) ? user : null,
-            legacyUserId: mongoose.Types.ObjectId.isValid(user) ? null : user,
+            user: req.user._id,
             items: items.map(item => {
                 const pId = item.product || item._id;
                 return {
@@ -119,10 +150,9 @@ router.post('/', async (req, res) => {
 
         const savedOrder = await newOrder.save();
 
-        // If requested, or if user has no saved addresses yet, optionally save this address to their profile
-        if (saveAddressToProfile && user) {
+        if (saveAddressToProfile && req.user._id) {
             try {
-                const userDoc = await User.findById(user);
+                const userDoc = await User.findById(req.user._id);
                 if (userDoc) {
                     const alreadyExists = userDoc.addresses.some(
                         addr => addr.houseNo === houseNo && addr.pinCode === pinCode
@@ -153,8 +183,8 @@ router.post('/', async (req, res) => {
 });
 
 // @route   PUT /api/orders/:id/status
-// @desc    Update order status
-router.put('/:id/status', async (req, res) => {
+// @desc    Update order status (admin only)
+router.put('/:id/status', protect, adminOnly, async (req, res) => {
     try {
         const { status } = req.body;
         const validStatuses = ['Processing', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'];
@@ -190,12 +220,22 @@ router.put('/:id/status', async (req, res) => {
 });
 
 // @route   PUT /api/orders/:id/cancel
-// @desc    Cancel an order (if still processing/packed)
-router.put('/:id/cancel', async (req, res) => {
+// @desc    Cancel an order (admin or order owner)
+router.put('/:id/cancel', protect, async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
+        }
+
+        const isOwner = order.user && (
+            (order.user._id && order.user._id.toString() === req.user._id.toString()) ||
+            order.user.toString() === req.user._id.toString() ||
+            order.legacyUserId === req.user._id.toString()
+        );
+
+        if (req.user.role !== 'admin' && !isOwner) {
+            return res.status(403).json({ message: 'Access denied: You can only cancel your own orders' });
         }
 
         if (order.status === 'Delivered') {
@@ -225,8 +265,8 @@ router.put('/:id/cancel', async (req, res) => {
 });
 
 // @route   DELETE /api/orders/:id
-// @desc    Delete order
-router.delete('/:id', async (req, res) => {
+// @desc    Delete order (admin only)
+router.delete('/:id', protect, adminOnly, async (req, res) => {
     try {
         const order = await Order.findByIdAndDelete(req.params.id);
         if (!order) {
@@ -240,4 +280,3 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
-
