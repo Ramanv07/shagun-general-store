@@ -41,8 +41,8 @@ export const BridalLehenga: React.FC = () => {
       {/* Page Header */}
       <div className="bg-maroon-700 text-white py-12 mb-8">
         <div className="container">
-          <h1 className="font-serif text-4xl font-bold mb-3">Bridal Lehengas</h1>
-          <p className="text-cream-300">Handcrafted lehengas for your special moments.</p>
+          <h1 className="font-serif text-4xl font-bold mb-3">Bridal Lehenga Rentals</h1>
+          <p className="text-cream-300">Designer bridal lehengas on rent. Check live availability, booking dates & return schedules.</p>
         </div>
       </div>
 

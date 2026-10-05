@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { mockApi } from '../../services/mockService';
-import { Order, Product, OrderStatus, User } from '../../types';
+import { Order, Product, OrderStatus, User, RentalBooking, RentalStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
 
 const statusColors: Record<OrderStatus, string> = {
@@ -18,14 +18,35 @@ const statusIcons: Record<OrderStatus, string> = {
     [OrderStatus.DELIVERED]: 'fa-check-circle',
 };
 
+const rentalStatusColors: Record<string, string> = {
+    'Booked': 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+    'Active': 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
+    'Returned': 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+    'Cancelled': 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
+};
+
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'lehengas' | 'users'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users'>('overview');
     const [products, setProducts] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [lehengas, setLehengas] = useState<any[]>([]);
+    const [rentals, setRentals] = useState<RentalBooking[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState(false);
     const [orderSearch, setOrderSearch] = useState('');
+    const [rentalSearch, setRentalSearch] = useState('');
+    const [rentalFilter, setRentalFilter] = useState<'all' | 'Booked' | 'Active' | 'Returned' | 'Cancelled'>('all');
+    const [isOfflineRentalOpen, setIsOfflineRentalOpen] = useState(false);
+    const [offlineRentalData, setOfflineRentalData] = useState<any>({
+        lehengaId: '',
+        customerName: '',
+        customerPhone: '',
+        customerEmail: '',
+        startDate: '',
+        returnDate: '',
+        notes: ''
+    });
 
     // Product Form State
     const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -40,6 +61,7 @@ export const AdminDashboard: React.FC = () => {
         let lastTimestamp = 0;
 
         const pollData = async (force = false) => {
+            if (authError) return;
             try {
                 const needsUpdate = await mockApi.checkUpdates(lastTimestamp);
                 if (needsUpdate || force) {
@@ -52,25 +74,41 @@ export const AdminDashboard: React.FC = () => {
         };
 
         pollData(true);
-        const interval = setInterval(() => pollData(), 2000);
+        const interval = setInterval(() => pollData(), 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, [authError]);
 
     const fetchData = async () => {
         try {
-            const [pData, oData, lData, uData] = await Promise.all([
+            const results = await Promise.allSettled([
                 mockApi.getProducts(),
                 mockApi.getOrders(),
                 mockApi.getLehengas(),
-                mockApi.getUsers()
+                mockApi.getUsers(),
+                mockApi.getAllRentals()
             ]);
-            setProducts(pData);
-            setOrders(oData);
-            setLehengas(lData);
-            setUsers(uData);
+
+            const [pRes, oRes, lRes, uRes, rRes] = results;
+
+            // Check if user is unauthorized for orders or users
+            if (
+                (oRes.status === 'rejected' && String(oRes.reason).includes('401')) ||
+                (uRes.status === 'rejected' && String(uRes.reason).includes('401'))
+            ) {
+                setAuthError(true);
+                setLoading(false);
+                return;
+            }
+
+            if (pRes.status === 'fulfilled') setProducts(pRes.value);
+            if (oRes.status === 'fulfilled') setOrders(oRes.value);
+            if (lRes.status === 'fulfilled') setLehengas(lRes.value);
+            if (uRes.status === 'fulfilled') setUsers(uRes.value);
+            if (rRes.status === 'fulfilled') setRentals(rRes.value);
             setLoading(false);
         } catch (error) {
             console.error("Data fetch failed", error);
+            setLoading(false);
         }
     };
 
@@ -121,6 +159,60 @@ export const AdminDashboard: React.FC = () => {
         // Update selected order if open
         if (selectedOrder && selectedOrder._id === id) {
             setSelectedOrder({ ...selectedOrder, status });
+        }
+    };
+
+    const handleRentalStatusUpdate = async (id: string, status: string) => {
+        try {
+            await mockApi.updateRentalStatus(id, status);
+            await fetchData();
+        } catch (err: any) {
+            console.error('Failed to update rental status:', err);
+            alert(err.message || 'Failed to update rental status');
+        }
+    };
+
+    const handleDeleteRental = async (id: string) => {
+        if (confirm('Are you sure you want to delete this rental booking?')) {
+            try {
+                await mockApi.deleteRentalBooking(id);
+                await fetchData();
+            } catch (err: any) {
+                console.error('Failed to delete rental:', err);
+                alert(err.message || 'Failed to delete rental booking');
+            }
+        }
+    };
+
+    const handleSaveOfflineRental = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const selectedL = lehengas.find(l => l._id === offlineRentalData.lehengaId);
+            await mockApi.createRentalBooking({
+                lehengaId: offlineRentalData.lehengaId,
+                customerName: offlineRentalData.customerName,
+                customerPhone: offlineRentalData.customerPhone,
+                customerEmail: offlineRentalData.customerEmail,
+                startDate: offlineRentalData.startDate,
+                returnDate: offlineRentalData.returnDate,
+                rentalPrice: selectedL?.price,
+                securityDeposit: 2500,
+                notes: offlineRentalData.notes || 'In-store booking by admin'
+            });
+            setIsOfflineRentalOpen(false);
+            setOfflineRentalData({
+                lehengaId: '',
+                customerName: '',
+                customerPhone: '',
+                customerEmail: '',
+                startDate: '',
+                returnDate: '',
+                notes: ''
+            });
+            await fetchData();
+        } catch (err: any) {
+            console.error('Failed to create offline rental:', err);
+            alert(err.message || 'Failed to create offline rental booking');
         }
     };
 
@@ -203,7 +295,49 @@ export const AdminDashboard: React.FC = () => {
         order._id.toLowerCase().includes(orderSearch.toLowerCase())
     );
 
-    if (loading && products.length === 0) return <div className="p-10 text-white">Loading Dashboard...</div>;
+    const filteredRentals = rentals
+        .filter(r => rentalFilter === 'all' || r.status === rentalFilter)
+        .filter(r => {
+            if (!rentalSearch) return true;
+            const q = rentalSearch.toLowerCase();
+            return (
+                r.customerName?.toLowerCase().includes(q) ||
+                r.customerPhone?.includes(q) ||
+                r.lehengaName?.toLowerCase().includes(q) ||
+                r._id?.toLowerCase().includes(q)
+            );
+        });
+
+    if (authError) {
+        return (
+            <div className="min-h-screen bg-gray-900 pt-28 px-4 flex items-center justify-center">
+                <div className="max-w-md w-full bg-gray-800 border border-rose-500/40 p-8 rounded-2xl text-center shadow-2xl">
+                    <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                        🔒
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Admin Session Required</h2>
+                    <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                        Your session has expired or you are not logged in with an authorized admin account.
+                    </p>
+                    <a
+                        href="/login"
+                        className="inline-block w-full py-3 px-6 bg-rose-700 hover:bg-rose-800 text-white font-semibold rounded-xl transition-all shadow-lg"
+                    >
+                        Log In as Admin
+                    </a>
+                </div>
+            </div>
+        );
+    }
+
+    if (loading && products.length === 0) {
+        return (
+            <div className="min-h-screen bg-gray-900 pt-28 px-4 flex flex-col items-center justify-center text-white gap-4">
+                <div className="w-10 h-10 border-4 border-rose-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-gray-400 font-medium">Loading Dashboard...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-900 pt-24 px-4 pb-10">
@@ -212,13 +346,20 @@ export const AdminDashboard: React.FC = () => {
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-8 overflow-x-auto pb-2 no-scrollbar">
-                    {['overview', 'products', 'orders', 'lehengas', 'users'].map(tab => (
+                    {[
+                        { id: 'overview', label: 'Overview' },
+                        { id: 'products', label: 'Products' },
+                        { id: 'orders', label: 'Orders' },
+                        { id: 'rentals', label: '👑 Lehenga Rentals' },
+                        { id: 'lehengas', label: 'Lehenga Catalog' },
+                        { id: 'users', label: 'Users' }
+                    ].map(tab => (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab as any)}
-                            className={`px-6 py-2 rounded-lg capitalize font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-maroon-600 text-white shadow-lg' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-maroon-600 text-white shadow-lg' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
                         >
-                            {tab}
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -228,22 +369,29 @@ export const AdminDashboard: React.FC = () => {
 
                     {/* OVERVIEW */}
                     {activeTab === 'overview' && (
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                             <div className="bg-blue-600/20 border border-blue-500/30 p-6 rounded-xl">
                                 <h3 className="text-blue-400 mb-2 font-medium">Total Sales</h3>
-                                <p className="text-4xl font-bold text-white">₹{orders.reduce((acc, o) => acc + o.totalAmount, 0).toLocaleString()}</p>
+                                <p className="text-3xl font-bold text-white">₹{orders.reduce((acc, o) => acc + o.totalAmount, 0).toLocaleString()}</p>
                             </div>
                             <div className="bg-purple-600/20 border border-purple-500/30 p-6 rounded-xl">
                                 <h3 className="text-purple-400 mb-2 font-medium">Orders</h3>
-                                <p className="text-4xl font-bold text-white">{orders.length}</p>
+                                <p className="text-3xl font-bold text-white">{orders.length}</p>
                             </div>
                             <div className="bg-gold-600/20 border border-gold-500/30 p-6 rounded-xl">
                                 <h3 className="text-gold-400 mb-2 font-medium">Products</h3>
-                                <p className="text-4xl font-bold text-white">{products.length}</p>
+                                <p className="text-3xl font-bold text-white">{products.length}</p>
                             </div>
-                            <div className="bg-emerald-600/20 border border-emerald-500/30 p-6 rounded-xl">
-                                <h3 className="text-emerald-400 mb-2 font-medium">Lehengas</h3>
-                                <p className="text-4xl font-bold text-white">{lehengas.length}</p>
+                            <div className="bg-amber-600/20 border border-amber-500/30 p-6 rounded-xl">
+                                <h3 className="text-amber-400 mb-2 font-medium">Lehenga Catalog</h3>
+                                <p className="text-3xl font-bold text-white">{lehengas.length}</p>
+                            </div>
+                            <div className="bg-rose-600/20 border border-rose-500/30 p-6 rounded-xl">
+                                <h3 className="text-rose-400 mb-2 font-medium">Lehenga Rentals</h3>
+                                <p className="text-3xl font-bold text-white">{rentals.length}</p>
+                                <p className="text-xs text-rose-300 mt-2 font-medium">
+                                    {rentals.filter(r => r.status === 'Booked' || r.status === 'Active').length} Active / Booked
+                                </p>
                             </div>
                         </div>
                     )}
@@ -485,6 +633,340 @@ export const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* LEHENGA RENTALS */}
+                    {activeTab === 'rentals' && (
+                        <div className="space-y-6">
+                            {/* Header and Controls */}
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-xl text-white font-bold">Bridal Lehenga Rental Bookings</h2>
+                                        <span className="bg-gold-500/20 text-gold-400 text-xs px-2.5 py-1 rounded-full font-semibold border border-gold-500/30">
+                                            {rentals.length} Total Bookings
+                                        </span>
+                                    </div>
+                                    <p className="text-gray-400 text-xs mt-1">
+                                        Manage rental booking dates, return schedules, customer info, and mark lehengas as returned to make them available.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                                    <input
+                                        type="text"
+                                        placeholder="Search customer, phone, lehenga..."
+                                        className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white text-sm outline-none focus:border-gold-500 flex-1 md:w-64"
+                                        value={rentalSearch}
+                                        onChange={(e) => setRentalSearch(e.target.value)}
+                                    />
+                                    <button
+                                        onClick={() => setIsOfflineRentalOpen(true)}
+                                        className="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-black font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-md flex items-center gap-2 whitespace-nowrap"
+                                    >
+                                        <i className="fas fa-plus"></i> Book Offline Rental
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Status Filter Tabs */}
+                            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                                {(['all', 'Booked', 'Active', 'Returned', 'Cancelled'] as const).map(filterKey => {
+                                    const count = filterKey === 'all'
+                                        ? rentals.length
+                                        : rentals.filter(r => r.status === filterKey).length;
+                                    return (
+                                        <button
+                                            key={filterKey}
+                                            onClick={() => setRentalFilter(filterKey)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                                rentalFilter === filterKey
+                                                    ? 'bg-gold-500 text-black shadow-md'
+                                                    : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            <span>{filterKey === 'all' ? 'All Bookings' : filterKey}</span>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${rentalFilter === filterKey ? 'bg-black/20 text-black font-bold' : 'bg-white/10 text-gray-400'}`}>
+                                                {count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Table of Rentals */}
+                            {filteredRentals.length === 0 ? (
+                                <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/5">
+                                    <i className="fas fa-calendar-times text-4xl text-gray-500 mb-3 block"></i>
+                                    <p className="text-gray-300 font-medium">No rental bookings found</p>
+                                    <p className="text-gray-500 text-xs mt-1">Bookings made by customers on web or mobile app will sync here in real-time.</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-gray-300">
+                                        <thead className="bg-white/5 text-xs uppercase text-gray-400">
+                                            <tr>
+                                                <th className="p-3">Lehenga</th>
+                                                <th className="p-3">Customer Details</th>
+                                                <th className="p-3">Booking / Pick-up</th>
+                                                <th className="p-3">Return Date</th>
+                                                <th className="p-3">Total Amount</th>
+                                                <th className="p-3">Rental Status</th>
+                                                <th className="p-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/10 text-sm">
+                                            {filteredRentals.map(rental => {
+                                                const isOngoing = rental.status === 'Booked' || rental.status === 'Active';
+
+                                                return (
+                                                    <tr key={rental._id} className="hover:bg-white/5 transition-colors">
+                                                        {/* Lehenga Info */}
+                                                        <td className="p-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <img
+                                                                    src={rental.lehengaImage || (rental.lehenga as any)?.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800'}
+                                                                    alt={rental.lehengaName}
+                                                                    className="w-12 h-12 rounded-lg object-cover border border-white/10 shrink-0"
+                                                                />
+                                                                <div>
+                                                                    <p className="font-semibold text-white line-clamp-1">{rental.lehengaName}</p>
+                                                                    <p className="text-[11px] text-gray-400 font-mono">#{rental._id.substring(rental._id.length - 8)}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        {/* Customer Info */}
+                                                        <td className="p-3">
+                                                            <p className="font-medium text-white">{rental.customerName}</p>
+                                                            <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                                                <i className="fas fa-phone text-[10px] text-gray-500"></i> {rental.customerPhone}
+                                                            </p>
+                                                            {rental.customerEmail && (
+                                                                <p className="text-[11px] text-gray-500 truncate max-w-[150px]">{rental.customerEmail}</p>
+                                                            )}
+                                                        </td>
+
+                                                        {/* Booking Start Date */}
+                                                        <td className="p-3 whitespace-nowrap">
+                                                            <div className="flex items-center gap-1.5 text-white font-medium">
+                                                                <i className="fas fa-calendar-alt text-gold-400 text-xs"></i>
+                                                                {new Date(rental.startDate).toLocaleDateString('en-IN', {
+                                                                    day: 'numeric',
+                                                                    month: 'short',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </div>
+                                                            <span className="text-[11px] text-gray-400">Pick-up Date</span>
+                                                        </td>
+
+                                                        {/* Return Date */}
+                                                        <td className="p-3 whitespace-nowrap">
+                                                            <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                                                                <i className="fas fa-undo text-amber-400 text-xs"></i>
+                                                                {new Date(rental.returnDate).toLocaleDateString('en-IN', {
+                                                                    day: 'numeric',
+                                                                    month: 'short',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </div>
+                                                            {rental.actualReturnDate ? (
+                                                                <span className="text-[11px] text-emerald-400">
+                                                                    Returned on {new Date(rental.actualReturnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] text-gray-400">Expected Return</span>
+                                                            )}
+                                                        </td>
+
+                                                        {/* Amount */}
+                                                        <td className="p-3 whitespace-nowrap">
+                                                            <p className="font-bold text-white">₹{rental.totalAmount.toLocaleString('en-IN')}</p>
+                                                            <p className="text-[11px] text-gray-400">
+                                                                ₹{rental.rentalPrice} + ₹{rental.securityDeposit} dep.
+                                                            </p>
+                                                        </td>
+
+                                                        {/* Status */}
+                                                        <td className="p-3 whitespace-nowrap">
+                                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${rentalStatusColors[rental.status] || 'bg-gray-700 text-white'}`}>
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                                                    rental.status === 'Booked' ? 'bg-amber-400' :
+                                                                    rental.status === 'Active' ? 'bg-blue-400' :
+                                                                    rental.status === 'Returned' ? 'bg-emerald-400' : 'bg-rose-400'
+                                                                }`}></span>
+                                                                {rental.status}
+                                                            </span>
+                                                        </td>
+
+                                                        {/* Actions */}
+                                                        <td className="p-3 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {/* One-click "Mark as Returned" button */}
+                                                                {isOngoing && (
+                                                                    <button
+                                                                        onClick={() => handleRentalStatusUpdate(rental._id, 'Returned')}
+                                                                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap"
+                                                                        title="Mark returned to make this lehenga available immediately"
+                                                                    >
+                                                                        <i className="fas fa-check"></i> Mark Returned
+                                                                    </button>
+                                                                )}
+
+                                                                {/* Status dropdown */}
+                                                                <select
+                                                                    value={rental.status}
+                                                                    onChange={(e) => handleRentalStatusUpdate(rental._id, e.target.value)}
+                                                                    className="bg-black/50 border border-white/20 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer"
+                                                                >
+                                                                    {['Booked', 'Active', 'Returned', 'Cancelled'].map(st => (
+                                                                        <option key={st} value={st} className="bg-gray-900 text-white">
+                                                                            {st}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+
+                                                                {/* Delete */}
+                                                                <button
+                                                                    onClick={() => handleDeleteRental(rental._id)}
+                                                                    className="text-red-400 hover:text-red-300 w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors"
+                                                                    title="Delete Booking"
+                                                                >
+                                                                    <i className="fas fa-trash text-xs"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {/* Offline Rental Booking Modal */}
+                            {isOfflineRentalOpen && (
+                                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                                    <form onSubmit={handleSaveOfflineRental} className="bg-gray-900 border border-gray-700 p-6 md:p-8 rounded-2xl w-full max-w-lg relative animate-fade-in-up shadow-2xl">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsOfflineRentalOpen(false)}
+                                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                                        >
+                                            <i className="fas fa-times text-lg"></i>
+                                        </button>
+
+                                        <h3 className="text-xl text-white font-bold mb-1">Book In-Store Rental</h3>
+                                        <p className="text-xs text-gray-400 mb-6">Create a walk-in rental booking directly into MongoDB database</p>
+
+                                        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                                            <div>
+                                                <label className="text-xs text-gray-300 font-semibold mb-1 block">Select Bridal Lehenga *</label>
+                                                <select
+                                                    value={offlineRentalData.lehengaId}
+                                                    onChange={e => setOfflineRentalData({ ...offlineRentalData, lehengaId: e.target.value })}
+                                                    required
+                                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-gold-500 outline-none"
+                                                >
+                                                    <option value="" className="bg-gray-900 text-gray-400">Choose a Lehenga</option>
+                                                    {lehengas.map(l => (
+                                                        <option key={l._id} value={l._id} className="bg-gray-900 text-white">
+                                                            {l.name} — ₹{l.price}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-xs text-gray-300 font-semibold mb-1 block">Customer Name *</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Priya Sharma"
+                                                        value={offlineRentalData.customerName}
+                                                        onChange={e => setOfflineRentalData({ ...offlineRentalData, customerName: e.target.value })}
+                                                        required
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-gold-500 outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-300 font-semibold mb-1 block">Phone Number *</label>
+                                                    <input
+                                                        type="tel"
+                                                        placeholder="9876543210"
+                                                        value={offlineRentalData.customerPhone}
+                                                        onChange={e => setOfflineRentalData({ ...offlineRentalData, customerPhone: e.target.value })}
+                                                        required
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-gold-500 outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-xs text-gray-300 font-semibold mb-1 block">Booking Start Date *</label>
+                                                    <input
+                                                        type="date"
+                                                        value={offlineRentalData.startDate}
+                                                        onChange={e => setOfflineRentalData({ ...offlineRentalData, startDate: e.target.value })}
+                                                        required
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-gold-500 outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-300 font-semibold mb-1 block">Return Date *</label>
+                                                    <input
+                                                        type="date"
+                                                        value={offlineRentalData.returnDate}
+                                                        onChange={e => setOfflineRentalData({ ...offlineRentalData, returnDate: e.target.value })}
+                                                        required
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-gold-500 outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs text-gray-300 font-semibold mb-1 block">Customer Email (Optional)</label>
+                                                <input
+                                                    type="email"
+                                                    placeholder="customer@gmail.com"
+                                                    value={offlineRentalData.customerEmail}
+                                                    onChange={e => setOfflineRentalData({ ...offlineRentalData, customerEmail: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-gold-500 outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs text-gray-300 font-semibold mb-1 block">Notes / Alteration Details</label>
+                                                <textarea
+                                                    rows={2}
+                                                    placeholder="Fitting size, deposit cash received, etc."
+                                                    value={offlineRentalData.notes}
+                                                    onChange={e => setOfflineRentalData({ ...offlineRentalData, notes: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-gold-500 outline-none resize-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3 mt-6">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsOfflineRentalOpen(false)}
+                                                className="w-1/3 py-2.5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/5 text-sm"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="w-2/3 py-2.5 bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-black font-bold rounded-lg text-sm transition-all shadow-lg"
+                                            >
+                                                Confirm Booking
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
                         </div>
                     )}
 

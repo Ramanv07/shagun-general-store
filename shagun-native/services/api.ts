@@ -1,5 +1,5 @@
 import { API_BASE_URL, STORAGE_KEYS } from '../constants';
-import { Product, User, Order, OrderStatus } from '../types';
+import { Product, User, Order, OrderStatus, RentalBooking, RentalStatus, ActiveRentalInfo } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
@@ -180,5 +180,66 @@ export const api = {
     const res = await fetch(`${BASE}/api/products?category=Bridal%20Lehenga`);
     if (!res.ok) throw new Error('Failed to fetch lehengas');
     return res.json();
+  },
+
+  // ── Lehenga Rentals ───────────────────────────────────────────────────────
+  getActiveRentals: async (): Promise<{ activeMap: Record<string, ActiveRentalInfo>; activeRentals: RentalBooking[] }> => {
+    try {
+      const res = await fetch(`${BASE}/api/rentals/active`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch active rentals', e);
+    }
+    return { activeMap: {}, activeRentals: [] };
+  },
+
+  createRentalBooking: async (bookingData: {
+    lehengaId: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    startDate: string;
+    returnDate: string;
+    rentalPrice?: number;
+    securityDeposit?: number;
+    notes?: string;
+  }): Promise<RentalBooking> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/rentals`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(bookingData),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to create rental booking');
+    }
+    return data;
+  },
+
+  getAllRentals: async (): Promise<RentalBooking[]> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/rentals`, { headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch rentals');
+    }
+    return res.json();
+  },
+
+  updateRentalStatus: async (rentalId: string, status: RentalStatus | string): Promise<RentalBooking> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/rentals/${rentalId}/status`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to update rental status');
+    }
+    return data;
   },
 };

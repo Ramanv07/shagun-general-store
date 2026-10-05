@@ -22,7 +22,7 @@ import { UserRole } from './types';
 const ProtectedRoute: React.FC<{ children: React.ReactElement, adminOnly?: boolean }> = ({ children, adminOnly }) => {
   const { user, isAuthenticated } = useAuth();
 
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!isAuthenticated || !user?.token) return <Navigate to="/login" />;
   if (adminOnly && user?.role !== UserRole.ADMIN) return <Navigate to="/" />;
 
   return children;

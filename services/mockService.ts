@@ -1,5 +1,5 @@
 import { MOCK_PRODUCTS, STORAGE_KEYS, FALLBACK_IMAGE } from '../constants';
-import { Product, User, UserRole, Order, OrderStatus } from '../types';
+import { Product, User, UserRole, Order, OrderStatus, RentalBooking, RentalStatus, ActiveRentalInfo } from '../types';
 
 // Helper for auth headers
 const getAuthHeaders = (): Record<string, string> => {
@@ -355,5 +355,79 @@ export const mockApi = {
     if (!res.ok) throw new Error('Failed to delete address');
     const data = await res.json();
     return data.addresses || [];
+  },
+
+  // ─── Lehenga Rentals ────────────────────────────────────────────────────────
+  getActiveRentals: async (): Promise<{ activeMap: Record<string, ActiveRentalInfo>; activeRentals: RentalBooking[] }> => {
+    try {
+      const res = await fetch('/api/rentals/active');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch active rentals', e);
+    }
+    return { activeMap: {}, activeRentals: [] };
+  },
+
+  createRentalBooking: async (bookingData: {
+    lehengaId: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    startDate: string;
+    returnDate: string;
+    rentalPrice?: number;
+    securityDeposit?: number;
+    notes?: string;
+  }): Promise<RentalBooking> => {
+    const res = await fetch('/api/rentals', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(bookingData)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to create rental booking');
+    }
+    updateTimestamp();
+    return data;
+  },
+
+  getAllRentals: async (): Promise<RentalBooking[]> => {
+    const res = await fetch('/api/rentals', {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch rentals');
+    }
+    return await res.json();
+  },
+
+  updateRentalStatus: async (rentalId: string, status: RentalStatus | string): Promise<RentalBooking> => {
+    const res = await fetch(`/api/rentals/${rentalId}/status`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to update rental status');
+    }
+    updateTimestamp();
+    return data;
+  },
+
+  deleteRentalBooking: async (rentalId: string): Promise<void> => {
+    const res = await fetch(`/api/rentals/${rentalId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to delete rental booking');
+    }
+    updateTimestamp();
   }
 };

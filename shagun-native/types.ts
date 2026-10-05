@@ -79,3 +79,42 @@ export interface Review {
   comment: string;
   date: string;
 }
+
+export enum RentalStatus {
+  BOOKED = 'Booked',
+  ACTIVE = 'Active',
+  RETURNED = 'Returned',
+  CANCELLED = 'Cancelled'
+}
+
+export interface RentalBooking {
+  _id: string;
+  lehenga: string | Product;
+  lehengaName: string;
+  lehengaImage?: string;
+  user?: string | User;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  startDate: string;
+  returnDate: string;
+  actualReturnDate?: string;
+  rentalPrice: number;
+  securityDeposit: number;
+  totalAmount: number;
+  status: RentalStatus | string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ActiveRentalInfo {
+  isBooked: boolean;
+  rentalId: string;
+  customerName: string;
+  startDate: string;
+  returnDate: string;
+  availableFrom: string;
+  status: string;
+}
+

@@ -11,6 +11,7 @@ dotenv.config();
 import authRoutes from '../backend/routes/authRoutes.js';
 import productRoutes from '../backend/routes/productRoutes.js';
 import orderRoutes from '../backend/routes/orderRoutes.js';
+import rentalRoutes from '../backend/routes/rentalRoutes.js';
 
 // ─── App Setup ───────────────────────────────────────────────────
 const app = express();
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/rentals', rentalRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({ 

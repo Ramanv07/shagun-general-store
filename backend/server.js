@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import rentalRoutes from './routes/rentalRoutes.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/rentals', rentalRoutes);
 
 app.get('/', (req, res) => {
     res.send('Shagun General Store API is running...');
