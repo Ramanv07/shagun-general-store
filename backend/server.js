@@ -13,6 +13,7 @@ import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import rentalRoutes from './routes/rentalRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -70,6 +71,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/rentals', rentalRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // --- P2: Production Static File Serving & Cache-Control Headers ---
 const distPath = path.resolve(__dirname, '../dist');

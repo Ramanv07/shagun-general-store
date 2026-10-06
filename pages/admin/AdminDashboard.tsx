@@ -263,33 +263,49 @@ export const AdminDashboard: React.FC = () => {
         });
     };
 
-    // Image Upload Handler with automatic compression
+    // Image Upload Handler using Cloudinary API
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'lehenga') => {
         const file = e.target.files?.[0];
-        if (file) {
-            try {
-                setImageUploading(true);
-                const compressed = await compressImage(file, 500, 500, 0.7);
-                if (type === 'product') {
-                    setEditingProduct(prev => prev ? ({ ...prev, image: compressed }) : null);
-                } else {
-                    setEditingLehenga(prev => {
-                        if (!prev) return null;
-                        const currentImages = prev.images || (prev.image ? [prev.image] : []);
-                        if (currentImages.length >= 8) {
-                            alert("Maximum 8 images allowed.");
-                            return prev;
-                        }
-                        const newImages = [...currentImages, compressed];
-                        return { ...prev, images: newImages, image: newImages[0] };
-                    });
-                }
-            } catch (err) {
-                console.error("Failed to compress image:", err);
-                alert("Failed to process image. You can also paste an image URL instead.");
-            } finally {
-                setImageUploading(false);
+        if (!file) return;
+
+        setImageUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!res.ok) throw new Error('Upload failed');
+            
+            const data = await res.json();
+            
+            if (type === 'product') {
+                setEditingProduct(prev => prev ? { ...prev, image: data.imageUrl } : null);
+            } else if (type === 'lehenga') {
+                setEditingLehenga(prev => {
+                    if (!prev) return null;
+                    const currentImages = prev.images || (prev.image ? [prev.image] : []);
+                    if (currentImages.length >= 8) {
+                        alert("Maximum 8 images allowed.");
+                        return prev;
+                    }
+                    const newImages = [...currentImages, data.imageUrl];
+                    return { ...prev, images: newImages, image: newImages[0] };
+                });
             }
+        } catch (error) {
+            console.error('Image upload failed', error);
+            alert('Image upload failed. Please check backend connection.');
+        } finally {
+            setImageUploading(false);
+            e.target.value = '';
         }
     };
 
