@@ -15,8 +15,21 @@ const PAYMENT_METHODS = ['COD', 'UPI', 'Online'] as const;
 export default function CheckoutScreen() {
   const { cart, totalPrice, clearCart } = useCart();
   const { addOrder } = useOrders();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  React.useEffect(() => {
+    if (!isAuthenticated || !user) {
+      Alert.alert(
+        'Login Required',
+        'Please log in to your account to proceed with checkout.',
+        [
+          { text: 'Cancel', onPress: () => router.back(), style: 'cancel' },
+          { text: 'Log In', onPress: () => router.replace('/login') }
+        ]
+      );
+    }
+  }, [isAuthenticated, user]);
 
   // Use first saved address as default
   const defaultAddr = user?.addresses?.find(a => a.isDefault) || user?.addresses?.[0];
@@ -37,6 +50,18 @@ export default function CheckoutScreen() {
     setAddress(prev => ({ ...prev, [field]: value }));
 
   const placeOrder = async () => {
+    if (!isAuthenticated || !user || !user.token) {
+      Alert.alert(
+        'Login Required',
+        'You must be logged in to place an order.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In', onPress: () => router.push('/login') }
+        ]
+      );
+      return;
+    }
+
     const { fullName, mobile, houseNo, street, city, state, pinCode } = address;
     if (!fullName || !mobile || !houseNo || !street || !city || !state || !pinCode) {
       Alert.alert('Incomplete', 'Please fill in all address fields.');
@@ -52,10 +77,10 @@ export default function CheckoutScreen() {
       await addOrder({
         user: user?._id as any, // backend expects the user's ObjectId, not the full object
         items: cart.map(item => ({ product: item._id as any, name: item.name, quantity: item.quantity, price: item.price })),
-        totalAmount: totalPrice,
+        totalAmount: totalPrice + (totalPrice >= 500 ? 0 : 50),
         shippingAddress: address,
         paymentMethod,
-        paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Completed',
+        paymentStatus: 'Pending',
       });
       clearCart();
       Alert.alert('✅ Order Placed!', 'Your order has been confirmed.', [
@@ -72,7 +97,7 @@ export default function CheckoutScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Shipping Address */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📍 Shipping Address</Text>
+        <Text style={styles.sectionTitle}>Shipping Address</Text>
         {(['fullName', 'mobile', 'houseNo', 'street', 'city', 'state', 'pinCode'] as const).map(field => (
           <TextInput
             key={field}
@@ -90,7 +115,7 @@ export default function CheckoutScreen() {
 
       {/* Payment Method */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>💳 Payment Method</Text>
+        <Text style={styles.sectionTitle}>Payment Method</Text>
         <View style={styles.paymentRow}>
           {PAYMENT_METHODS.map(method => (
             <TouchableOpacity
@@ -113,7 +138,7 @@ export default function CheckoutScreen() {
 
       {/* Order Summary */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🧾 Order Summary</Text>
+        <Text style={styles.sectionTitle}>Order Summary</Text>
         {cart.map(item => (
           <View key={item._id} style={styles.summaryRow}>
             <Text style={styles.summaryName} numberOfLines={1}>{item.name} ×{item.quantity}</Text>
@@ -122,8 +147,19 @@ export default function CheckoutScreen() {
         ))}
         <View style={styles.divider} />
         <View style={styles.summaryRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>₹{totalPrice.toLocaleString('en-IN')}</Text>
+          <Text style={{ fontSize: 13, color: '#666' }}>Subtotal</Text>
+          <Text style={{ fontSize: 13, color: '#666' }}>₹{totalPrice.toLocaleString('en-IN')}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={{ fontSize: 13, color: '#666' }}>Delivery</Text>
+          <Text style={{ fontSize: 13, color: totalPrice >= 500 ? '#1b8a4b' : '#7c1f3e', fontWeight: '600' }}>
+            {totalPrice >= 500 ? 'FREE' : '₹50'}
+          </Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.summaryRow}>
+          <Text style={styles.totalLabel}>Total Payable</Text>
+          <Text style={styles.totalValue}>₹{(totalPrice + (totalPrice >= 500 ? 0 : 50)).toLocaleString('en-IN')}</Text>
         </View>
       </View>
 
@@ -131,7 +167,7 @@ export default function CheckoutScreen() {
       <TouchableOpacity style={styles.orderBtn} onPress={placeOrder} disabled={loading}>
         {loading
           ? <ActivityIndicator color="#1a0a12" />
-          : <Text style={styles.orderBtnText}>Place Order →</Text>
+          : <Text style={styles.orderBtnText}>Place Order (₹{(totalPrice + (totalPrice >= 500 ? 0 : 50)).toLocaleString('en-IN')}) →</Text>
         }
       </TouchableOpacity>
       <View style={{ height: 40 }} />

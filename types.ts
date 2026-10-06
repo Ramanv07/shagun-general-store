@@ -22,6 +22,7 @@ export interface Product {
   stock: number;
   description: string;
   image: string;
+  images?: string[];
   rating?: number;
   reviews?: number;
   isBestseller?: boolean;

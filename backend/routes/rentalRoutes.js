@@ -12,7 +12,7 @@ const optionalAuth = async (req, res, next) => {
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
             const token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
             req.user = await User.findById(decoded.id).select('-password');
         } catch (e) {
             // Ignore token error for optional auth
@@ -36,16 +36,14 @@ router.get('/active', async (req, res) => {
         .populate('lehenga', 'name price image images')
         .sort({ returnDate: 1 });
 
-        // Build a lookup map keyed by lehenga ID
+        // C3: Strip PII — only expose availability data to the public
         const activeMap = {};
         for (const rental of activeRentals) {
-            const lehengaId = rental.lehenga?._id ? rental.lehenga._id.toString() : rental.lehenga.toString();
-            // If already has an earlier booking, keep the latest returnDate for availability
+            if (!rental.lehenga) continue;
+            const lehengaId = rental.lehenga._id ? rental.lehenga._id.toString() : rental.lehenga.toString();
             if (!activeMap[lehengaId] || new Date(rental.returnDate) > new Date(activeMap[lehengaId].returnDate)) {
                 activeMap[lehengaId] = {
                     isBooked: true,
-                    rentalId: rental._id,
-                    customerName: rental.customerName,
                     startDate: rental.startDate,
                     returnDate: rental.returnDate,
                     availableFrom: rental.returnDate,
@@ -54,10 +52,10 @@ router.get('/active', async (req, res) => {
             }
         }
 
-        res.json({ activeMap, activeRentals });
+        res.json({ activeMap });
     } catch (error) {
         console.error('Error fetching active rentals:', error);
-        res.status(500).json({ message: 'Failed to fetch active rentals', error: error.message });
+        res.status(500).json({ message: 'Failed to fetch active rentals' });
     }
 });
 
@@ -78,14 +76,18 @@ router.get('/', protect, async (req, res) => {
         res.json(rentals);
     } catch (error) {
         console.error('Error fetching rentals:', error);
-        res.status(500).json({ message: 'Failed to fetch rentals', error: error.message });
+        res.status(500).json({ message: 'Failed to fetch rentals' });
     }
 });
 
 // @route   POST /api/rentals
-// @desc    Create a new rental booking (public / user / admin)
-router.post('/', optionalAuth, async (req, res) => {
+// @desc    Create a new rental booking (Authenticated users only)
+router.post('/', protect, async (req, res) => {
     try {
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({ message: 'Authentication required. Please log in to book a rental.' });
+        }
+
         const {
             lehengaId,
             productId,
@@ -173,7 +175,7 @@ router.post('/', optionalAuth, async (req, res) => {
         res.status(201).json(savedRental);
     } catch (error) {
         console.error('Error creating rental booking:', error);
-        res.status(500).json({ message: 'Failed to create rental booking', error: error.message });
+        res.status(500).json({ message: 'Failed to create rental booking' });
     }
 });
 
@@ -204,7 +206,7 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
         res.json(updated);
     } catch (error) {
         console.error('Error updating rental status:', error);
-        res.status(500).json({ message: 'Failed to update rental status', error: error.message });
+        res.status(500).json({ message: 'Failed to update rental status' });
     }
 });
 
@@ -221,7 +223,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
         res.json({ message: 'Rental booking deleted successfully.' });
     } catch (error) {
         console.error('Error deleting rental:', error);
-        res.status(500).json({ message: 'Failed to delete rental', error: error.message });
+        res.status(500).json({ message: 'Failed to delete rental' });
     }
 });
 

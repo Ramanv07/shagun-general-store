@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { MOCK_REVIEWS, CATEGORIES } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { LehengaSection } from '../components/LehengaSection';
+import { Hero } from '../components/Hero';
+import { CategoryStrip } from '../components/CategoryStrip';
+import { PromoCards } from '../components/PromoCards';
 import { mockApi } from '../services/mockService';
 
 /* ── Typewriter component ──────────────────────────────── */
@@ -34,34 +37,34 @@ const Typewriter = ({ texts, delay = 110 }: { texts: string[]; delay?: number })
   }, [displayText, isDeleting, idx, texts, delay]);
 
   return (
-    <span className="text-gradient-gold">
+    <span className="text-gold-500 font-semibold">
       {displayText}
-      <span className="border-r-2 ml-0.5 animate-pulse" style={{ borderColor: '#C9A24B' }}>&nbsp;</span>
+      <span className="border-r-2 ml-0.5 animate-pulse" style={{ borderColor: '#B8893A' }}>&nbsp;</span>
     </span>
   );
 };
 
 /* ── Feature data ──────────────────────────────────────── */
 const FEATURES = [
-  { icon: 'fa-truck-fast',   title: 'Fast Delivery',    desc: 'Same-day delivery within city limits on orders above ₹500.' },
-  { icon: 'fa-shield-check', title: 'Secure Payments',  desc: 'Pay via UPI, cards or Netbanking — fully encrypted & safe.' },
-  { icon: 'fa-gem',          title: 'Premium Quality',  desc: 'Carefully sourced products from trusted suppliers only.' },
-  { icon: 'fa-arrows-rotate',title: 'Easy Returns',     desc: '7-day hassle-free return policy on all eligible items.' },
+  { icon: 'fa-truck-fast', title: 'Fast Delivery', desc: 'Same-day delivery within city limits on orders above ₹500.' },
+  { icon: 'fa-shield-check', title: 'Secure Payments', desc: 'Pay via UPI, cards or Netbanking — fully encrypted & safe.' },
+  { icon: 'fa-gem', title: 'Premium Quality', desc: 'Carefully sourced products from trusted suppliers only.' },
+  { icon: 'fa-arrows-rotate', title: 'Easy Returns', desc: '7-day hassle-free return policy on all eligible items.' },
 ];
 
 /* ── Category icons ────────────────────────────────────── */
 const CAT_ICONS: Record<string, string> = {
-  'All':             'fa-grid-2',
-  'Personal Care':   'fa-hand-sparkles',
-  'Skin Care':       'fa-face-smile',
-  'Makeup':          'fa-lipstick',
-  'Bridal Lehenga':  'fa-crown',
-  'Toy':             'fa-puzzle-piece',
-  'General Use':     'fa-box-open',
-  'Bangle':          'fa-ring',
-  'Cream':           'fa-jar',
-  'Powder':          'fa-wand-sparkles',
-  'Other':           'fa-ellipsis',
+  'All': 'fa-grid-2',
+  'Personal Care': 'fa-pump-soap',
+  'Skin Care': 'fa-face-smile',
+  'Makeup': 'fa-lipstick',
+  'Bridal Lehenga': 'fa-crown',
+  'Toy': 'fa-puzzle-piece',
+  'General Use': 'fa-box-open',
+  'Bangle': 'fa-ring',
+  'Cream': 'fa-jar',
+  'Powder': 'fa-spray-can',
+  'Other': 'fa-ellipsis',
 };
 
 export const Home: React.FC = () => {
@@ -97,159 +100,25 @@ export const Home: React.FC = () => {
 
   /* ── Bestsellers ── */
   const bestsellers = products.filter(p => p.isBestseller).slice(0, 4);
-  const trending    = products.slice(0, 8);
+  const trending = products.slice(0, 8);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--clr-cream)' }}>
 
       {/* ════════════════════════════════════════════
-          HERO SECTION
+          HERO SECTION (Rebuilt Pixel-Perfect)
       ════════════════════════════════════════════ */}
-      <section
-        className="relative min-h-screen flex items-center overflow-hidden pt-20"
-        style={{ background: 'linear-gradient(160deg, #7A1F2E 0%, #4A0E1A 55%, #2C0810 100%)' }}
-      >
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 hero-pattern" />
-        <div className="absolute inset-0 paisley-pattern opacity-30" />
-
-        {/* Gold glow blobs */}
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full blur-[100px]"
-          style={{ background: 'radial-gradient(circle, rgba(201,162,75,0.2) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-1/4 left-1/4 w-64 h-64 rounded-full blur-[80px]"
-          style={{ background: 'radial-gradient(circle, rgba(201,162,75,0.1) 0%, transparent 70%)' }} />
-
-        {/* Floating ornaments */}
-        <div className="absolute top-32 right-12 text-gold-500 opacity-20 animate-float text-5xl">
-          <i className="fas fa-star" />
-        </div>
-        <div className="absolute bottom-40 left-12 text-gold-400 opacity-15 animate-float text-3xl" style={{ animationDelay: '2s' }}>
-          <i className="fas fa-diamond" />
-        </div>
-
-        <div className="container relative z-10 grid lg:grid-cols-2 gap-12 items-center py-16">
-          {/* Left: Text */}
-          <div>
-            {/* Tagline chip */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 animate-fade-in"
-              style={{ background: 'rgba(201,162,75,0.15)', border: '1px solid rgba(201,162,75,0.3)' }}>
-              <i className="fas fa-store text-gold-500 text-xs" />
-              <span className="text-gold-400 text-xs font-semibold tracking-widest uppercase">Everything Under One Roof</span>
-            </div>
-
-            <h1 className="font-serif text-white mb-4 animate-fade-in-up anim-delay-1"
-              style={{ fontSize: 'clamp(2.4rem, 5vw, 4rem)', lineHeight: 1.15, fontWeight: 700 }}>
-              Your Favourite <br />
-              <Typewriter texts={['General Store', 'For Makeup', 'For Bridal Lehengas', 'For Bangles', 'For Skin Care', 'For Daily Needs']} />
-            </h1>
-
-            <p className="text-cream-300 text-lg leading-relaxed mb-10 max-w-lg animate-fade-in-up anim-delay-2"
-              style={{ color: 'rgba(251,243,231,0.75)' }}>
-              Premium groceries, personal care, bangles, toys and household essentials —
-              curated with love for every Indian home.
-            </p>
-
-            <div className="flex flex-wrap gap-4 animate-fade-in-up anim-delay-3">
-              <Link to="/shop" className="btn btn-gold btn-lg">
-                <i className="fas fa-bag-shopping" /> Shop Now
-              </Link>
-              <button
-                onClick={scrollToTrending}
-                className="btn btn-outline-light btn-lg"
-              >
-                <i className="fas fa-fire" /> Trending Items
-              </button>
-            </div>
-
-            {/* Trust badges */}
-            <div className="flex flex-wrap items-center gap-6 mt-12 animate-fade-in-up anim-delay-4">
-              {[
-                { icon: 'fa-users', text: '5000+ Customers' },
-                { icon: 'fa-star',  text: '4.8 Rating' },
-                { icon: 'fa-truck', text: 'Free Delivery' },
-              ].map(b => (
-                <div key={b.text} className="flex items-center gap-2">
-                  <i className={`fas ${b.icon} text-gold-500 text-sm`} />
-                  <span className="text-sm font-medium" style={{ color: 'rgba(251,243,231,0.7)' }}>{b.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right: Hero visual */}
-          <div className="hidden lg:flex items-center justify-center relative animate-scale-in anim-delay-2">
-            <div className="relative">
-              {/* Main image frame */}
-              <div
-                className="w-80 h-80 rounded-full overflow-hidden shadow-2xl border-4"
-                style={{ borderColor: 'rgba(201,162,75,0.4)' }}
-              >
-                <img
-                  src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600"
-                  alt="Shagun General Store"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {/* Floating product cards */}
-              <div className="absolute -top-6 -left-10 card-glass px-4 py-3 rounded-2xl shadow-lg animate-float"
-                style={{ animationDelay: '0.5s' }}>
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-ring text-gold-500" />
-                  <div>
-                    <div className="text-xs font-bold text-maroon-600">Gold Bangles</div>
-                    <div className="text-[10px] text-cream-700">Starting ₹1,500</div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -bottom-6 -right-8 card-glass px-4 py-3 rounded-2xl shadow-lg animate-float"
-                style={{ animationDelay: '1.5s' }}>
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-star text-gold-500" />
-                  <div>
-                    <div className="text-xs font-bold text-maroon-600">4.8 / 5</div>
-                    <div className="text-[10px] text-cream-700">5000+ Reviews</div>
-                  </div>
-                </div>
-              </div>
-              {/* Decorative ring */}
-              <div
-                className="absolute inset-0 rounded-full border-2 border-dashed animate-spin"
-                style={{ borderColor: 'rgba(201,162,75,0.25)', animationDuration: '20s', margin: '-20px' }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce-slow opacity-60">
-          <div className="w-6 h-10 rounded-full border-2 border-cream-200 flex items-start justify-center pt-1.5">
-            <div className="w-1 h-2.5 bg-cream-200 rounded-full animate-bounce" />
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       {/* ════════════════════════════════════════════
-          CATEGORY STRIP
+          CATEGORY STRIP FLOATING CARD
       ════════════════════════════════════════════ */}
-      <section className="py-10 bg-white border-b border-cream-300 sticky top-16 z-40">
-        <div className="container">
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
-            <span className="text-xs font-bold text-cream-700 uppercase tracking-wider whitespace-nowrap flex-shrink-0 mr-2">
-              Browse:
-            </span>
-            {CATEGORIES.map(cat => (
-              <Link
-                key={cat}
-                to={`/shop?cat=${encodeURIComponent(cat)}`}
-                className="category-pill flex-shrink-0"
-              >
-                <i className={`fas ${CAT_ICONS[cat] || 'fa-tag'} text-xs`} />
-                {cat}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <CategoryStrip />
+
+      {/* ════════════════════════════════════════════
+          THREE PROMO CARDS
+      ════════════════════════════════════════════ */}
+      <PromoCards />
 
       {/* ════════════════════════════════════════════
           BESTSELLERS BANNER
@@ -296,7 +165,7 @@ export const Home: React.FC = () => {
               </div>
               <h2 className="text-white font-serif text-3xl md:text-4xl font-bold leading-tight">
                 Free Delivery on<br />
-                <span className="text-gradient-gold">Orders above ₹500</span>
+                <span className="text-gold-400 font-semibold">Orders above ₹500</span>
               </h2>
             </div>
             <div className="flex-shrink-0">
@@ -382,10 +251,10 @@ export const Home: React.FC = () => {
             {/* Cards side */}
             <div className="grid grid-cols-2 gap-4 animate-fade-in-up anim-delay-2">
               {[
-                { label: 'Lipsticks', icon: 'fa-kiss-wink-heart', color: '#7A1F2E', img: 'https://images.unsplash.com/photo-1586495777744-4e6232bf2a6b?auto=format&fit=crop&q=80&w=400' },
+                { label: 'Lipsticks', icon: 'fa-kiss-wink-heart', color: '#7A1F2E', img: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&q=80&w=400' },
                 { label: 'Eye Makeup', icon: 'fa-eye', color: '#C9A24B', img: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=400' },
-                { label: 'Foundation', icon: 'fa-droplet', color: '#5C1622', img: 'https://images.unsplash.com/photo-1631214524020-3c69b9fe0bb9?auto=format&fit=crop&q=80&w=400' },
-                { label: 'Nail Art', icon: 'fa-wand-sparkles', color: '#8B2535', img: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=400' },
+                { label: 'Foundation', icon: 'fa-droplet', color: '#5C1622', img: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=400' },
+                { label: 'Nail Art', icon: 'fa-hand', color: '#8B2535', img: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=400' },
               ].map(card => (
                 <Link
                   key={card.label}
@@ -505,7 +374,14 @@ export const Home: React.FC = () => {
             <div>
               <h4 className="text-gold-400 text-xs font-bold tracking-widest uppercase mb-4">Quick Links</h4>
               <ul className="space-y-2">
-                {[['/', 'Home'], ['/shop', 'Shop'], ['/cart', 'Cart'], ['/orders', 'My Orders'], ['/account', 'Account']].map(([path, label]) => (
+                {[
+                  ['/', 'Home'],
+                  ['/shop', 'Shop Products'],
+                  ['/bridal-lehenga', 'Bridal Lehenga Rentals'],
+                  ['/beauty-parlor', 'Beauty Parlor'],
+                  ['/orders', 'My Orders'],
+                  ['/privacy', 'Privacy Policy & Terms']
+                ].map(([path, label]) => (
                   <li key={path}>
                     <Link to={path}
                       className="text-sm transition-colors hover:text-gold-400"
@@ -523,7 +399,7 @@ export const Home: React.FC = () => {
               <ul className="space-y-3">
                 {[
                   { icon: 'fa-whatsapp fab', text: '+91 88272 59023' },
-                  { icon: 'fa-map-marker-alt', text: 'India' },
+                  { icon: 'fa-map-marker-alt', text: 'Bamitha, Madhya Pradesh' },
                   { icon: 'fa-clock', text: 'Mon–Sat: 9am – 9pm' },
                 ].map(c => (
                   <li key={c.text} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(251,243,231,0.65)' }}>
@@ -534,25 +410,40 @@ export const Home: React.FC = () => {
               </ul>
 
               <div className="flex items-center gap-4 mt-6">
-                {[
-                  { icon: 'fab fa-instagram', href: '#' },
-                  { icon: 'fab fa-facebook',  href: '#' },
-                  { icon: 'fab fa-whatsapp',  href: '#' },
-                ].map(s => (
-                  <a key={s.icon} href={s.href}
-                    className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                    style={{ background: 'rgba(201,162,75,0.15)', border: '1px solid rgba(201,162,75,0.2)' }}>
-                    <i className={`${s.icon} text-gold-400 text-sm`} />
-                  </a>
-                ))}
+                <a
+                  href="https://wa.me/918827259023?text=Hello%20Shagun%20General%20Store"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Contact us on WhatsApp"
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  style={{ background: 'rgba(201,162,75,0.15)', border: '1px solid rgba(201,162,75,0.2)' }}
+                >
+                  <i className="fab fa-whatsapp text-gold-400 text-sm" />
+                </a>
+                <a
+                  href="tel:+918827259023"
+                  aria-label="Call store"
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  style={{ background: 'rgba(201,162,75,0.15)', border: '1px solid rgba(201,162,75,0.2)' }}
+                >
+                  <i className="fas fa-phone text-gold-400 text-sm" />
+                </a>
+                <Link
+                  to="/privacy"
+                  aria-label="Store policies"
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  style={{ background: 'rgba(201,162,75,0.15)', border: '1px solid rgba(201,162,75,0.2)' }}
+                >
+                  <i className="fas fa-shield text-gold-400 text-sm" />
+                </Link>
               </div>
             </div>
           </div>
 
-          <div className="ornament-divider mb-6">✦</div>
+          <div className="ornament-divider mb-6"></div>
 
           <p className="text-center text-xs" style={{ color: 'rgba(251,243,231,0.4)' }}>
-            © 2026 Shagun General Store. All rights reserved. Built with <span className="text-gold-500">♥</span> by R_V.
+            © 2026 Shagun General Store. All rights reserved. Bamitha, Madhya Pradesh.
           </p>
         </div>
       </footer>

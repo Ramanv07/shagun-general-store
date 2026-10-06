@@ -16,7 +16,8 @@ const rentalSchema = new mongoose.Schema({
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        required: true
     },
     customerName: {
         type: String,

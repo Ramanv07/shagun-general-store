@@ -60,6 +60,16 @@ export const Checkout: React.FC = () => {
     }
   };
 
+  const appliedCoupon = (() => {
+    try {
+      const saved = sessionStorage.getItem('shagun_applied_coupon');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  })();
+  const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
+  const deliveryFee = totalPrice >= 500 ? 0 : 50;
+  const finalAmount = Math.max(0, totalPrice - discountAmount + deliveryFee);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -67,9 +77,10 @@ export const Checkout: React.FC = () => {
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 0. Validate Pincode
-    if (formData.pinCode !== '471105') {
-      alert('Delivery is available only for Pincode 471105');
+    // 0. Validate 6-digit PIN code
+    const pinRegex = /^[1-9][0-9]{5}$/;
+    if (!pinRegex.test(formData.pinCode.trim())) {
+      alert('Please enter a valid 6-digit PIN code (e.g. 462001).');
       return;
     }
 
@@ -86,7 +97,7 @@ export const Checkout: React.FC = () => {
       const newOrder = await addOrder({
         user: user!,
         items: sanitizedItems,
-        totalAmount: totalPrice,
+        totalAmount: finalAmount,
         shippingAddress: formData,
         status: 'Processing' as any,
         paymentMethod: 'COD',
@@ -155,8 +166,17 @@ export const Checkout: React.FC = () => {
               {savedAddresses.map((addr, idx) => (
                 <div
                   key={addr._id || idx}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedAddressId === addr._id}
                   onClick={() => handleSelectAddress(addr._id || '')}
-                  className={`p-3 rounded-xl border cursor-pointer transition text-left ${
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelectAddress(addr._id || '');
+                    }
+                  }}
+                  className={`p-3 rounded-xl border cursor-pointer transition text-left focus-visible:outline-2 focus-visible:outline-maroon-900 ${
                     selectedAddressId === addr._id
                       ? 'bg-maroon-50 border-maroon-600 text-maroon-800'
                       : 'bg-white border-cream-300 hover:border-gold-400 text-cream-800'
@@ -177,14 +197,23 @@ export const Checkout: React.FC = () => {
                 </div>
               ))}
               <div
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedAddressId === 'new'}
                 onClick={() => handleSelectAddress('new')}
-                className={`p-3 rounded-xl border cursor-pointer transition text-left flex items-center justify-center gap-2 ${
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectAddress('new');
+                  }
+                }}
+                className={`p-3 rounded-xl border cursor-pointer transition text-left flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-maroon-900 ${
                   selectedAddressId === 'new'
                     ? 'bg-maroon-50 border-maroon-600 text-maroon-800 font-bold'
                     : 'bg-white border-dashed border-cream-300 hover:border-gold-400 text-cream-700'
                 }`}
               >
-                <i className="fas fa-plus-circle"></i>
+                <i className="fas fa-plus-circle" aria-hidden="true"></i>
                 <span className="text-sm">Use New Address</span>
               </div>
             </div>
@@ -194,37 +223,37 @@ export const Checkout: React.FC = () => {
         <form onSubmit={handlePlaceOrder} className="card p-8 rounded-2xl space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-maroon-700 text-sm font-semibold">Full Name</label>
-              <input required name="fullName" value={formData.fullName} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
+              <label htmlFor="checkout-fullName" className="text-maroon-700 text-sm font-semibold">Full Name</label>
+              <input id="checkout-fullName" required name="fullName" value={formData.fullName} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
             </div>
             <div className="space-y-2">
-              <label className="text-maroon-700 text-sm font-semibold">Mobile Number</label>
-              <input required name="mobile" value={formData.mobile} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
+              <label htmlFor="checkout-mobile" className="text-maroon-700 text-sm font-semibold">Mobile Number</label>
+              <input id="checkout-mobile" required name="mobile" value={formData.mobile} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-maroon-700 text-sm font-semibold">House No. / Building</label>
-            <input required name="houseNo" value={formData.houseNo} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
+            <label htmlFor="checkout-houseNo" className="text-maroon-700 text-sm font-semibold">House No. / Building</label>
+            <input id="checkout-houseNo" required name="houseNo" value={formData.houseNo} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-maroon-700 text-sm font-semibold">Street / Area / Landmark</label>
-            <input required name="street" value={formData.street} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
+            <label htmlFor="checkout-street" className="text-maroon-700 text-sm font-semibold">Street / Area / Landmark</label>
+            <input id="checkout-street" required name="street" value={formData.street} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <label className="text-maroon-700 text-sm font-semibold">City</label>
-              <input required name="city" value={formData.city} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
+              <label htmlFor="checkout-city" className="text-maroon-700 text-sm font-semibold">City</label>
+              <input id="checkout-city" required name="city" value={formData.city} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
             </div>
             <div className="space-y-2">
-              <label className="text-maroon-700 text-sm font-semibold">State</label>
-              <input required name="state" value={formData.state} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
+              <label htmlFor="checkout-state" className="text-maroon-700 text-sm font-semibold">State</label>
+              <input id="checkout-state" required name="state" value={formData.state} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
             </div>
             <div className="space-y-2">
-              <label className="text-maroon-700 text-sm font-semibold">PIN Code (Only 471105)</label>
-              <input required name="pinCode" value={formData.pinCode} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
+              <label htmlFor="checkout-pinCode" className="text-maroon-700 text-sm font-semibold">PIN Code (6 digits)</label>
+              <input id="checkout-pinCode" required name="pinCode" placeholder="e.g. 462001" value={formData.pinCode} onChange={handleChange} className="w-full bg-white border border-cream-300 rounded-lg p-3 text-maroon-800 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none" />
             </div>
           </div>
 
@@ -243,22 +272,38 @@ export const Checkout: React.FC = () => {
             </div>
           )}
 
-          <div className="pt-6 border-t border-cream-300">
-            <div className="flex justify-between items-center mb-6">
+          <div className="pt-6 border-t border-cream-300 space-y-3">
+            <div className="flex justify-between items-center text-sm text-cream-700">
+              <span>Subtotal</span>
+              <span className="font-semibold text-maroon-800">₹{totalPrice.toLocaleString('en-IN')}</span>
+            </div>
+            {appliedCoupon && (
+              <div className="flex justify-between items-center text-sm text-green-700 font-semibold">
+                <span>Coupon Discount ({appliedCoupon.code})</span>
+                <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-sm text-cream-700">
+              <span>Delivery</span>
+              <span className={deliveryFee === 0 ? 'text-green-600 font-semibold' : 'text-maroon-700 font-semibold'}>
+                {deliveryFee === 0 ? 'FREE' : '₹50'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pt-3 border-t border-cream-200">
               <div>
-                <span className="text-cream-800 block text-sm">Payment Method</span>
+                <span className="text-cream-800 block text-xs">Payment Method</span>
                 <span className="text-maroon-600 text-xs font-semibold">Cash on Delivery (COD)</span>
               </div>
               <div className="text-right">
                 <span className="text-cream-700 block text-xs">Total Amount</span>
-                <span className="text-2xl font-bold text-maroon-800">₹{totalPrice.toLocaleString()}</span>
+                <span className="text-2xl font-bold text-maroon-800">₹{finalAmount.toLocaleString('en-IN')}</span>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4"
             >
               {loading ? 'Processing...' : (
                 <>
@@ -274,20 +319,25 @@ export const Checkout: React.FC = () => {
 
       {/* Thank You Modal */}
       {showThankYou && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-maroon-xl text-center">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="thank-you-dialog-title"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-maroon-xl text-center animate-scale-in">
             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <i className="fas fa-check-circle text-4xl text-green-500"></i>
+              <i className="fas fa-check-circle text-4xl text-green-500" aria-hidden="true"></i>
             </div>
-            <h2 className="text-3xl font-serif font-bold text-maroon-800 mb-3">Thank You for Shopping!</h2>
-            <p className="text-cream-800 mb-2">Your order has been placed successfully</p>
-            <p className="text-sm text-cream-600 mb-6">Order ID: <span className="text-maroon-600 font-mono font-bold">{orderId}</span></p>
-            <p className="text-cream-700 text-sm mb-8">
+            <h2 id="thank-you-dialog-title" className="text-3xl font-serif font-bold text-maroon-800 mb-3">Thank You for Shopping!</h2>
+            <p className="text-cream-800 mb-2 font-medium">Your order has been placed successfully</p>
+            <p className="text-sm text-cream-700 mb-6">Order ID: <span className="text-maroon-600 font-mono font-bold">{orderId}</span></p>
+            <p className="text-cream-700 text-sm mb-8 leading-relaxed">
               We've received your order details. You can track its status from your orders page!
             </p>
             <button
               onClick={handleGoToOrders}
-              className="w-full bg-maroon-600 hover:bg-maroon-700 text-white font-bold py-3 rounded-xl transition"
+              className="w-full bg-maroon-600 hover:bg-maroon-700 text-white font-bold py-3 rounded-xl transition focus-visible:outline-2 focus-visible:outline-gold-400"
             >
               View My Orders
             </button>

@@ -5,13 +5,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ADMIN_WHATSAPP } from '../constants';
 
-const SERVICES = [
-  { icon: '✂️', name: 'Haircut & Styling', desc: 'Expert cuts, blowouts & hair treatments' },
-  { icon: '💅', name: 'Manicure & Pedicure', desc: 'Professional nail care with premium products' },
-  { icon: '🌸', name: 'Facial & Skin Care', desc: 'Deep cleansing, anti-aging & hydration facials' },
-  { icon: '👰', name: 'Bridal Makeup', desc: 'Complete bridal package — trial & wedding day' },
-  { icon: '🌿', name: 'Mehndi / Henna', desc: 'Intricate bridal & festival mehndi designs' },
-  { icon: '💆', name: 'Massage & Spa', desc: 'Relaxing full-body massage therapies' },
+const SERVICES: { icon: keyof typeof Ionicons.glyphMap; name: string; desc: string }[] = [
+  { icon: 'cut-outline', name: 'Haircut & Styling', desc: 'Expert cuts, blowouts & hair treatments' },
+  { icon: 'hand-left-outline', name: 'Manicure & Pedicure', desc: 'Professional nail care with premium products' },
+  { icon: 'leaf-outline', name: 'Facial & Skin Care', desc: 'Deep cleansing, anti-aging & hydration facials' },
+  { icon: 'heart-outline', name: 'Bridal Makeup', desc: 'Complete bridal package — trial & wedding day' },
+  { icon: 'brush-outline', name: 'Mehndi / Henna', desc: 'Intricate bridal & festival mehndi designs' },
+  { icon: 'body-outline', name: 'Massage & Spa', desc: 'Relaxing full-body massage therapies' },
 ];
 
 export default function BeautyParlorScreen() {
@@ -26,7 +26,7 @@ export default function BeautyParlorScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Hero */}
       <View style={styles.hero}>
-        <Text style={styles.heroEmoji}>💄</Text>
+        <Ionicons name="flower-outline" size={36} color="#d4a853" style={{ marginBottom: 8 }} />
         <Text style={styles.heroTitle}>Shagun Beauty Parlor</Text>
         <Text style={styles.heroSubtitle}>Premium beauty services for every occasion</Text>
         <TouchableOpacity style={styles.heroBtn} onPress={() => openWhatsApp()}>
@@ -40,7 +40,7 @@ export default function BeautyParlorScreen() {
       <View style={styles.servicesGrid}>
         {SERVICES.map((service, i) => (
           <TouchableOpacity key={i} style={styles.serviceCard} onPress={() => openWhatsApp(service.name)}>
-            <Text style={styles.serviceIcon}>{service.icon}</Text>
+            <Ionicons name={service.icon} size={24} color="#7c1f3e" style={{ marginBottom: 6 }} />
             <Text style={styles.serviceName}>{service.name}</Text>
             <Text style={styles.serviceDesc}>{service.desc}</Text>
             <View style={styles.bookBadge}>
@@ -52,7 +52,7 @@ export default function BeautyParlorScreen() {
 
       {/* Timings */}
       <View style={styles.timingsCard}>
-        <Text style={styles.timingsTitle}>🕐 Working Hours</Text>
+        <Text style={styles.timingsTitle}>Working Hours</Text>
         <Text style={styles.timingsText}>Monday – Saturday: 9:00 AM – 8:00 PM</Text>
         <Text style={styles.timingsText}>Sunday: 10:00 AM – 6:00 PM</Text>
         <Text style={styles.timingsNote}>Walk-ins welcome • Appointments preferred</Text>

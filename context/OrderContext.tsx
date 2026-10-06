@@ -27,8 +27,16 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, []);
 
     const loadOrders = async () => {
-        const data = await mockApi.getOrders();
-        setOrders(data);
+        try {
+            if (!user) {
+                setOrders([]);
+                return;
+            }
+            const data = await mockApi.getOrders();
+            setOrders(data);
+        } catch {
+            setOrders([]);
+        }
     };
 
     const addOrder = async (orderData: Partial<Order>): Promise<Order> => {

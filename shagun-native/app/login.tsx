@@ -47,22 +47,28 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>🛍️</Text>
+          <Ionicons name="bag-handle-outline" size={40} color="#7c1f3e" style={{ marginBottom: 6 }} />
           <Text style={styles.title}>Shagun General Store</Text>
           <Text style={styles.subtitle}>{mode === 'login' ? 'Welcome back!' : 'Create your account'}</Text>
         </View>
 
         {/* Toggle */}
-        <View style={styles.toggleRow}>
+        <View style={styles.toggleRow} accessibilityRole="tablist">
           <TouchableOpacity
             style={[styles.toggleBtn, mode === 'login' && styles.toggleBtnActive]}
             onPress={() => setMode('login')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: mode === 'login' }}
+            accessibilityLabel="Switch to Login tab"
           >
             <Text style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}>Login</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.toggleBtn, mode === 'register' && styles.toggleBtnActive]}
             onPress={() => setMode('register')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: mode === 'register' }}
+            accessibilityLabel="Switch to Register tab"
           >
             <Text style={[styles.toggleText, mode === 'register' && styles.toggleTextActive]}>Register</Text>
           </TouchableOpacity>
@@ -78,6 +84,7 @@ export default function LoginScreen() {
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
+              accessibilityLabel="Full Name"
             />
           )}
 
@@ -90,6 +97,7 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            accessibilityLabel="Email address"
           />
 
           <View style={styles.passwordRow}>
@@ -100,8 +108,15 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              accessibilityLabel="Password"
             />
-            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword(!showPassword)}>
+            <TouchableOpacity
+              style={styles.eyeBtn}
+              onPress={() => setShowPassword(!showPassword)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            >
               <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color="#9c7a8a" />
             </TouchableOpacity>
           </View>
@@ -114,17 +129,29 @@ export default function LoginScreen() {
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
+              accessibilityLabel="Phone number optional"
             />
           )}
 
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={handleSubmit}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={mode === 'login' ? 'Log in' : 'Create Account'}
+          >
             {loading
               ? <ActivityIndicator color="#1a0a12" />
               : <Text style={styles.submitBtnText}>{mode === 'login' ? 'Login' : 'Create Account'}</Text>
             }
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.skipBtn} onPress={() => router.replace('/')}>
+          <TouchableOpacity
+            style={styles.skipBtn}
+            onPress={() => router.replace('/')}
+            accessibilityRole="button"
+            accessibilityLabel="Browse as guest without logging in"
+          >
             <Text style={styles.skipText}>Browse as Guest →</Text>
           </TouchableOpacity>
         </View>

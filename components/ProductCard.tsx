@@ -12,9 +12,13 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.5;
   return (
-    <span className="text-gold-500 text-xs">
-      {[...Array(full)].map((_, i) => <i key={i} className="fas fa-star" />)}
-      {half && <i className="fas fa-star-half-alt" />}
+    <span
+      className="text-gold-500 text-xs inline-flex items-center gap-0.5"
+      role="img"
+      aria-label={`Rating: ${rating.toFixed(1)} out of 5 stars`}
+    >
+      {[...Array(full)].map((_, i) => <i key={i} className="fas fa-star" aria-hidden="true" />)}
+      {half && <i className="fas fa-star-half-alt" aria-hidden="true" />}
     </span>
   );
 };
@@ -23,10 +27,48 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
   const { addToCart } = useCart();
   const [imgSrc, setImgSrc] = useState<string>(product.image || FALLBACK_IMAGE);
   const [added, setAdded] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('shagun_wishlist') || '[]');
+      return stored.includes(product._id);
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     setImgSrc(product.image || FALLBACK_IMAGE);
   }, [product.image]);
+
+  // WCAG 2.1.2: Close modal on Escape key
+  useEffect(() => {
+    if (!showDetail) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowDetail(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showDetail]);
+
+  const toggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const stored = JSON.parse(localStorage.getItem('shagun_wishlist') || '[]');
+      let updated: string[];
+      if (stored.includes(product._id)) {
+        updated = stored.filter((id: string) => id !== product._id);
+        setIsWishlisted(false);
+      } else {
+        updated = [...stored, product._id];
+        setIsWishlisted(true);
+      }
+      localStorage.setItem('shagun_wishlist', JSON.stringify(updated));
+      window.dispatchEvent(new Event('shagun_wishlist_updated'));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -36,79 +78,199 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
   };
 
   return (
-    <div className="product-card card group cursor-pointer animate-fade-in">
-      {/* ── Image ── */}
-      <div className="relative h-56 overflow-hidden bg-cream-300">
-        <img
-          src={imgSrc}
-          alt={product.name}
-          onError={() => setImgSrc(FALLBACK_IMAGE)}
-          className="product-card-img w-full h-full object-cover"
-          loading="lazy"
-        />
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`View details for ${product.name}, price ₹${product.price}`}
+        onClick={() => setShowDetail(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setShowDetail(true);
+          }
+        }}
+        className="product-card card group cursor-pointer animate-fade-in relative focus-visible:outline-2 focus-visible:outline-maroon-900"
+      >
+        {/* ── Image ── */}
+        <div className="relative h-56 overflow-hidden bg-cream-300">
+          <img
+            src={imgSrc}
+            alt={product.name}
+            onError={() => setImgSrc(FALLBACK_IMAGE)}
+            className="product-card-img w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
 
-        {/* Hover overlay */}
-        <div className="add-to-cart-overlay">
-          <button
-            onClick={handleAdd}
-            className={`add-to-cart-btn-hover btn btn-gold btn-sm ${added ? 'opacity-80' : ''}`}
-          >
-            {added
-              ? <><i className="fas fa-check mr-1.5" /> Added!</>
-              : <><i className="fas fa-bag-shopping mr-1.5" /> Add to Cart</>
-            }
-          </button>
-        </div>
-
-        {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {product.isBestseller && (
-            <span className="badge badge-gold">
-              <i className="fas fa-trophy text-[8px]" /> Bestseller
-            </span>
-          )}
-          {product.stock <= 10 && product.stock > 0 && (
-            <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
-          )}
-        </div>
-
-        {/* Category chip top-right */}
-        <div className="absolute top-3 right-3">
-          <span className="badge badge-cream text-[10px]">{product.category}</span>
-        </div>
-      </div>
-
-      {/* ── Content ── */}
-      <div className="p-4">
-        <h3 className="font-semibold text-cream-900 text-base leading-tight mb-1 line-clamp-2 group-hover:text-maroon-600 transition-colors">
-          {product.name}
-        </h3>
-
-        {/* Rating row */}
-        <div className="flex items-center gap-2 mb-3">
-          <StarRating rating={product.rating} />
-          <span className="text-xs text-cream-700">{product.rating.toFixed(1)}</span>
-          <span className="text-xs text-cream-600">({product.reviews})</span>
-        </div>
-
-        {/* Price + Quick Add */}
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-xl font-bold text-maroon-600">₹{product.price.toLocaleString('en-IN')}</span>
+          {/* Hover overlay */}
+          <div className="add-to-cart-overlay">
+            <button
+              onClick={handleAdd}
+              className={`add-to-cart-btn-hover btn btn-gold btn-sm ${added ? 'opacity-80' : ''}`}
+            >
+              {added
+                ? <><i className="fas fa-check mr-1.5" /> Added!</>
+                : <><i className="fas fa-bag-shopping mr-1.5" /> Add to Cart</>
+              }
+            </button>
           </div>
+
+          {/* Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+            {product.isBestseller && (
+              <span className="badge badge-gold">
+                <i className="fas fa-trophy text-[8px]" /> Bestseller
+              </span>
+            )}
+            {product.stock <= 10 && product.stock > 0 && (
+              <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
+            )}
+          </div>
+
+          {/* Wishlist button */}
           <button
-            onClick={handleAdd}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all text-sm
-              ${added
-                ? 'bg-gold-500 text-maroon-800'
-                : 'bg-cream-200 text-maroon-600 hover:bg-maroon-600 hover:text-white'
+            type="button"
+            onClick={toggleWishlist}
+            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${isWishlisted
+                ? 'bg-red-50 text-red-600 scale-110'
+                : 'bg-white/80 hover:bg-white text-ink-500 hover:text-red-500'
               }`}
-            title="Add to cart"
           >
-            <i className={`fas ${added ? 'fa-check' : 'fa-plus'}`} />
+            <i className={`fas fa-heart text-xs ${isWishlisted ? 'text-red-600' : ''}`} />
           </button>
         </div>
+
+        {/* ── Content ── */}
+        <div className="p-4">
+          <div className="text-[10px] text-gold-700 font-semibold uppercase tracking-wider mb-1">
+            {product.category}
+          </div>
+          <h3 className="font-semibold text-cream-900 text-base leading-tight mb-1 line-clamp-2 group-hover:text-maroon-600 transition-colors">
+            {product.name}
+          </h3>
+
+          {/* Rating row */}
+          <div className="flex items-center gap-2 mb-3">
+            <StarRating rating={product.rating} />
+            <span className="text-xs text-cream-700">{product.rating.toFixed(1)}</span>
+            <span className="text-xs text-cream-700">({product.reviews})</span>
+          </div>
+
+          {/* Price + Quick Add */}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xl font-bold text-maroon-600">₹{product.price.toLocaleString('en-IN')}</span>
+            </div>
+            <button
+              onClick={handleAdd}
+              aria-label={`Add ${product.name} to cart`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all text-sm
+                ${added
+                  ? 'bg-gold-500 text-maroon-800'
+                  : 'bg-cream-200 text-maroon-600 hover:bg-maroon-600 hover:text-white'
+                }`}
+              title="Add to cart"
+            >
+              <i className={`fas ${added ? 'fa-check' : 'fa-plus'}`} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* ── Product Detail Modal (WCAG 4.1.2 Dialog) ── */}
+      {showDetail && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`product-dialog-title-${product._id}`}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowDetail(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-scale-in"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="relative h-64 bg-cream-200">
+              <img
+                src={imgSrc}
+                alt={product.name}
+                onError={() => setImgSrc(FALLBACK_IMAGE)}
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setShowDetail(false)}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-ink-700 flex items-center justify-center shadow-md transition-all focus-visible:outline-2 focus-visible:outline-maroon-900"
+                aria-label={`Close ${product.name} details`}
+              >
+                <i className="fas fa-times text-sm" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={toggleWishlist}
+                className={`absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all focus-visible:outline-2 focus-visible:outline-maroon-900 ${isWishlisted ? 'bg-red-50 text-red-600' : 'bg-white/80 text-ink-500 hover:text-red-500'
+                  }`}
+                aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+              >
+                <i className="fas fa-heart text-xs" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="badge badge-cream text-xs">{product.category}</span>
+                <span className="text-xs text-cream-700">
+                  {product.stock > 0 ? (
+                    <span className="text-green-600 font-semibold"><i className="fas fa-check-circle mr-1" aria-hidden="true" />In Stock ({product.stock})</span>
+                  ) : (
+                    <span className="text-red-600 font-semibold">Out of Stock</span>
+                  )}
+                </span>
+              </div>
+
+              <h2 id={`product-dialog-title-${product._id}`} className="font-serif font-bold text-xl text-maroon-900 mb-2">
+                {product.name}
+              </h2>
+
+              <div className="flex items-center gap-2 mb-4">
+                <StarRating rating={product.rating} />
+                <span className="text-sm font-semibold text-maroon-800">{product.rating.toFixed(1)}</span>
+                <span className="text-xs text-cream-700">({product.reviews} customer reviews)</span>
+              </div>
+
+              <div className="bg-cream-100 p-4 rounded-xl mb-6">
+                <div className="text-2xl font-bold text-maroon-800 mb-1">
+                  ₹{product.price.toLocaleString('en-IN')}
+                </div>
+                <p className="text-xs text-cream-700">
+                  Free same-day doorstep delivery in Bamitha on orders above ₹499. Pay on delivery available.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  className="btn btn-primary flex-1 justify-center py-3"
+                >
+                  {added
+                    ? <><i className="fas fa-check mr-2" /> Added to Cart</>
+                    : <><i className="fas fa-bag-shopping mr-2" /> Add to Cart</>
+                  }
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDetail(false)}
+                  className="btn btn-outline px-5"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

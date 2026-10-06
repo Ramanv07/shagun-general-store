@@ -31,7 +31,12 @@ export default function CartScreen() {
         <Ionicons name="bag-outline" size={80} color="#d4b5a0" />
         <Text style={styles.emptyTitle}>Your cart is empty</Text>
         <Text style={styles.emptySubtitle}>Add items from the shop to get started</Text>
-        <TouchableOpacity style={styles.shopBtn} onPress={() => router.push('/shop')}>
+        <TouchableOpacity
+          style={styles.shopBtn}
+          onPress={() => router.push('/shop')}
+          accessibilityRole="button"
+          accessibilityLabel="Browse Shop to add products"
+        >
           <Text style={styles.shopBtnText}>Browse Shop</Text>
         </TouchableOpacity>
       </View>
@@ -61,11 +66,20 @@ export default function CartScreen() {
                 <TouchableOpacity
                   style={styles.qtyBtn}
                   onPress={() => item.quantity <= 1 ? removeFromCart(item._id) : updateQuantity(item._id, item.quantity - 1)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.quantity <= 1 ? `Remove ${item.name} from cart` : `Decrease quantity of ${item.name}`}
                 >
                   <Ionicons name={item.quantity <= 1 ? 'trash-outline' : 'remove'} size={16} color="#7c1f3e" />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{item.quantity}</Text>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQuantity(item._id, item.quantity + 1)}>
+                <TouchableOpacity
+                  style={styles.qtyBtn}
+                  onPress={() => updateQuantity(item._id, item.quantity + 1)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Increase quantity of ${item.name}`}
+                >
                   <Ionicons name="add" size={16} color="#7c1f3e" />
                 </TouchableOpacity>
               </View>
@@ -73,10 +87,16 @@ export default function CartScreen() {
           </View>
         )}
         ListFooterComponent={() => (
-          <TouchableOpacity style={styles.clearBtn} onPress={() => Alert.alert('Clear Cart', 'Remove all items?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Clear', style: 'destructive', onPress: clearCart },
-          ])}>
+          <TouchableOpacity
+            style={styles.clearBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Clear all items from cart"
+            onPress={() => Alert.alert('Clear Cart', 'Remove all items?', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Clear', style: 'destructive', onPress: clearCart },
+            ])}
+          >
             <Text style={styles.clearBtnText}>Clear Cart</Text>
           </TouchableOpacity>
         )}
@@ -85,10 +105,19 @@ export default function CartScreen() {
       {/* Checkout Footer */}
       <View style={styles.footer}>
         <View>
-          <Text style={styles.totalLabel}>Total Amount</Text>
-          <Text style={styles.totalAmount}>₹{totalPrice.toLocaleString('en-IN')}</Text>
+          <Text style={styles.totalLabel}>
+            Total {totalPrice >= 500 ? '(Free Delivery)' : '(+₹50 Delivery)'}
+          </Text>
+          <Text style={styles.totalAmount}>
+            ₹{(totalPrice + (totalPrice >= 500 ? 0 : 50)).toLocaleString('en-IN')}
+          </Text>
         </View>
-        <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout}>
+        <TouchableOpacity
+          style={styles.checkoutBtn}
+          onPress={handleCheckout}
+          accessibilityRole="button"
+          accessibilityLabel="Proceed to checkout"
+        >
           <Text style={styles.checkoutBtnText}>Checkout →</Text>
         </TouchableOpacity>
       </View>

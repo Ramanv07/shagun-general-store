@@ -7,37 +7,12 @@ import { protect, adminOnly } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET || 'default_secret', {
-        expiresIn: '30d'
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '7d'
     });
 };
 
-// @route   GET /api/auth/force-seed-admin
-// @desc    Force creates the master admin account in MongoDB
-router.get('/force-seed-admin', async (req, res) => {
-    try {
-        const existingAdmin = await User.findOne({ email: 'admin@shagun.com' });
-        if (existingAdmin) {
-            return res.json({ message: 'Admin user already exists!', email: existingAdmin.email });
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const adminPassword = await bcrypt.hash('admin123', salt);
-
-        await User.create({
-            name: 'Shagun Admin',
-            email: 'admin@shagun.com',
-            password: adminPassword,
-            phone: '9876543200',
-            role: 'admin'
-        });
-
-        res.json({ message: 'SUCCESS! Admin user successfully created! You can now login with admin@shagun.com and admin123' });
-    } catch (error) {
-        console.error('Seed error:', error);
-        res.status(500).json({ message: 'Failed to seed admin', error: error.message });
-    }
-});
+// C2: /force-seed-admin route REMOVED for security. Use CLI seed script instead.
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -69,7 +44,7 @@ router.post('/register', async (req, res) => {
             email: normalizedEmail,
             password: hashedPassword,
             phone: phone || (address?.mobile || ''),
-            role: normalizedEmail === 'admin@shagun.com' ? 'admin' : (role || 'user'),
+            role: 'user', // M3: Never accept role from client input
             addresses
         });
 
@@ -84,7 +59,7 @@ router.post('/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Register error:', error);
-        res.status(500).json({ message: 'Server error during registration', error: error.message });
+        res.status(500).json({ message: 'Server error during registration' });
     }
 });
 
@@ -94,7 +69,8 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        if (!email || !password) {
+        // H4: Validate types to prevent NoSQL injection
+        if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
             return res.status(400).json({ message: 'Please provide email and password' });
         }
 
@@ -121,7 +97,7 @@ router.post('/login', async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login', error: error.message });
+        res.status(500).json({ message: 'Server error during login' });
     }
 });
 
@@ -171,7 +147,7 @@ router.put('/profile', protect, async (req, res) => {
         });
     } catch (error) {
         console.error('Profile update error:', error);
-        res.status(500).json({ message: 'Error updating profile', error: error.message });
+        res.status(500).json({ message: 'Error updating profile' });
     }
 });
 
@@ -190,7 +166,7 @@ router.delete('/profile', protect, async (req, res) => {
         res.json({ message: 'Account deleted successfully' });
     } catch (error) {
         console.error('Account deletion error:', error);
-        res.status(500).json({ message: 'Error deleting account', error: error.message });
+        res.status(500).json({ message: 'Error deleting account' });
     }
 });
 
@@ -237,7 +213,7 @@ router.post('/address', protect, async (req, res) => {
         res.status(201).json(user.addresses);
     } catch (error) {
         console.error('Error adding address:', error);
-        res.status(500).json({ message: 'Failed to add address', error: error.message });
+        res.status(500).json({ message: 'Failed to add address' });
     }
 });
 
@@ -276,7 +252,7 @@ router.put('/address/:addressId', protect, async (req, res) => {
         res.json(user.addresses);
     } catch (error) {
         console.error('Error updating address:', error);
-        res.status(500).json({ message: 'Failed to update address', error: error.message });
+        res.status(500).json({ message: 'Failed to update address' });
     }
 });
 
@@ -305,7 +281,7 @@ router.delete('/address/:addressId', protect, async (req, res) => {
         res.json({ message: 'Address removed successfully', addresses: user.addresses });
     } catch (error) {
         console.error('Error deleting address:', error);
-        res.status(500).json({ message: 'Failed to delete address', error: error.message });
+        res.status(500).json({ message: 'Failed to delete address' });
     }
 });
 
@@ -316,7 +292,8 @@ router.get('/users', protect, adminOnly, async (req, res) => {
         const users = await User.find({}).select('-password');
         res.json(users);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching users', error: error.message });
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Error fetching users' });
     }
 });
 

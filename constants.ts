@@ -17,7 +17,7 @@ export const CATEGORIES = [
   "Other"
 ];
 
-export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800";
+export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=800";
 
 export const MOCK_PRODUCTS: Product[] = [
   {
@@ -129,7 +129,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "General Use",
     stock: 40,
     description: "Premium mix of berries, nuts, and seeds.",
-    image: "https://images.unsplash.com/photo-1596560548464-f010549b84d7?auto=format&fit=crop&q=80&w=800",
+    image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800",
     rating: 4.9,
     reviews: 150,
     isBestseller: true
@@ -186,7 +186,7 @@ export const MOCK_PRODUCTS: Product[] = [
     category: "Makeup",
     stock: 25,
     description: "Full coverage bridal foundation — sweat-proof & long wearing up to 24 hours.",
-    image: "https://images.unsplash.com/photo-1631214524020-3c69b9fe0bb9?auto=format&fit=crop&q=80&w=800",
+    image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=800",
     rating: 4.8,
     reviews: 200,
     isBestseller: true

@@ -8,6 +8,55 @@ export const Cart: React.FC = () => {
   const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
 
+  const [couponCode, setCouponCode] = React.useState('');
+  const [appliedCoupon, setAppliedCoupon] = React.useState<{ code: string; discount: number } | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('shagun_applied_coupon');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [couponMessage, setCouponMessage] = React.useState<{ text: string; isError: boolean } | null>(null);
+
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+
+    if (appliedCoupon?.code === code) {
+      setCouponMessage({ text: 'This coupon is already applied.', isError: true });
+      return;
+    }
+
+    if (code === 'SHAGUN10') {
+      const discount = Math.round(totalPrice * 0.1);
+      const couponObj = { code, discount };
+      setAppliedCoupon(couponObj);
+      sessionStorage.setItem('shagun_applied_coupon', JSON.stringify(couponObj));
+      setCouponMessage({ text: `Code SHAGUN10 applied: ₹${discount} off!`, isError: false });
+    } else if (code === 'Bamitha50') {
+      const discount = Math.min(50, totalPrice);
+      const couponObj = { code, discount };
+      setAppliedCoupon(couponObj);
+      sessionStorage.setItem('shagun_applied_coupon', JSON.stringify(couponObj));
+      setCouponMessage({ text: `Code Bamitha50 applied: ₹${discount} off!`, isError: false });
+    } else if (code === 'EXPIRED2025' || code === 'SAVE2024') {
+      setCouponMessage({ text: 'This coupon code has expired.', isError: true });
+    } else {
+      setCouponMessage({ text: 'Invalid coupon code. Try SHAGUN10 or Bamitha50.', isError: true });
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    sessionStorage.removeItem('shagun_applied_coupon');
+    setCouponMessage(null);
+    setCouponCode('');
+  };
+
+  const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
+  const deliveryFee = totalPrice >= 500 ? 0 : 50;
+  const finalTotal = Math.max(0, totalPrice - discountAmount + deliveryFee);
+
   if (cart.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center pt-20 px-4"
@@ -57,47 +106,50 @@ export const Cart: React.FC = () => {
 
                 {/* Details */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gold-600 font-semibold uppercase tracking-wider mb-0.5">{item.category}</p>
+                  <p className="text-xs text-gold-700 font-semibold uppercase tracking-wider mb-0.5">{item.category}</p>
                   <h3 className="font-semibold text-maroon-700 text-sm leading-tight mb-1 line-clamp-2">{item.name}</h3>
                   <p className="text-maroon-600 font-bold">₹{item.price.toLocaleString('en-IN')}</p>
                 </div>
 
                 {/* Qty stepper */}
-                <div className="qty-stepper flex-shrink-0">
+                <div className="qty-stepper flex-shrink-0" role="group" aria-label={`Quantity for ${item.name}`}>
                   <button
                     className="qty-btn"
                     onClick={() => updateQuantity(item._id, item.quantity - 1)}
                     disabled={item.quantity <= 1}
+                    aria-label={`Decrease quantity of ${item.name}`}
                   >−</button>
-                  <span className="qty-value">{item.quantity}</span>
+                  <span className="qty-value" aria-label={`Current quantity: ${item.quantity}`}>{item.quantity}</span>
                   <button
                     className="qty-btn"
                     onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                    aria-label={`Increase quantity of ${item.name}`}
                   >+</button>
                 </div>
 
                 {/* Item total */}
                 <div className="hidden sm:block text-right flex-shrink-0 w-20">
-                  <p className="text-xs text-cream-600 mb-0.5">Total</p>
+                  <p className="text-xs text-cream-700 mb-0.5">Total</p>
                   <p className="font-bold text-maroon-700">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
                 </div>
 
                 {/* Remove */}
                 <button
                   onClick={() => removeFromCart(item._id)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all text-cream-600 hover:bg-red-50 hover:text-red-500"
+                  aria-label={`Remove ${item.name} from cart`}
+                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all text-cream-700 hover:bg-red-50 hover:text-red-500 focus-visible:outline-2 focus-visible:outline-maroon-900"
                   title="Remove"
                 >
-                  <i className="fas fa-trash-can text-sm" />
+                  <i className="fas fa-trash-can text-sm" aria-hidden="true" />
                 </button>
               </div>
             ))}
 
             <button
               onClick={clearCart}
-              className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors mt-2 flex items-center gap-1"
+              className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors mt-2 flex items-center gap-1 focus-visible:outline-2 focus-visible:outline-maroon-900"
             >
-              <i className="fas fa-trash" /> Clear entire cart
+              <i className="fas fa-trash" aria-hidden="true" /> Clear entire cart
             </button>
           </div>
 
@@ -106,15 +158,65 @@ export const Cart: React.FC = () => {
             <div className="card p-6 sticky top-24">
               <h3 className="font-serif font-bold text-maroon-700 text-xl mb-6">Order Summary</h3>
 
+              {/* Coupon Code Section */}
+              <div className="mb-5 pb-5 border-b border-cream-200">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-green-50 border border-green-200 text-xs">
+                    <div className="flex items-center gap-1.5 text-green-700">
+                      <i className="fas fa-tag text-green-600" aria-hidden="true" />
+                      <span>Coupon <strong>{appliedCoupon.code}</strong> (₹{appliedCoupon.discount} off)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      aria-label={`Remove applied coupon ${appliedCoupon.code}`}
+                      className="text-red-500 hover:text-red-700 font-semibold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                    <input
+                      id="cart-coupon-input"
+                      type="text"
+                      placeholder="Promo code (e.g. SHAGUN10)"
+                      aria-label="Enter promo or coupon code"
+                      value={couponCode}
+                      onChange={e => setCouponCode(e.target.value)}
+                      className="input-field py-1.5 px-3 text-xs flex-1 uppercase"
+                    />
+                    <button type="submit" className="btn btn-outline py-1.5 px-3 text-xs">
+                      Apply
+                    </button>
+                  </form>
+                )}
+                {couponMessage && (
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className={`text-[11px] mt-1.5 ${couponMessage.isError ? 'text-red-600' : 'text-green-600 font-medium'}`}
+                  >
+                    {couponMessage.text}
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm text-cream-700">
                   <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} items)</span>
                   <span className="font-medium text-maroon-700">₹{totalPrice.toLocaleString('en-IN')}</span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-sm text-green-700 font-medium">
+                    <span>Discount ({appliedCoupon.code})</span>
+                    <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm text-cream-700">
                   <span>Delivery</span>
-                  <span className={totalPrice >= 500 ? 'text-green-600 font-medium' : 'text-maroon-600 font-medium'}>
-                    {totalPrice >= 500 ? 'FREE' : '₹50'}
+                  <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : 'text-maroon-600 font-medium'}>
+                    {deliveryFee === 0 ? 'FREE' : '₹50'}
                   </span>
                 </div>
                 {totalPrice < 500 && (
@@ -127,7 +229,7 @@ export const Cart: React.FC = () => {
                 <div className="flex justify-between font-bold">
                   <span className="text-maroon-700">Total</span>
                   <span className="text-xl text-maroon-600">
-                    ₹{(totalPrice + (totalPrice >= 500 ? 0 : 50)).toLocaleString('en-IN')}
+                    ₹{finalTotal.toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>

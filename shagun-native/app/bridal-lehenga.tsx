@@ -4,8 +4,10 @@ import {
   Linking, ActivityIndicator, Dimensions, Modal, TextInput,
   ScrollView, Alert, RefreshControl, Platform
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { Product, ActiveRentalInfo, RentalBooking } from '../types';
 import { ADMIN_WHATSAPP } from '../constants';
 
@@ -66,9 +68,31 @@ export default function BridalLehengaScreen() {
     }
   };
 
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+
   const openRentalModal = (lehenga: Product) => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Login Required',
+        'Please log in to your account to book a bridal lehenga rental.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In', onPress: () => router.push('/login') }
+        ]
+      );
+      return;
+    }
+
     setSelectedLehenga(lehenga);
     setBookingSuccess(null);
+
+    // Prepopulate user details
+    if (user) {
+      if (user.name) setCustomerName(user.name);
+      if (user.phone) setCustomerPhone(user.phone);
+      if (user.email) setCustomerEmail(user.email);
+    }
 
     // Default dates: tomorrow and +4 days
     const tomorrow = new Date();
@@ -93,6 +117,11 @@ export default function BridalLehengaScreen() {
 
   const handleBookingSubmit = async () => {
     if (!selectedLehenga) return;
+
+    if (!isAuthenticated || !user?.token) {
+      Alert.alert('Authentication Required', 'Please log in to your account before submitting a rental booking.');
+      return;
+    }
 
     if (!startDate.trim() || !returnDate.trim()) {
       Alert.alert('Required', 'Please enter both Booking Date and Return Date (YYYY-MM-DD).');
@@ -153,7 +182,7 @@ export default function BridalLehengaScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#7c1f3e']} />}
         ListHeaderComponent={() => (
           <View style={styles.hero}>
-            <Text style={styles.heroEmoji}>👑</Text>
+            <Ionicons name="diamond-outline" size={36} color="#d4a853" style={{ marginBottom: 8 }} />
             <Text style={styles.heroTitle}>Bridal Lehenga Rentals</Text>
             <Text style={styles.heroSubtitle}>
               Handcrafted designer bridal lehengas on rent. Real-time booking & return date tracking.
@@ -220,7 +249,7 @@ export default function BridalLehengaScreen() {
                     </View>
                     <View style={[styles.bookedBannerRow, { marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#fde68a' }]}>
                       <Text style={[styles.bookedBannerLabel, { color: '#047857' }]}>
-                        ✨ Available From:
+                        Available From:
                       </Text>
                       <Text style={[styles.bookedBannerValue, { color: '#047857', fontWeight: '800' }]}>
                         {formatDate(activeBooking.availableFrom)}
@@ -229,7 +258,7 @@ export default function BridalLehengaScreen() {
                   </View>
                 ) : (
                   <View style={styles.availableBanner}>
-                    <Ionicons name="sparkles" size={14} color="#059669" />
+                    <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
                     <Text style={styles.availableBannerText}>Ready for immediate booking for your event</Text>
                   </View>
                 )}

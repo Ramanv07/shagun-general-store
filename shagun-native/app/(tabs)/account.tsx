@@ -121,7 +121,7 @@ export default function AccountScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/beauty-parlor')}>
-          <Ionicons name="sparkles-outline" size={20} color="#7c1f3e" />
+          <Ionicons name="flower-outline" size={20} color="#7c1f3e" />
           <Text style={styles.menuItemText}>Beauty Parlor</Text>
           <Ionicons name="chevron-forward" size={18} color="#d4b5a0" />
         </TouchableOpacity>

@@ -27,7 +27,7 @@ router.get('/', protect, async (req, res) => {
         res.json(orders);
     } catch (error) {
         console.error('Error fetching orders:', error);
-        res.status(500).json({ message: 'Failed to fetch orders', error: error.message });
+        res.status(500).json({ message: 'Failed to fetch orders' });
     }
 });
 
@@ -47,7 +47,7 @@ router.get('/myorders', protect, async (req, res) => {
         res.json(orders);
     } catch (error) {
         console.error('Error fetching my orders:', error);
-        res.status(500).json({ message: 'Failed to fetch orders', error: error.message });
+        res.status(500).json({ message: 'Failed to fetch orders' });
     }
 });
 
@@ -71,7 +71,7 @@ router.get('/user/:userId', protect, async (req, res) => {
         res.json(orders);
     } catch (error) {
         console.error('Error fetching user orders:', error);
-        res.status(500).json({ message: 'Failed to fetch user orders', error: error.message });
+        res.status(500).json({ message: 'Failed to fetch user orders' });
     }
 });
 
@@ -100,7 +100,7 @@ router.get('/:id', protect, async (req, res) => {
         res.json(order);
     } catch (error) {
         console.error('Error fetching order:', error);
-        res.status(500).json({ message: 'Failed to fetch order', error: error.message });
+        res.status(500).json({ message: 'Failed to fetch order' });
     }
 });
 
@@ -178,7 +178,7 @@ router.post('/', protect, async (req, res) => {
         res.status(201).json(populatedOrder);
     } catch (error) {
         console.error('Error creating order:', error);
-        res.status(500).json({ message: 'Failed to create order', error: error.message });
+        res.status(500).json({ message: 'Failed to create order' });
     }
 });
 
@@ -215,7 +215,7 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
         res.json(updatedOrder);
     } catch (error) {
         console.error('Error updating order status:', error);
-        res.status(500).json({ message: 'Failed to update order status', error: error.message });
+        res.status(500).json({ message: 'Failed to update order status' });
     }
 });
 
@@ -260,7 +260,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
         res.json({ message: 'Order cancelled successfully', order: saved });
     } catch (error) {
         console.error('Error cancelling order:', error);
-        res.status(500).json({ message: 'Failed to cancel order', error: error.message });
+        res.status(500).json({ message: 'Failed to cancel order' });
     }
 });
 
@@ -275,7 +275,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
         res.json({ message: 'Order deleted successfully' });
     } catch (error) {
         console.error('Error deleting order:', error);
-        res.status(500).json({ message: 'Failed to delete order', error: error.message });
+        res.status(500).json({ message: 'Failed to delete order' });
     }
 });
 

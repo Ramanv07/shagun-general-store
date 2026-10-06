@@ -1,0 +1,37 @@
+[
+  {
+    "id": "personal-care",
+    "name": "Personal Care",
+    "image": "/images/cat-personal-care.jpg"
+  },
+  {
+    "id": "bangles",
+    "name": "Bangles",
+    "image": "/images/cat-bangles.jpg"
+  },
+  {
+    "id": "toys",
+    "name": "Toys",
+    "image": "/images/cat-toys.jpg"
+  },
+  {
+    "id": "household",
+    "name": "Household",
+    "image": "/images/cat-household.jpg"
+  },
+  {
+    "id": "beauty",
+    "name": "Beauty & Makeup",
+    "image": "/images/cat-beauty.jpg"
+  },
+  {
+    "id": "lehenga",
+    "name": "Bridal Lehenga Rental",
+    "image": "/images/cat-lehenga.jpg"
+  },
+  {
+    "id": "parlour",
+    "name": "Beauty Parlour Booking",
+    "image": "/images/cat-parlour.jpg"
+  }
+]

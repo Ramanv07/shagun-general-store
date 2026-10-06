@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { mockApi } from '../services/mockService';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { ActiveRentalInfo, RentalBooking } from '../types';
 
 interface Lehenga {
@@ -29,7 +31,9 @@ export const LehengaSection: React.FC = () => {
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState<RentalBooking | null>(null);
 
-  const { addToCart, setIsCartOpen } = useCart();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
 
   const loadData = async () => {
     try {
@@ -66,6 +70,19 @@ export const LehengaSection: React.FC = () => {
     const interval = setInterval(loadData, 8000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedLehenga) {
+        setSelectedLehenga(null);
+        setBookingSuccess(null);
+      }
+    };
+    if (selectedLehenga) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedLehenga]);
 
   const formatDate = (dateStr: string) => {
     try {
@@ -132,6 +149,11 @@ export const LehengaSection: React.FC = () => {
     e.preventDefault();
     if (!selectedLehenga) return;
 
+    if (!isAuthenticated || !user?.token) {
+      setBookingError('Authentication Required: Please log in to your account before completing a rental booking.');
+      return;
+    }
+
     if (!startDate || !returnDate) {
       setBookingError('Please choose both Booking Date and Return Date.');
       return;
@@ -187,7 +209,7 @@ export const LehengaSection: React.FC = () => {
       description: lehenga.description,
       category: 'Bridal Lehenga'
     } as any, 1);
-    setIsCartOpen(true);
+    navigate('/cart');
   };
 
   if (loading || lehengas.length === 0) return null;
@@ -292,7 +314,7 @@ export const LehengaSection: React.FC = () => {
                         <div className="mt-1.5 pt-1.5 border-t border-amber-200/50 flex items-center justify-between text-[11px]">
                           <span className="text-amber-800 font-medium">Available to rent from:</span>
                           <span className="font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                            ✨ {formatDate(activeBooking.availableFrom)}
+                            {formatDate(activeBooking.availableFrom)}
                           </span>
                         </div>
                       </div>
@@ -353,13 +375,19 @@ export const LehengaSection: React.FC = () => {
 
       {/* RENTAL BOOKING MODAL */}
       {selectedLehenga && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rental-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+        >
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-cream-300 relative animate-scale-up">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-maroon-800 to-maroon-700 text-white p-6 rounded-t-3xl relative">
               <button
                 type="button"
                 onClick={() => setSelectedLehenga(null)}
+                aria-label="Close lehenga rental booking dialog"
                 className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
               >
                 <i className="fas fa-times"></i>
@@ -369,7 +397,7 @@ export const LehengaSection: React.FC = () => {
                   👑
                 </div>
                 <div>
-                  <h3 className="font-serif text-xl font-bold">Lehenga Rental Booking</h3>
+                  <h3 id="rental-modal-title" className="font-serif text-xl font-bold">Lehenga Rental Booking</h3>
                   <p className="text-xs text-cream-200">Select your booking and return dates</p>
                 </div>
               </div>
@@ -458,8 +486,24 @@ export const LehengaSection: React.FC = () => {
                     </div>
                   )}
 
+                  {!isAuthenticated && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <i className="fas fa-lock text-amber-700 text-sm"></i>
+                        <span>You must be logged in to complete a rental booking.</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/login')}
+                        className="bg-maroon-700 hover:bg-maroon-800 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors shrink-0 text-xs"
+                      >
+                        Log In Now
+                      </button>
+                    </div>
+                  )}
+
                   {bookingError && (
-                    <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                    <div role="alert" className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
                       <i className="fas fa-exclamation-circle text-rose-600 text-sm"></i>
                       <span>{bookingError}</span>
                     </div>
@@ -468,10 +512,11 @@ export const LehengaSection: React.FC = () => {
                   {/* Dates Picker */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block text-xs font-bold text-cream-900 mb-1">
-                        📅 Booking Date (Event / Pickup) *
+                      <label htmlFor="rental-start-date" className="block text-xs font-bold text-cream-900 mb-1">
+                        Booking Date (Event / Pickup) *
                       </label>
                       <input
+                        id="rental-start-date"
                         type="date"
                         min={getMinStartDate()}
                         value={startDate}
@@ -482,10 +527,11 @@ export const LehengaSection: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-cream-900 mb-1">
-                        🔄 Return Date (Drop-off) *
+                      <label htmlFor="rental-return-date" className="block text-xs font-bold text-cream-900 mb-1">
+                        Return Date (Drop-off) *
                       </label>
                       <input
+                        id="rental-return-date"
                         type="date"
                         min={getMinReturnDate()}
                         value={returnDate}
@@ -499,10 +545,11 @@ export const LehengaSection: React.FC = () => {
                   {/* Customer Information */}
                   <div className="space-y-3 pt-2">
                     <div>
-                      <label className="block text-xs font-bold text-cream-900 mb-1">
-                        👤 Customer Full Name *
+                      <label htmlFor="rental-customer-name" className="block text-xs font-bold text-cream-900 mb-1">
+                        Customer Full Name *
                       </label>
                       <input
+                        id="rental-customer-name"
                         type="text"
                         placeholder="e.g. Priya Sharma"
                         value={customerName}
@@ -514,10 +561,11 @@ export const LehengaSection: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-cream-900 mb-1">
-                          📱 Mobile Number *
+                        <label htmlFor="rental-customer-phone" className="block text-xs font-bold text-cream-900 mb-1">
+                          Mobile Number *
                         </label>
                         <input
+                          id="rental-customer-phone"
                           type="tel"
                           placeholder="e.g. 9876543210"
                           value={customerPhone}
@@ -527,12 +575,13 @@ export const LehengaSection: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-cream-900 mb-1">
-                          ✉️ Email Address (Optional)
+                        <label htmlFor="rental-customer-email" className="block text-xs font-bold text-cream-900 mb-1">
+                          Email Address (Optional)
                         </label>
                         <input
+                          id="rental-customer-email"
                           type="email"
-                          placeholder="priya@example.com"
+                          placeholder="customer@gmail.com"
                           value={customerEmail}
                           onChange={e => setCustomerEmail(e.target.value)}
                           className="w-full p-2.5 rounded-xl border border-cream-300 text-sm text-cream-950 focus:border-maroon-600 focus:ring-1 focus:ring-maroon-600 outline-none bg-white"
@@ -541,10 +590,11 @@ export const LehengaSection: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-cream-900 mb-1">
-                        📝 Fitting / Special Requests (Optional)
+                      <label htmlFor="rental-notes" className="block text-xs font-bold text-cream-900 mb-1">
+                        Fitting / Special Requests (Optional)
                       </label>
                       <textarea
+                        id="rental-notes"
                         rows={2}
                         placeholder="Mention trial timings, blouse fitting, or dupatta requirements..."
                         value={notes}
@@ -579,23 +629,34 @@ export const LehengaSection: React.FC = () => {
                     >
                       Cancel
                     </button>
-                    <button
-                      type="submit"
-                      disabled={bookingLoading}
-                      className="w-2/3 py-3 rounded-xl bg-maroon-700 hover:bg-maroon-800 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {bookingLoading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Reserving in Database...</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-check-circle" />
-                          <span>Confirm Rental Booking</span>
-                        </>
-                      )}
-                    </button>
+                    {!isAuthenticated ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate('/login')}
+                        className="w-2/3 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-maroon-950 font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2"
+                      >
+                        <i className="fas fa-lock" />
+                        <span>Log In to Book Rental</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={bookingLoading}
+                        className="w-2/3 py-3 rounded-xl bg-maroon-700 hover:bg-maroon-800 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {bookingLoading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Reserving in Database...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-check-circle" />
+                            <span>Confirm Rental Booking</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </form>
               )}

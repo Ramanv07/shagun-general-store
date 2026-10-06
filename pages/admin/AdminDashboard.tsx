@@ -9,6 +9,7 @@ const statusColors: Record<OrderStatus, string> = {
     [OrderStatus.PACKED]: 'bg-blue-100 text-blue-800 border-blue-300',
     [OrderStatus.OUT_FOR_DELIVERY]: 'bg-purple-100 text-purple-800 border-purple-300',
     [OrderStatus.DELIVERED]: 'bg-green-100 text-green-800 border-green-300',
+    [OrderStatus.CANCELLED]: 'bg-red-100 text-red-800 border-red-300',
 };
 
 const statusIcons: Record<OrderStatus, string> = {
@@ -16,6 +17,7 @@ const statusIcons: Record<OrderStatus, string> = {
     [OrderStatus.PACKED]: 'fa-box',
     [OrderStatus.OUT_FOR_DELIVERY]: 'fa-truck',
     [OrderStatus.DELIVERED]: 'fa-check-circle',
+    [OrderStatus.CANCELLED]: 'fa-times-circle',
 };
 
 const rentalStatusColors: Record<string, string> = {
@@ -312,8 +314,8 @@ export const AdminDashboard: React.FC = () => {
         return (
             <div className="min-h-screen bg-gray-900 pt-28 px-4 flex items-center justify-center">
                 <div className="max-w-md w-full bg-gray-800 border border-rose-500/40 p-8 rounded-2xl text-center shadow-2xl">
-                    <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                        🔒
+                    <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i className="fas fa-lock" />
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2">Admin Session Required</h2>
                     <p className="text-gray-300 text-sm mb-6 leading-relaxed">
@@ -350,7 +352,7 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'overview', label: 'Overview' },
                         { id: 'products', label: 'Products' },
                         { id: 'orders', label: 'Orders' },
-                        { id: 'rentals', label: '👑 Lehenga Rentals' },
+                        { id: 'rentals', label: 'Lehenga Rentals' },
                         { id: 'lehengas', label: 'Lehenga Catalog' },
                         { id: 'users', label: 'Users' }
                     ].map(tab => (

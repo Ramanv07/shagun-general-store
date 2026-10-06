@@ -38,7 +38,7 @@ export default function ProductCard({ product, style }: Props) {
         <View style={styles.badgesLeft}>
           {product.isBestseller && (
             <View style={styles.badgeGold}>
-              <Text style={styles.badgeGoldText}>⭐ Bestseller</Text>
+              <Text style={styles.badgeGoldText}>Bestseller</Text>
             </View>
           )}
           {product.stock <= 10 && product.stock > 0 && (
@@ -73,6 +73,9 @@ export default function ProductCard({ product, style }: Props) {
             style={[styles.addBtn, added && styles.addBtnAdded]}
             onPress={handleAdd}
             activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Add ${product.name} to cart`}
           >
             <Ionicons name={added ? 'checkmark' : 'add'} size={18} color={added ? '#1a0a12' : '#f5ede8'} />
           </TouchableOpacity>
