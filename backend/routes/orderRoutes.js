@@ -130,6 +130,16 @@ router.post('/', protect, async (req, res) => {
             }
         }
 
+        // Normalize payment method to uppercase enum
+        let normalizedPayment = 'COD';
+        if (paymentMethod) {
+            const pmUpper = paymentMethod.toUpperCase();
+            if (pmUpper === 'COD') normalizedPayment = 'COD';
+            else if (pmUpper === 'UPI') normalizedPayment = 'UPI';
+            else if (pmUpper === 'ONLINE' || pmUpper === 'CARD') normalizedPayment = 'Online';
+            else normalizedPayment = paymentMethod;
+        }
+
         const newOrder = new Order({
             user: req.user._id,
             items: items.map(item => {
@@ -143,8 +153,8 @@ router.post('/', protect, async (req, res) => {
             }),
             totalAmount: Number(totalAmount),
             shippingAddress,
-            paymentMethod: paymentMethod || 'COD',
-            paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Completed',
+            paymentMethod: normalizedPayment,
+            paymentStatus: normalizedPayment === 'COD' ? 'Pending' : 'Completed',
             status: 'Processing'
         });
 

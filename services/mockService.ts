@@ -271,6 +271,17 @@ export const mockApi = {
     if (!res.ok) throw new Error('Failed to update status');
   },
 
+  cancelOrder: async (id: string): Promise<void> => {
+    const res = await fetch(`/api/orders/${id}/cancel`, {
+      method: 'PUT',
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to cancel order');
+    }
+  },
+
   addReview: async (productId: string, rating: number): Promise<void> => {
     const products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
     const index = products.findIndex((p: Product) => p._id === productId);
@@ -396,7 +407,8 @@ export const mockApi = {
 
   getAllRentals: async (): Promise<RentalBooking[]> => {
     const res = await fetch('/api/rentals', {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      cache: 'no-store'
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

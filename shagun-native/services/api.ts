@@ -123,6 +123,18 @@ export const api = {
     if (!res.ok) throw new Error('Failed to update order status');
   },
 
+  cancelOrder: async (id: string): Promise<void> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/orders/${id}/cancel`, {
+      method: 'PUT',
+      headers,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to cancel order');
+    }
+  },
+
   // ── Users ─────────────────────────────────────────────────────────────────
   getUsers: async (): Promise<User[]> => {
     const headers = await getAuthHeaders();

@@ -115,8 +115,8 @@ router.post('/', protect, async (req, res) => {
             return res.status(400).json({ message: 'Invalid start date or return date format.' });
         }
 
-        if (parsedReturn <= parsedStart) {
-            return res.status(400).json({ message: 'Return date must be after booking date.' });
+        if (parsedReturn < parsedStart) {
+            return res.status(400).json({ message: 'Return date cannot be before booking date.' });
         }
 
         // Check if lehenga exists in DB

@@ -8,6 +8,7 @@ interface OrderContextType {
     orders: Order[];
     addOrder: (order: Partial<Order>) => Promise<Order>;
     updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+    cancelOrder: (orderId: string) => Promise<void>;
     getUserOrders: (userId: string) => Order[];
     getAllOrders: () => Order[];
 }
@@ -50,6 +51,11 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         await loadOrders(); // Refresh to get latest state
     };
 
+    const cancelOrder = async (orderId: string) => {
+        await mockApi.cancelOrder(orderId);
+        await loadOrders(); // Refresh to get latest state
+    };
+
     const getUserOrders = (userId: string): Order[] => {
         return orders.filter(order => 
             order.user?._id === userId || 
@@ -65,7 +71,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     return (
-        <OrderContext.Provider value={{ orders, addOrder, updateOrderStatus, getUserOrders, getAllOrders }}>
+        <OrderContext.Provider value={{ orders, addOrder, updateOrderStatus, cancelOrder, getUserOrders, getAllOrders }}>
             {children}
         </OrderContext.Provider>
     );

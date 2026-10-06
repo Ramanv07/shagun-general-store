@@ -601,7 +601,7 @@ export const AdminDashboard: React.FC = () => {
 
                                         <button
                                             onClick={() => setSelectedOrder(order)}
-                                            className="text-gold-500 hover:text-gold-400 text-sm font-semibold hover:underline"
+                                            className="px-3 py-1.5 border border-gold-500 text-gold-500 rounded hover:bg-gold-500 hover:text-black text-sm font-semibold transition-colors"
                                         >
                                             View Details
                                         </button>

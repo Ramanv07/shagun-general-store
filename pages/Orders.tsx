@@ -31,7 +31,7 @@ const STATUS_STEPS = [
 ];
 
 export const Orders: React.FC = () => {
-  const { getUserOrders, updateOrderStatus } = useOrders();
+  const { getUserOrders, updateOrderStatus, cancelOrder } = useOrders();
   const { user } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
@@ -59,9 +59,13 @@ export const Orders: React.FC = () => {
 
   const handleCancelOrder = async (orderId: string) => {
     if (window.confirm('Are you sure you want to cancel this order?')) {
-      await updateOrderStatus(orderId, OrderStatus.CANCELLED);
-      if (selectedOrder && selectedOrder._id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: OrderStatus.CANCELLED });
+      try {
+        await cancelOrder(orderId);
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: OrderStatus.CANCELLED });
+        }
+      } catch (err: any) {
+        alert(err.message || 'Failed to cancel order');
       }
     }
   };
@@ -133,7 +137,7 @@ export const Orders: React.FC = () => {
                     {order.items.slice(0, 3).map((item, idx) => (
                       <div key={idx} className="w-14 h-14 rounded-xl overflow-hidden border border-cream-300 flex-shrink-0">
                         <img
-                          src={item.image}
+                          src={item.image || (item.product as any)?.image}
                           alt={item.name}
                           onError={e => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMAGE; }}
                           className="w-full h-full object-cover"
@@ -147,8 +151,8 @@ export const Orders: React.FC = () => {
                     )}
                   </div>
 
-                  <button className="text-maroon-600 hover:text-gold-600 font-semibold text-sm flex items-center gap-2 transition-colors flex-shrink-0">
-                    View Details <i className="fas fa-chevron-right text-xs"></i>
+                  <button className="btn btn-outline btn-sm flex items-center gap-2 whitespace-nowrap">
+                    View Details <i className="fas fa-chevron-right text-[10px]"></i>
                   </button>
                 </div>
               </div>
@@ -224,7 +228,7 @@ export const Orders: React.FC = () => {
                     {selectedOrder.items.map((item, idx) => (
                       <div key={idx} className="flex gap-4 bg-cream-200 p-3 rounded-xl flex-wrap sm:flex-nowrap">
                         <img
-                          src={item.image}
+                          src={item.image || (item.product as any)?.image}
                           alt={item.name}
                           onError={e => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMAGE; }}
                           className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
