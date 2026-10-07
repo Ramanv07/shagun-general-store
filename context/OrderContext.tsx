@@ -17,7 +17,7 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [orders, setOrders] = useState<Order[]>([]);
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
 
     // Load orders from mockApi on mount
     useEffect(() => {
@@ -35,8 +35,12 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
             const data = await mockApi.getOrders();
             setOrders(data);
-        } catch {
+        } catch (error: any) {
             setOrders([]);
+            if (error.message && error.message.includes('401')) {
+                // Token is invalid or expired, force logout
+                logout();
+            }
         }
     };
 
