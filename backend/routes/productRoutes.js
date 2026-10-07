@@ -103,7 +103,15 @@ router.get('/', async (req, res) => {
             }
         }
 
-        res.json(products);
+        const formatted = products.map(p => {
+            const doc = p.toObject ? p.toObject() : { ...p };
+            if (!doc.mrp || doc.mrp <= doc.price) {
+                doc.mrp = Math.round(doc.price * 1.25);
+            }
+            return doc;
+        });
+
+        res.json(formatted);
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).json({ message: 'Failed to fetch products' });
@@ -118,7 +126,11 @@ router.get('/:id', async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
-        res.json(product);
+        const doc = product.toObject ? product.toObject() : { ...product };
+        if (!doc.mrp || doc.mrp <= doc.price) {
+            doc.mrp = Math.round(doc.price * 1.25);
+        }
+        res.json(doc);
     } catch (error) {
         console.error('Error fetching product:', error);
         res.status(500).json({ message: 'Invalid product ID or server error' });
@@ -129,7 +141,7 @@ router.get('/:id', async (req, res) => {
 // @desc    Create a new product (admin only)
 router.post('/', protect, adminOnly, async (req, res) => {
     try {
-        const { name, price, category, stock, description, image, images, rating, reviews, isBestseller } = req.body;
+        const { name, price, mrp, category, stock, description, image, images, rating, reviews, isBestseller } = req.body;
 
         if (!name || price === undefined || !category || stock === undefined || !description || !image) {
             return res.status(400).json({ message: 'Please provide all required product fields' });
@@ -138,6 +150,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
         const product = new Product({
             name,
             price: Number(price),
+            mrp: mrp ? Number(mrp) : undefined,
             category,
             stock: Number(stock),
             description,

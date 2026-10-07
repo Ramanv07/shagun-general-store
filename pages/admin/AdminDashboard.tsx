@@ -537,14 +537,64 @@ export const AdminDashboard: React.FC = () => {
                                                 required
                                             />
 
-                                            <input
-                                                placeholder="Price (₹)"
-                                                type="number"
-                                                className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
-                                                value={editingProduct?.price || ''}
-                                                onChange={e => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
-                                                required
-                                            />
+                                            {/* Two Price Sessions: MRP and Offer Price */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-gray-300 text-xs font-semibold block mb-1">
+                                                        MRP (Original Price ₹)
+                                                    </label>
+                                                    <input
+                                                        placeholder="e.g. 199"
+                                                        type="number"
+                                                        min="0"
+                                                        className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
+                                                        value={editingProduct?.mrp || ''}
+                                                        onChange={e => setEditingProduct({ ...editingProduct, mrp: e.target.value ? Number(e.target.value) : undefined })}
+                                                    />
+                                                    <span className="text-[10px] text-gray-400 mt-0.5 block">Will show cut down / strikethrough</span>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-gray-300 text-xs font-semibold block mb-1">
+                                                        Offer Price / Selling Price (₹) *
+                                                    </label>
+                                                    <input
+                                                        placeholder="e.g. 149"
+                                                        type="number"
+                                                        min="0"
+                                                        className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none font-bold text-gold-400"
+                                                        value={editingProduct?.price || ''}
+                                                        onChange={e => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
+                                                        required
+                                                    />
+                                                    <span className="text-[10px] text-gray-400 mt-0.5 block">Customer will buy at this price</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Live Price Preview */}
+                                            {Boolean(editingProduct?.price) && (
+                                                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between">
+                                                    <div className="text-xs text-gray-300">
+                                                        <span className="text-gray-400 font-medium">Customer sees: </span>
+                                                        {editingProduct?.mrp && editingProduct.mrp > (editingProduct.price || 0) ? (
+                                                            <span className="inline-flex items-baseline gap-2 ml-1">
+                                                                <span className="text-gray-400 line-through">₹{editingProduct.mrp}</span>
+                                                                <span className="text-gold-400 font-bold text-sm">₹{editingProduct.price}</span>
+                                                                <span className="text-emerald-400 font-bold text-xs">
+                                                                    ({Math.round(((editingProduct.mrp - editingProduct.price) / editingProduct.mrp) * 100)}% OFF)
+                                                                </span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gold-400 font-bold ml-1">₹{editingProduct?.price}</span>
+                                                        )}
+                                                    </div>
+                                                    {editingProduct?.mrp && editingProduct.mrp > (editingProduct.price || 0) && (
+                                                        <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-semibold">
+                                                            Save ₹{editingProduct.mrp - editingProduct.price}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             <select
                                                 className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
@@ -661,7 +711,21 @@ export const AdminDashboard: React.FC = () => {
                                                     {p.name}
                                                     {p.isBestseller && <span className="ml-2 text-xs bg-gold-500 text-black px-1 rounded font-bold">BESTSELLER</span>}
                                                 </td>
-                                                <td className="p-3">₹{p.price.toLocaleString()}</td>
+                                                <td className="p-3">
+                                                    {p.mrp && p.mrp > p.price ? (
+                                                        <div className="flex flex-col">
+                                                            <div className="flex items-baseline gap-1.5">
+                                                                <span className="text-gray-400 line-through text-xs">₹{p.mrp.toLocaleString()}</span>
+                                                                <span className="font-bold text-white">₹{p.price.toLocaleString()}</span>
+                                                            </div>
+                                                            <span className="text-emerald-400 font-semibold text-[11px]">
+                                                                {Math.round(((p.mrp - p.price) / p.mrp) * 100)}% off
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="font-bold text-white">₹{p.price.toLocaleString()}</div>
+                                                    )}
+                                                </td>
                                                 <td className="p-3 text-sm">{p.category}</td>
                                                 <td className={`p-3 font-mono ${p.stock < 10 ? 'text-red-400 font-bold' : 'text-gray-300'}`}>
                                                     {p.stock}

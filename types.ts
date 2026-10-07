@@ -18,6 +18,7 @@ export interface Product {
   _id: string;
   name: string;
   price: number;
+  mrp?: number;
   category: string;
   stock: number;
   description: string;

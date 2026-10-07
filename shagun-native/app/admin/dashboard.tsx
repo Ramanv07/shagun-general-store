@@ -15,7 +15,7 @@ type Tab = 'orders' | 'products' | 'users';
 const CATEGORIES = ['General Use', 'Skin Care', 'Personal Care', 'Bangle', 'Toy', 'Bridal Lehenga'];
 
 const emptyProduct = {
-  name: '', price: '', category: 'General Use', stock: '', description: '', image: '',
+  name: '', price: '', mrp: '', category: 'General Use', stock: '', description: '', image: '',
 };
 
 export default function AdminDashboard() {
@@ -110,6 +110,7 @@ export default function AdminDashboard() {
       const newProduct = await api.saveProduct({
         name: form.name,
         price: Number(form.price),
+        mrp: form.mrp ? Number(form.mrp) : undefined,
         category: form.category,
         stock: Number(form.stock),
         description: form.description,
@@ -270,12 +271,22 @@ export default function AdminDashboard() {
             </View>
 
             {/* Price & Stock */}
-            <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>Price (₹) *</Text>
+                <Text style={styles.inputLabel}>MRP (₹)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="0"
+                  placeholder="e.g. 199"
+                  keyboardType="numeric"
+                  value={form.mrp}
+                  onChangeText={v => setForm(p => ({ ...p, mrp: v }))}
+                />
+              </View>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.inputLabel}>Offer Price *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 149"
                   keyboardType="numeric"
                   value={form.price}
                   onChangeText={v => setForm(p => ({ ...p, price: v }))}

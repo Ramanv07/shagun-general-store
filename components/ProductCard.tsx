@@ -77,6 +77,11 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
     setTimeout(() => setAdded(false), 1800);
   };
 
+  const effectiveMrp = (product.mrp && product.mrp > product.price)
+    ? product.mrp
+    : Math.round(product.price * 1.25);
+  const discountPercent = Math.round(((effectiveMrp - product.price) / effectiveMrp) * 100);
+
   return (
     <>
       <div
@@ -116,8 +121,12 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
           </div>
 
           {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+            {discountPercent > 0 && (
+              <span className="badge bg-emerald-600 text-white font-bold text-[10px] shadow-sm">
+                {discountPercent}% OFF
+              </span>
+            )}
             {product.stock <= 10 && product.stock > 0 && (
               <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
             )}
@@ -157,8 +166,22 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
 
           {/* Price + Quick Add */}
           <div className="flex items-center justify-between mt-auto">
-            <div>
-              <span className="text-sm sm:text-xl font-bold text-maroon-600">₹{product.price.toLocaleString('en-IN')}</span>
+            <div className="flex flex-col">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                {effectiveMrp > product.price && (
+                  <span className="text-[11px] sm:text-xs text-cream-600 line-through font-medium">
+                    ₹{effectiveMrp.toLocaleString('en-IN')}
+                  </span>
+                )}
+                <span className="text-sm sm:text-xl font-bold text-maroon-600">
+                  ₹{product.price.toLocaleString('en-IN')}
+                </span>
+              </div>
+              {discountPercent > 0 && (
+                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600">
+                  {discountPercent}% OFF
+                </span>
+              )}
             </div>
             <button
               onClick={handleAdd}
@@ -238,9 +261,26 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
               </div>
 
               <div className="bg-cream-100 p-4 rounded-xl mb-6">
-                <div className="text-2xl font-bold text-maroon-800 mb-1">
-                  ₹{product.price.toLocaleString('en-IN')}
+                <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
+                  {effectiveMrp > product.price && (
+                    <div className="text-base text-cream-600 line-through font-medium">
+                      MRP: ₹{effectiveMrp.toLocaleString('en-IN')}
+                    </div>
+                  )}
+                  <div className="text-2xl font-bold text-maroon-800">
+                    ₹{product.price.toLocaleString('en-IN')}
+                  </div>
+                  {effectiveMrp > product.price && (
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      {discountPercent}% OFF
+                    </span>
+                  )}
                 </div>
+                {effectiveMrp > product.price && (
+                  <p className="text-xs text-emerald-700 font-semibold mb-1">
+                    You save ₹{(effectiveMrp - product.price).toLocaleString('en-IN')}!
+                  </p>
+                )}
                 <p className="text-xs text-cream-700">
                   Free same-day doorstep delivery in Bamitha on orders above ₹399. Pay on delivery available.
                 </p>

@@ -165,9 +165,23 @@ export const mockApi = {
   },
 
   getProducts: async (): Promise<Product[]> => {
-    const res = await fetch('/api/products');
-    if (!res.ok) throw new Error('Failed to fetch products from backend');
-    return await res.json();
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const data = await res.json();
+        return data.map((p: Product) => ({
+          ...p,
+          mrp: p.mrp && p.mrp > p.price ? p.mrp : Math.round(p.price * 1.25)
+        }));
+      }
+    } catch (e) {
+      console.warn('Failed to fetch products from backend, using localStorage', e);
+    }
+    const local = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
+    return local.map((p: Product) => ({
+      ...p,
+      mrp: p.mrp && p.mrp > p.price ? p.mrp : Math.round(p.price * 1.25)
+    }));
   },
 
   saveProduct: async (product: Partial<Product>): Promise<Product> => {

@@ -64,7 +64,27 @@ export default function ProductCard({ product, style }: Props) {
 
         {/* Price + Add */}
         <View style={styles.footer}>
-          <Text style={styles.price}>₹{product.price.toLocaleString('en-IN')}</Text>
+          {(() => {
+            const effMrp = product.mrp && product.mrp > product.price ? product.mrp : Math.round(product.price * 1.25);
+            const disc = Math.round(((effMrp - product.price) / effMrp) * 100);
+            return (
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                  {effMrp > product.price ? (
+                    <Text style={{ fontSize: 11, color: '#9c7a8a', textDecorationLine: 'line-through' }}>
+                      ₹{effMrp.toLocaleString('en-IN')}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.price}>₹{product.price.toLocaleString('en-IN')}</Text>
+                </View>
+                {disc > 0 ? (
+                  <Text style={{ fontSize: 9, fontWeight: '700', color: '#10b981' }}>
+                    {disc}% OFF
+                  </Text>
+                ) : null}
+              </View>
+            );
+          })()}
           <TouchableOpacity
             style={[styles.addBtn, added && styles.addBtnAdded]}
             onPress={handleAdd}
