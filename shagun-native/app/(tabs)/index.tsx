@@ -100,7 +100,7 @@ export default function HomeScreen() {
         <View style={styles.deliveryContainer}>
           <Truck size={14} color={THEME.colors.gold500} strokeWidth={1.5} />
           <Text style={styles.deliveryText} numberOfLines={1}>
-            Free delivery above ₹499
+            Free delivery above ₹399
           </Text>
         </View>
       </View>

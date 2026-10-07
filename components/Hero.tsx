@@ -14,7 +14,6 @@ export const Hero: React.FC = () => {
             width={800}
             height={480}
             loading="eager"
-            fetchpriority="high"
             className="w-full h-full object-cover object-left lg:object-center"
             style={{
               // Seamless fade on the left edge into the solid cream background

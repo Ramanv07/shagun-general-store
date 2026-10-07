@@ -129,8 +129,8 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
             onClick={toggleWishlist}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
             className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${isWishlisted
-                ? 'bg-red-50 text-red-600 scale-110'
-                : 'bg-white/80 hover:bg-white text-ink-500 hover:text-red-500'
+              ? 'bg-red-50 text-red-600 scale-110'
+              : 'bg-white/80 hover:bg-white text-ink-500 hover:text-red-500'
               }`}
           >
             <i className={`fas fa-heart text-[10px] sm:text-xs ${isWishlisted ? 'text-red-600' : ''}`} />
@@ -242,7 +242,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
                   ₹{product.price.toLocaleString('en-IN')}
                 </div>
                 <p className="text-xs text-cream-700">
-                  Free same-day doorstep delivery in Bamitha on orders above ₹499. Pay on delivery available.
+                  Free same-day doorstep delivery in Bamitha on orders above ₹399. Pay on delivery available.
                 </p>
               </div>
 
