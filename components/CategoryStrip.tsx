@@ -21,7 +21,7 @@ export const CategoryStrip: React.FC = () => {
 
   return (
     <div 
-      className="max-w-[1440px] relative z-20 px-5 lg:px-16 mx-auto -mt-[21px] lg:ml-[71px]"
+      className="max-w-[1440px] relative z-30 px-5 lg:px-16 mx-auto -mt-10 sm:-mt-14 lg:-mt-16"
     >
       {/* Floating White Card */}
       <div className="bg-white rounded-[16px] shadow-[0_8px_24px_rgba(90,15,30,0.08)] border border-line/40 py-5 sm:py-6 px-3 sm:px-6 relative flex items-center">

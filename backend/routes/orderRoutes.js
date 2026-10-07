@@ -75,6 +75,35 @@ router.get('/user/:userId', protect, async (req, res) => {
     }
 });
 
+// @route   POST /api/orders/track
+// @desc    Track order publicly
+router.post('/track', async (req, res) => {
+    try {
+        const { orderId, mobile } = req.body;
+        if (!orderId || !mobile) {
+            return res.status(400).json({ message: 'Order ID and Mobile number are required' });
+        }
+
+        const order = await Order.findById(orderId)
+            .populate('items.product', 'name price image category');
+            
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        const orderMobile = order.shippingAddress?.mobile;
+        
+        if (orderMobile !== mobile) {
+             return res.status(403).json({ message: 'Mobile number does not match the order' });
+        }
+
+        res.json(order);
+    } catch (error) {
+        console.error('Error tracking order:', error);
+        res.status(500).json({ message: 'Failed to track order. Please check the Order ID.' });
+    }
+});
+
 // @route   GET /api/orders/:id
 // @desc    Get single order by ID
 router.get('/:id', protect, async (req, res) => {

@@ -4,6 +4,21 @@ import { mockApi } from '../../services/mockService';
 import { Order, Product, OrderStatus, User, RentalBooking, RentalStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
 
+const getAuthToken = () => {
+    try {
+        const userStr = localStorage.getItem('shagun_current_user');
+        if (userStr) {
+            const u = JSON.parse(userStr);
+            const token = u?.token || '';
+            if (token === 'mock_admin_token' || token === 'mock_user_token') {
+                return ''; // Force re-login
+            }
+            return token;
+        }
+    } catch (e) {}
+    return '';
+};
+
 const statusColors: Record<OrderStatus, string> = {
     [OrderStatus.PROCESSING]: 'bg-yellow-100 text-yellow-800 border-yellow-300',
     [OrderStatus.PACKED]: 'bg-blue-100 text-blue-800 border-blue-300',
@@ -28,11 +43,12 @@ const rentalStatusColors: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices'>('overview');
     const [products, setProducts] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [lehengas, setLehengas] = useState<any[]>([]);
     const [rentals, setRentals] = useState<RentalBooking[]>([]);
+    const [appointments, setAppointments] = useState<any[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [authError, setAuthError] = useState(false);
@@ -58,6 +74,11 @@ export const AdminDashboard: React.FC = () => {
 
     // Order Detail State
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+    // Parlor Services State
+    const [parlorServices, setParlorServices] = useState<any[]>([]);
+    const [editingService, setEditingService] = useState<any | null>(null);
+    const [isServiceFormOpen, setIsServiceFormOpen] = useState(false);
 
     useEffect(() => {
         let lastTimestamp = 0;
@@ -107,10 +128,77 @@ export const AdminDashboard: React.FC = () => {
             if (lRes.status === 'fulfilled') setLehengas(lRes.value);
             if (uRes.status === 'fulfilled') setUsers(uRes.value);
             if (rRes.status === 'fulfilled') setRentals(rRes.value);
+
+            // Fetch appointments
+            try {
+                const token = getAuthToken();
+                if (token) {
+                    const apptRes = await fetch('/api/appointments', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (apptRes.ok) {
+                        const data = await apptRes.json();
+                        setAppointments(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch appointments", err);
+            }
+
+            // Fetch parlor services
+            try {
+                const srvRes = await fetch('/api/parlor-services');
+                if (srvRes.ok) {
+                    const data = await srvRes.json();
+                    setParlorServices(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch parlor services", err);
+            }
+
             setLoading(false);
         } catch (error) {
             console.error("Data fetch failed", error);
             setLoading(false);
+        }
+    };
+
+    const handleSaveService = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const method = editingService._id ? 'PUT' : 'POST';
+            const url = editingService._id ? `/api/parlor-services/${editingService._id}` : '/api/parlor-services';
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                },
+                body: JSON.stringify(editingService)
+            });
+            if (res.ok) {
+                setIsServiceFormOpen(false);
+                setEditingService(null);
+                fetchData();
+            } else {
+                alert('Failed to save service');
+            }
+        } catch (error) {
+            console.error('Error saving service:', error);
+        }
+    };
+
+    const handleDeleteService = async (id: string) => {
+        if (confirm('Are you sure you want to delete this service?')) {
+            try {
+                await fetch(`/api/parlor-services/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+                });
+                fetchData();
+            } catch (err) {
+                console.error('Failed to delete service:', err);
+            }
         }
     };
 
@@ -273,7 +361,7 @@ export const AdminDashboard: React.FC = () => {
             const formData = new FormData();
             formData.append('image', file);
 
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 headers: {
@@ -370,6 +458,8 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'orders', label: 'Orders' },
                         { id: 'rentals', label: 'Lehenga Rentals' },
                         { id: 'lehengas', label: 'Lehenga Catalog' },
+                        { id: 'parlor', label: 'Parlor Bookings' },
+                        { id: 'parlorServices', label: 'Parlor Services' },
                         { id: 'users', label: 'Users' }
                     ].map(tab => (
                         <button
@@ -410,6 +500,10 @@ export const AdminDashboard: React.FC = () => {
                                 <p className="text-xs text-rose-300 mt-2 font-medium">
                                     {rentals.filter(r => r.status === 'Booked' || r.status === 'Active').length} Active / Booked
                                 </p>
+                            </div>
+                            <div className="bg-pink-600/20 border border-pink-500/30 p-6 rounded-xl">
+                                <h3 className="text-pink-400 mb-2 font-medium">Parlor Bookings</h3>
+                                <p className="text-3xl font-bold text-white">{appointments.length}</p>
                             </div>
                         </div>
                     )}
@@ -1127,6 +1221,211 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     )}
 
+                    {/* PARLOR BOOKINGS */}
+                    {activeTab === 'parlor' && (
+                        <div className="space-y-4">
+                            <h2 className="text-xl text-white font-bold mb-4">Parlor Appointments</h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-gray-300">
+                                    <thead className="bg-white/5 text-xs uppercase">
+                                        <tr>
+                                            <th className="p-3">Customer</th>
+                                            <th className="p-3">Service</th>
+                                            <th className="p-3">Date & Time</th>
+                                            <th className="p-3">Price</th>
+                                            <th className="p-3">Status</th>
+                                            <th className="p-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/10">
+                                        {appointments.map((appt, idx) => (
+                                            <tr key={idx} className="hover:bg-white/5">
+                                                <td className="p-3">
+                                                    <div className="font-medium text-white">{appt.customerName}</div>
+                                                    <div className="text-xs text-gray-400">{appt.customerPhone}</div>
+                                                </td>
+                                                <td className="p-3">
+                                                    <div className="font-medium">{appt.serviceName}</div>
+                                                    {appt.notes && <div className="text-xs text-gray-500 max-w-[200px] truncate">{appt.notes}</div>}
+                                                </td>
+                                                <td className="p-3 whitespace-nowrap">
+                                                    <div>{appt.date}</div>
+                                                    <div className="text-xs text-gold-500">{appt.slot}</div>
+                                                </td>
+                                                <td className="p-3 font-semibold">₹{appt.price.toLocaleString()}</td>
+                                                <td className="p-3">
+                                                    <select
+                                                        value={appt.status}
+                                                        onChange={async (e) => {
+                                                            try {
+                                                                const res = await fetch(`/api/appointments/${appt._id}/status`, {
+                                                                    method: 'PUT',
+                                                                    headers: {
+                                                                        'Content-Type': 'application/json',
+                                                                        'Authorization': `Bearer ${getAuthToken()}`
+                                                                    },
+                                                                    body: JSON.stringify({ status: e.target.value })
+                                                                });
+                                                                if (res.ok) fetchData();
+                                                            } catch (err) {
+                                                                console.error("Failed to update status", err);
+                                                            }
+                                                        }}
+                                                        className="bg-black/50 border border-white/20 text-white text-xs rounded px-2 py-1 focus:outline-none focus:border-gold-500 cursor-pointer"
+                                                    >
+                                                        {['Pending', 'Confirmed', 'Completed', 'Cancelled'].map(s => (
+                                                            <option key={s} value={s} className="bg-midnight-900">{s}</option>
+                                                        ))}
+                                                    </select>
+                                                </td>
+                                                <td className="p-3">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm(`Cancel appointment for ${appt.customerName}?`)) {
+                                                                try {
+                                                                    await fetch(`/api/appointments/${appt._id}`, {
+                                                                        method: 'DELETE',
+                                                                        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+                                                                    });
+                                                                    fetchData();
+                                                                } catch (err) {
+                                                                    console.error("Delete failed", err);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="text-red-400 hover:text-red-300 w-8 h-8 rounded hover:bg-white/10 transition-colors"
+                                                        title="Delete Appointment"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {appointments.length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} className="p-8 text-center text-gray-500">
+                                                    No appointments found.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PARLOR SERVICES */}
+                    {activeTab === 'parlorServices' && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl text-white font-bold">Parlor Services</h2>
+                                <button
+                                    onClick={() => {
+                                        setEditingService({ name: '', duration: '', price: 0, desc: '', badge: '' });
+                                        setIsServiceFormOpen(true);
+                                    }}
+                                    className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-600 text-black font-bold rounded-lg hover:shadow-lg transition-all"
+                                >
+                                    <i className="fas fa-plus mr-2"></i> Add Service
+                                </button>
+                            </div>
+
+                            {isServiceFormOpen && (
+                                <div className="bg-gray-800 p-6 rounded-xl mb-6 border border-gray-700 relative">
+                                    <button
+                                        onClick={() => { setIsServiceFormOpen(false); setEditingService(null); }}
+                                        className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                                    >
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                    <h3 className="text-lg font-bold text-white mb-4">
+                                        {editingService?._id ? 'Edit Service' : 'Add New Service'}
+                                    </h3>
+                                    <form onSubmit={handleSaveService}>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <input
+                                                type="text"
+                                                placeholder="Service Name"
+                                                className="bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
+                                                value={editingService?.name || ''}
+                                                onChange={e => setEditingService({ ...editingService, name: e.target.value })}
+                                                required
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Duration (e.g., '2 hrs')"
+                                                className="bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
+                                                value={editingService?.duration || ''}
+                                                onChange={e => setEditingService({ ...editingService, duration: e.target.value })}
+                                                required
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="Price (₹)"
+                                                className="bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
+                                                value={editingService?.price || 0}
+                                                onChange={e => setEditingService({ ...editingService, price: Number(e.target.value) })}
+                                                required
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Badge (Optional, e.g., 'Popular')"
+                                                className="bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
+                                                value={editingService?.badge || ''}
+                                                onChange={e => setEditingService({ ...editingService, badge: e.target.value })}
+                                            />
+                                        </div>
+                                        <textarea
+                                            placeholder="Description"
+                                            className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none min-h-[80px] mt-4"
+                                            value={editingService?.desc || ''}
+                                            onChange={e => setEditingService({ ...editingService, desc: e.target.value })}
+                                            required
+                                        />
+                                        <button type="submit" className="w-full bg-gradient-to-r from-gold-500 to-amber-600 text-black font-bold py-3 mt-6 rounded-lg hover:shadow-lg transition-all">
+                                            Save Service
+                                        </button>
+                                    </form>
+                                </div>
+                            )}
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-gray-300">
+                                    <thead className="bg-white/5 text-xs uppercase">
+                                        <tr>
+                                            <th className="p-3">Name</th>
+                                            <th className="p-3">Duration</th>
+                                            <th className="p-3">Price</th>
+                                            <th className="p-3">Badge</th>
+                                            <th className="p-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/10">
+                                        {parlorServices.map(srv => (
+                                            <tr key={srv._id} className="hover:bg-white/5">
+                                                <td className="p-3 font-medium text-white">{srv.name}</td>
+                                                <td className="p-3 text-sm">{srv.duration}</td>
+                                                <td className="p-3 font-bold text-gold-500">₹{srv.price.toLocaleString()}</td>
+                                                <td className="p-3 text-xs">{srv.badge || '-'}</td>
+                                                <td className="p-3 flex gap-2">
+                                                    <button onClick={() => { setEditingService(srv); setIsServiceFormOpen(true); }} className="text-blue-400 hover:text-blue-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-edit"></i></button>
+                                                    <button onClick={() => handleDeleteService(srv._id)} className="text-red-400 hover:text-red-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {parlorServices.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="p-8 text-center text-gray-500">
+                                                    No parlor services found. Add one to get started.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
                     {/* USERS */}
                     {activeTab === 'users' && (
                         <div className="space-y-4">
@@ -1215,7 +1514,7 @@ export const AdminDashboard: React.FC = () => {
                                     <div className="space-y-3">
                                         {selectedOrder.items.map((item, idx) => (
                                             <div key={idx} className="flex gap-4 bg-white/5 p-3 rounded-lg">
-                                                <img src={item.image} alt={item.name} className="w-16 h-16 rounded object-cover" />
+                                                <img src={item.image || (item as any).product?.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800'} alt={item.name} onError={e => { (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800'; }} className="w-16 h-16 rounded object-cover bg-gray-800" />
                                                 <div className="flex-1">
                                                     <h4 className="text-white font-semibold">{item.name}</h4>
                                                     <p className="text-gray-400 text-sm">Qty: {item.quantity}</p>

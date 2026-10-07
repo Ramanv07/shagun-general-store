@@ -13,7 +13,7 @@ interface ParlorService {
   badge?: string;
 }
 
-const PARLOR_SERVICES: ParlorService[] = [
+const FALLBACK_SERVICES: ParlorService[] = [
   { id: 'bridal', name: 'Complete Bridal Makeover', duration: '3.5 hrs', price: 6500, desc: 'HD Bridal makeup, hair styling, saree/lehenga draping & jewelry setting', badge: 'Popular' },
   { id: 'party', name: 'HD Party & Reception Makeup', duration: '1.5 hrs', price: 2200, desc: 'Flawless party look with waterproof makeup and custom hair setting' },
   { id: 'hair', name: 'Hair Styling & Keratin Treatment', duration: '2 hrs', price: 1800, desc: 'Deep nourishment, blow dry, curling, and bridal bun hairstyles' },
@@ -49,7 +49,8 @@ export const BeautyParlor: React.FC = () => {
   const [sort, setSort] = useState('newest');
 
   // Appointment Booking State
-  const [selectedService, setSelectedService] = useState<ParlorService>(PARLOR_SERVICES[0]);
+  const [parlorServices, setParlorServices] = useState<ParlorService[]>(FALLBACK_SERVICES);
+  const [selectedService, setSelectedService] = useState<ParlorService>(FALLBACK_SERVICES[0]);
   const [bookingDate, setBookingDate] = useState(() => {
     const tmrw = new Date();
     tmrw.setDate(tmrw.getDate() + 1);
@@ -70,14 +71,44 @@ export const BeautyParlor: React.FC = () => {
     return d.toISOString().split('T')[0];
   })();
 
-  const loadAppointments = () => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('shagun_parlor_bookings') || '[]');
-      setMyAppointments(stored);
-    } catch {
+  const loadAppointments = async () => {
+    if (!isAuthenticated) {
       setMyAppointments([]);
+      return;
+    }
+    try {
+      const res = await fetch('/api/appointments/myappointments', {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMyAppointments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
     }
   };
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch('/api/parlor-services');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            const mapped = data.map((d: any) => ({ ...d, id: d._id || d.id }));
+            setParlorServices(mapped);
+            setSelectedService(mapped[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch parlor services", err);
+      }
+    };
+    fetchServices();
+  }, []);
 
   useEffect(() => {
     loadAppointments();
@@ -115,7 +146,7 @@ export const BeautyParlor: React.FC = () => {
     setBookingModalOpen(true);
   };
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim()) {
       setBookingError('Please enter your Name and Mobile Number.');
@@ -126,43 +157,54 @@ export const BeautyParlor: React.FC = () => {
       return;
     }
 
-    // Check for double booking
-    const allBookings: Appointment[] = JSON.parse(localStorage.getItem('shagun_parlor_bookings') || '[]');
-    const isSlotTaken = allBookings.some(
-      b => b.date === bookingDate && b.slot === selectedSlot && b.serviceId === selectedService.id
-    );
+    try {
+      const token = user?.token;
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    if (isSlotTaken) {
-      setBookingError(`The ${selectedSlot} slot on ${bookingDate} is already booked. Please choose another time slot.`);
-      return;
+      const res = await fetch('/api/appointments', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          serviceId: selectedService.id,
+          serviceName: selectedService.name,
+          price: selectedService.price,
+          date: bookingDate,
+          slot: selectedSlot,
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          notes: notes.trim(),
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to book appointment');
+
+      setBookingSuccess(data);
+      setBookingModalOpen(false);
+      loadAppointments(); // Reload appointments
+    } catch (error: any) {
+      setBookingError(error.message);
     }
-
-    const newAppt: Appointment = {
-      id: 'APPT_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-      serviceId: selectedService.id,
-      serviceName: selectedService.name,
-      price: selectedService.price,
-      date: bookingDate,
-      slot: selectedSlot,
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      notes: notes.trim(),
-      createdAt: new Date().toISOString()
-    };
-
-    allBookings.push(newAppt);
-    localStorage.setItem('shagun_parlor_bookings', JSON.stringify(allBookings));
-    setMyAppointments(allBookings);
-    setBookingSuccess(newAppt);
-    setBookingModalOpen(false);
   };
 
-  const handleCancelAppointment = (id: string) => {
+  const handleCancelAppointment = async (id: string) => {
     if (window.confirm('Are you sure you want to cancel this beauty appointment?')) {
-      const allBookings: Appointment[] = JSON.parse(localStorage.getItem('shagun_parlor_bookings') || '[]');
-      const filtered = allBookings.filter(b => b.id !== id);
-      localStorage.setItem('shagun_parlor_bookings', JSON.stringify(filtered));
-      setMyAppointments(filtered);
+      try {
+        const token = user?.token;
+        const headers: HeadersInit = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        
+        await fetch(`/api/appointments/${id}`, {
+          method: 'DELETE',
+          headers
+        });
+        loadAppointments();
+      } catch (error) {
+        console.error('Error cancelling appointment:', error);
+      }
     }
   };
 
@@ -206,8 +248,11 @@ export const BeautyParlor: React.FC = () => {
             <div className="shrink-0">
               <button
                 type="button"
-                onClick={() => handleOpenBooking(PARLOR_SERVICES[0])}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gold-500 hover:bg-gold-600 text-white font-semibold text-sm shadow-md transition-all duration-200 cursor-pointer"
+                onClick={() => {
+                  if (parlorServices.length > 0) handleOpenBooking(parlorServices[0]);
+                }}
+                disabled={parlorServices.length === 0}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gold-500 hover:bg-gold-600 text-white font-semibold text-sm shadow-md transition-all duration-200 cursor-pointer disabled:opacity-50"
               >
                 <i className="fas fa-calendar-check" /> Book Appointment Now
               </button>
@@ -235,9 +280,9 @@ export const BeautyParlor: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {PARLOR_SERVICES.map(srv => (
+            {parlorServices.map(srv => (
               <div
-                key={srv.id}
+                key={(srv as any)._id || srv.id}
                 className="card p-5 flex flex-col justify-between hover:shadow-lg transition-all border border-cream-300 relative group"
               >
                 {srv.badge && (
@@ -281,12 +326,12 @@ export const BeautyParlor: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {myAppointments.map(appt => (
-                <div key={appt.id} className="bg-white p-4 rounded-xl shadow-xs border border-cream-300">
+                <div key={(appt as any)._id || appt.id} className="bg-white p-4 rounded-xl shadow-xs border border-cream-300">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-[10px] font-mono text-cream-600 bg-cream-200 px-1.5 py-0.5 rounded">
-                      {appt.id}
+                      {(appt as any)._id || appt.id}
                     </span>
-                    <span className="badge badge-gold text-[10px]">Confirmed</span>
+                    <span className="badge badge-gold text-[10px]">{ (appt as any).status || 'Confirmed' }</span>
                   </div>
                   <h4 className="font-semibold text-sm text-maroon-900 mb-1">{appt.serviceName}</h4>
                   <p className="text-xs text-cream-700 mb-1">
@@ -295,7 +340,7 @@ export const BeautyParlor: React.FC = () => {
                   <p className="text-xs font-semibold text-maroon-700 mb-3">₹{appt.price.toLocaleString('en-IN')}</p>
                   <button
                     type="button"
-                    onClick={() => handleCancelAppointment(appt.id)}
+                    onClick={() => handleCancelAppointment((appt as any)._id || appt.id)}
                     className="text-xs text-red-500 hover:text-red-700 font-medium"
                   >
                     <i className="fas fa-trash-can mr-1" /> Cancel Slot
@@ -487,7 +532,7 @@ export const BeautyParlor: React.FC = () => {
             </div>
             <h3 id="parlor-success-title" className="font-serif font-bold text-xl text-maroon-900 mb-1">Appointment Confirmed!</h3>
             <p className="text-xs text-cream-600 mb-4">
-              Booking Reference: <strong className="text-maroon-700 font-mono">{bookingSuccess.id}</strong>
+              Booking Reference: <strong className="text-maroon-700 font-mono">{(bookingSuccess as any)._id || bookingSuccess.id}</strong>
             </p>
             <div className="bg-cream-100 p-3 rounded-xl text-left text-xs space-y-1.5 mb-6 text-cream-800">
               <p><strong>Service:</strong> {bookingSuccess.serviceName}</p>
@@ -497,7 +542,7 @@ export const BeautyParlor: React.FC = () => {
             </div>
             <div className="space-y-2">
               <a
-                href={`https://wa.me/918827259023?text=Hello,%20I%20have%20booked%20an%20appointment%20for%20${encodeURIComponent(bookingSuccess.serviceName)}%20on%20${bookingSuccess.date}%20at%20${bookingSuccess.slot}%20(ID:%20${bookingSuccess.id})`}
+                href={`https://wa.me/918827259023?text=Hello,%20I%20have%20booked%20an%20appointment%20for%20${encodeURIComponent(bookingSuccess.serviceName)}%20on%20${bookingSuccess.date}%20at%20${bookingSuccess.slot}%20(ID:%20${(bookingSuccess as any)._id || bookingSuccess.id})`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-primary w-full justify-center text-xs"

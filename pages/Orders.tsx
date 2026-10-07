@@ -137,7 +137,7 @@ export const Orders: React.FC = () => {
                     {order.items.slice(0, 3).map((item, idx) => (
                       <div key={idx} className="w-14 h-14 rounded-xl overflow-hidden border border-cream-300 flex-shrink-0">
                         <img
-                          src={item.image || (item.product as any)?.image}
+                          src={item.image || (item as any).product?.image}
                           alt={item.name}
                           onError={e => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMAGE; }}
                           className="w-full h-full object-cover"
@@ -228,7 +228,7 @@ export const Orders: React.FC = () => {
                     {selectedOrder.items.map((item, idx) => (
                       <div key={idx} className="flex gap-4 bg-cream-200 p-3 rounded-xl flex-wrap sm:flex-nowrap">
                         <img
-                          src={item.image || (item.product as any)?.image}
+                          src={item.image || (item as any).product?.image}
                           alt={item.name}
                           onError={e => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMAGE; }}
                           className="w-14 h-14 rounded-lg object-cover flex-shrink-0"

@@ -1,7 +1,11 @@
 import React from 'react';
 import { MapPin, ChevronDown, Truck, HelpCircle, Package, Smartphone } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 export const TopBar: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <div className="w-full bg-maroon-900 text-cream-50 text-[13px] h-[44px] flex items-center font-sans">
       <div className="max-w-[1440px] w-full mx-auto px-5 lg:px-16 flex items-center justify-between">
@@ -28,13 +32,23 @@ export const TopBar: React.FC = () => {
             <span>Help &amp; Support</span>
           </a>
 
-          <a
-            href="#track"
-            className="flex items-center gap-1.5 hover:text-white transition-colors"
-          >
-            <Package size={15} strokeWidth={1.5} />
-            <span>Track Order</span>
-          </a>
+          {isAuthenticated ? (
+            <Link
+              to="/orders"
+              className="flex items-center gap-1.5 hover:text-white transition-colors"
+            >
+              <Package size={15} strokeWidth={1.5} />
+              <span>Track Order</span>
+            </Link>
+          ) : (
+            <a
+              href="#track"
+              className="flex items-center gap-1.5 hover:text-white transition-colors"
+            >
+              <Package size={15} strokeWidth={1.5} />
+              <span>Track Order</span>
+            </a>
+          )}
 
           <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
             <Smartphone size={15} strokeWidth={1.5} />

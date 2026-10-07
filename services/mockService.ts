@@ -7,7 +7,7 @@ const getAuthHeaders = (): Record<string, string> => {
     const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (userStr) {
       const u = JSON.parse(userStr);
-      if (u && u.token) {
+      if (u && u.token && u.token !== 'mock_admin_token' && u.token !== 'mock_user_token') {
         return {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${u.token}`
@@ -250,7 +250,7 @@ export const mockApi = {
     const res = await fetch('/api/orders', {
       headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error('Failed to fetch orders');
+    if (!res.ok) throw new Error(`Failed to fetch orders: ${res.status}`);
     return await res.json();
   },
 
@@ -326,7 +326,7 @@ export const mockApi = {
     const res = await fetch('/api/auth/users', {
       headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error('Failed to fetch users');
+    if (!res.ok) throw new Error(`Failed to fetch users: ${res.status}`);
     return await res.json();
   },
 

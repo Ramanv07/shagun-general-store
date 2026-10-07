@@ -19,6 +19,8 @@ import { Login } from './pages/Login';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { TrackOrderModal } from './components/TrackOrderModal';
+import { HelpSupportModal } from './components/HelpSupportModal';
 import { UserRole } from './types';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement; adminOnly?: boolean }> = ({ children, adminOnly }) => {
@@ -118,6 +120,8 @@ export default function App() {
             {showIntro && <IntroOverlay onComplete={handleIntroComplete} />}
             <ErrorBoundary>
               <AppRoutes />
+              <TrackOrderModal />
+              <HelpSupportModal />
             </ErrorBoundary>
           </CartProvider>
         </OrderProvider>
