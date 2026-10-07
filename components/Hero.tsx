@@ -10,10 +10,11 @@ export const Hero: React.FC = () => {
         <picture className="absolute inset-0 w-full h-full block">
           <img
             src="/images/hero-vanity-hq.jpg"
-            alt="Shagun General Store high quality vanity display featuring makeup, bridal lehengas, jewelry and essentials"
+            alt="Shagun Mart high quality vanity display featuring makeup, bridal lehengas, jewelry and essentials"
             width={800}
             height={480}
             loading="eager"
+            fetchpriority="high"
             className="w-full h-full object-cover object-left lg:object-center"
             style={{
               // Seamless fade on the left edge into the solid cream background
@@ -54,7 +55,7 @@ export const Hero: React.FC = () => {
       {/* Content Layer */}
       <div className="max-w-[1440px] mx-auto px-5 lg:px-16 relative z-10">
         <div className="flex flex-col lg:flex-row items-center lg:items-stretch gap-10 lg:gap-8 justify-between">
-          
+
           {/* Left Column: ~45% width */}
           <div className="w-full lg:w-[46%] flex flex-col justify-center pt-2 sm:pt-4">
 
@@ -125,7 +126,7 @@ export const Hero: React.FC = () => {
                     Free Delivery
                   </div>
                   <div className="text-ink-600 font-medium text-[11px] sm:text-[12px] leading-tight mt-0.5 drop-shadow-sm">
-                    on orders above ₹499
+                    on orders above ₹399
                   </div>
                 </div>
               </div>
