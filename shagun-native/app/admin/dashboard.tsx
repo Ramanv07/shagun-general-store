@@ -82,12 +82,14 @@ export default function AdminDashboard() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.5,
+      base64: true,
     });
     if (!result.canceled && result.assets[0]) {
       setUploading(true);
       try {
-        const url = await api.uploadImage(result.assets[0].uri);
+        const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        const url = await api.uploadImage(base64Img);
         setForm(prev => ({ ...prev, image: url }));
       } catch (e: any) {
         Alert.alert('Upload Failed', e.message);

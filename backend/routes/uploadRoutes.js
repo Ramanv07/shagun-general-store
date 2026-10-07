@@ -29,7 +29,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage: storage });
 
 // @route   POST /api/upload
-// @desc    Upload an image to Cloudinary and get URL
+// @desc    Upload an image to Cloudinary and get URL (multipart/form-data)
 // @access  Private/Admin
 router.post('/', protect, adminOnly, upload.single('image'), (req, res) => {
   if (!req.file) {
@@ -37,6 +37,28 @@ router.post('/', protect, adminOnly, upload.single('image'), (req, res) => {
   }
   // req.file.path contains the secure Cloudinary URL
   res.json({ imageUrl: req.file.path });
+});
+
+// @route   POST /api/upload/base64
+// @desc    Upload a base64 image string directly to Cloudinary
+// @access  Private/Admin
+router.post('/base64', protect, adminOnly, async (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image) {
+      return res.status(400).json({ message: 'No image provided' });
+    }
+
+    const uploadResponse = await cloudinary.uploader.upload(image, {
+      folder: 'shagun_general_store',
+      transformation: [{ width: 800, crop: 'limit' }],
+    });
+
+    res.json({ imageUrl: uploadResponse.secure_url });
+  } catch (error) {
+    console.error('Base64 upload error:', error);
+    res.status(500).json({ message: 'Image upload failed on server' });
+  }
 });
 
 export default router;
