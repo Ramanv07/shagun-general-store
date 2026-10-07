@@ -6,7 +6,6 @@ import { useCart } from '../context/CartContext';
 import { UserRole } from '../types';
 
 export const Header: React.FC = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -52,7 +51,6 @@ export const Header: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    setMobileMenuOpen(false);
     setUserMenuOpen(false);
   }, [location.pathname]);
 
@@ -299,17 +297,6 @@ export const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile Menu Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden text-ink-900 p-1"
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-nav-drawer"
-            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-          >
-            {mobileMenuOpen ? <X size={24} strokeWidth={1.5} /> : <Menu size={24} strokeWidth={1.5} />}
-          </button>
         </div>
       </div>
 
@@ -335,91 +322,6 @@ export const Header: React.FC = () => {
         </form>
       </div>
 
-      {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && (
-        <nav
-          id="mobile-nav-drawer"
-          aria-label="Mobile Navigation"
-          className="xl:hidden bg-white border-t border-line px-6 py-4 shadow-lg flex flex-col gap-3 font-medium text-[15px] text-ink-900 animate-fade-in"
-        >
-          <Link
-            to="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`py-2 border-b border-line/40 ${isActive('/') ? 'text-maroon-900 font-semibold' : 'hover:text-maroon-900'}`}
-          >
-            Home
-          </Link>
-          <Link
-            to="/bridal-lehenga"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`py-2 border-b border-line/40 ${isActive('/bridal-lehenga') ? 'text-maroon-900 font-semibold' : 'hover:text-maroon-900'}`}
-          >
-            Bridal Lehenga
-          </Link>
-          <Link
-            to="/beauty-parlor"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`py-2 border-b border-line/40 ${isActive('/beauty-parlor') ? 'text-maroon-900 font-semibold' : 'hover:text-maroon-900'}`}
-          >
-            Beauty Parlor
-          </Link>
-          <Link
-            to="/shop"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`py-2 border-b border-line/40 ${isActive('/shop') ? 'text-maroon-900 font-semibold' : 'hover:text-maroon-900'}`}
-          >
-            Shop All
-          </Link>
-          <Link
-            to="/shop?cat=Offers"
-            onClick={() => setMobileMenuOpen(false)}
-            className="py-2 hover:text-maroon-900 border-b border-line/40"
-          >
-            Offers
-          </Link>
-          <Link
-            to="/orders"
-            onClick={() => setMobileMenuOpen(false)}
-            className={`py-2 border-b border-line/40 ${isActive('/orders') ? 'text-maroon-900 font-semibold' : 'hover:text-maroon-900'}`}
-          >
-            Orders
-          </Link>
-          {user?.role === UserRole.ADMIN && (
-            <Link
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 text-maroon-700 font-bold border-b border-line/40 flex items-center gap-2"
-            >
-              <ShieldCheck size={18} />
-              <span>Admin Dashboard</span>
-            </Link>
-          )}
-          {isAuthenticated ? (
-            <div className="pt-2 flex justify-between items-center text-xs">
-              <span className="text-ink-500">Hi, <strong>{user?.name}</strong></span>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  logout();
-                  navigate('/');
-                }}
-                className="text-rose-700 font-semibold"
-              >
-                Log Out
-              </button>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="mt-2 py-2.5 bg-maroon-900 text-white text-center rounded-xl font-semibold text-sm"
-            >
-              Log In
-            </Link>
-          )}
-        </nav>
-      )}
     </header>
   );
 };

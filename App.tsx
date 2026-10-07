@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { OrderProvider } from './context/OrderContext';
 import { TopBar } from './components/TopBar';
 import { Header } from './components/Header';
+import { BottomNav } from './components/BottomNav';
 import { IntroOverlay } from './components/IntroOverlay';
 import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
@@ -55,7 +56,7 @@ const AppRoutes: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-cream-50 text-ink-900 font-sans flex flex-col selection:bg-maroon-900 selection:text-cream-50">
+    <div className="min-h-screen bg-cream-50 text-ink-900 font-sans flex flex-col selection:bg-maroon-900 selection:text-cream-50 pb-16 xl:pb-0">
       {/* WCAG 2.4.1: Skip to main content bypass link for keyboard users */}
       <a
         href="#main-content"
@@ -98,6 +99,7 @@ const AppRoutes: React.FC = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      <BottomNav />
     </div>
   );
 };
