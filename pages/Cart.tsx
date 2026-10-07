@@ -54,7 +54,7 @@ export const Cart: React.FC = () => {
   };
 
   const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
-  const deliveryFee = totalPrice >= 500 ? 0 : 50;
+  const deliveryFee = totalPrice >= 399 ? 0 : 30;
   const finalTotal = Math.max(0, totalPrice - discountAmount + deliveryFee);
 
   if (cart.length === 0) {
@@ -216,13 +216,13 @@ export const Cart: React.FC = () => {
                 <div className="flex justify-between text-sm text-cream-700">
                   <span>Delivery</span>
                   <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : 'text-maroon-600 font-medium'}>
-                    {deliveryFee === 0 ? 'FREE' : '₹50'}
+                    {deliveryFee === 0 ? 'FREE' : '₹30'}
                   </span>
                 </div>
-                {totalPrice < 500 && (
+                {totalPrice < 399 && (
                   <div className="text-xs text-cream-600 bg-cream-200 rounded-lg px-3 py-2">
                     <i className="fas fa-info-circle text-gold-500 mr-1" />
-                    Add ₹{(500 - totalPrice).toLocaleString('en-IN')} more for free delivery
+                    Add ₹{(399 - totalPrice).toLocaleString('en-IN')} more for free delivery
                   </div>
                 )}
                 <div className="h-px bg-cream-300" />

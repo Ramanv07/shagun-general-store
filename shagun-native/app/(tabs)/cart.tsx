@@ -106,10 +106,10 @@ export default function CartScreen() {
       <View style={styles.footer}>
         <View>
           <Text style={styles.totalLabel}>
-            Total {totalPrice >= 500 ? '(Free Delivery)' : '(+₹50 Delivery)'}
+            Total {totalPrice >= 399 ? '(Free Delivery)' : '(+₹30 Delivery)'}
           </Text>
           <Text style={styles.totalAmount}>
-            ₹{(totalPrice + (totalPrice >= 500 ? 0 : 50)).toLocaleString('en-IN')}
+            ₹{(totalPrice + (totalPrice >= 399 ? 0 : 30)).toLocaleString('en-IN')}
           </Text>
         </View>
         <TouchableOpacity

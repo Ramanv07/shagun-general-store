@@ -67,7 +67,7 @@ export const Checkout: React.FC = () => {
     } catch { return null; }
   })();
   const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
-  const deliveryFee = totalPrice >= 500 ? 0 : 50;
+  const deliveryFee = totalPrice >= 399 ? 0 : 30;
   const finalAmount = Math.max(0, totalPrice - discountAmount + deliveryFee);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -286,7 +286,7 @@ export const Checkout: React.FC = () => {
             <div className="flex justify-between items-center text-sm text-cream-700">
               <span>Delivery</span>
               <span className={deliveryFee === 0 ? 'text-green-600 font-semibold' : 'text-maroon-700 font-semibold'}>
-                {deliveryFee === 0 ? 'FREE' : '₹50'}
+                {deliveryFee === 0 ? 'FREE' : '₹30'}
               </span>
             </div>
             <div className="flex justify-between items-center pt-3 border-t border-cream-200">

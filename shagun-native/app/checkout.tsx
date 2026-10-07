@@ -77,7 +77,7 @@ export default function CheckoutScreen() {
       await addOrder({
         user: user?._id as any, // backend expects the user's ObjectId, not the full object
         items: cart.map(item => ({ product: item._id as any, name: item.name, quantity: item.quantity, price: item.price })),
-        totalAmount: totalPrice + (totalPrice >= 500 ? 0 : 50),
+        totalAmount: totalPrice + (totalPrice >= 399 ? 0 : 30),
         shippingAddress: address,
         paymentMethod,
         paymentStatus: 'Pending',
@@ -152,14 +152,14 @@ export default function CheckoutScreen() {
         </View>
         <View style={styles.summaryRow}>
           <Text style={{ fontSize: 13, color: '#666' }}>Delivery</Text>
-          <Text style={{ fontSize: 13, color: totalPrice >= 500 ? '#1b8a4b' : '#7c1f3e', fontWeight: '600' }}>
-            {totalPrice >= 500 ? 'FREE' : '₹50'}
+          <Text style={{ fontSize: 13, color: totalPrice >= 399 ? '#1b8a4b' : '#7c1f3e', fontWeight: '600' }}>
+            {totalPrice >= 399 ? 'FREE' : '₹30'}
           </Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.summaryRow}>
           <Text style={styles.totalLabel}>Total Payable</Text>
-          <Text style={styles.totalValue}>₹{(totalPrice + (totalPrice >= 500 ? 0 : 50)).toLocaleString('en-IN')}</Text>
+          <Text style={styles.totalValue}>₹{(totalPrice + (totalPrice >= 399 ? 0 : 30)).toLocaleString('en-IN')}</Text>
         </View>
       </View>
 
@@ -167,7 +167,7 @@ export default function CheckoutScreen() {
       <TouchableOpacity style={styles.orderBtn} onPress={placeOrder} disabled={loading}>
         {loading
           ? <ActivityIndicator color="#1a0a12" />
-          : <Text style={styles.orderBtnText}>Place Order (₹{(totalPrice + (totalPrice >= 500 ? 0 : 50)).toLocaleString('en-IN')}) →</Text>
+          : <Text style={styles.orderBtnText}>Place Order (₹{(totalPrice + (totalPrice >= 399 ? 0 : 30)).toLocaleString('en-IN')}) →</Text>
         }
       </TouchableOpacity>
       <View style={{ height: 40 }} />
