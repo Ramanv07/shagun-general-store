@@ -117,11 +117,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {product.isBestseller && (
-              <span className="badge badge-gold">
-                <i className="fas fa-trophy text-[8px]" /> Bestseller
-              </span>
-            )}
+
             {product.stock <= 10 && product.stock > 0 && (
               <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
             )}

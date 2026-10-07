@@ -36,11 +36,7 @@ export default function ProductCard({ product, style }: Props) {
 
         {/* Badges */}
         <View style={styles.badgesLeft}>
-          {product.isBestseller && (
-            <View style={styles.badgeGold}>
-              <Text style={styles.badgeGoldText}>Bestseller</Text>
-            </View>
-          )}
+
           {product.stock <= 10 && product.stock > 0 && (
             <View style={styles.badgeMaroon}>
               <Text style={styles.badgeMaroonText}>Only {product.stock} left</Text>
