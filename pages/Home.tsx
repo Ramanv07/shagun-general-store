@@ -46,7 +46,7 @@ const Typewriter = ({ texts, delay = 110 }: { texts: string[]; delay?: number })
 
 /* ── Feature data ──────────────────────────────────────── */
 const FEATURES = [
-  { icon: 'fa-truck-fast', title: 'Fast Delivery', desc: 'Same-day delivery within city limits on orders above ₹500.' },
+  { icon: 'fa-truck-fast', title: 'Fast Delivery', desc: 'Same-day delivery within city limits on orders above ₹399.' },
   { icon: 'fa-shield-check', title: 'Secure Payments', desc: 'Pay via UPI, cards or Netbanking — fully encrypted & safe.' },
   { icon: 'fa-gem', title: 'Premium Quality', desc: 'Carefully sourced products from trusted suppliers only.' },
   { icon: 'fa-arrows-rotate', title: 'Easy Returns', desc: '7-day hassle-free return policy on all eligible items.' },
@@ -165,7 +165,7 @@ export const Home: React.FC = () => {
               </div>
               <h2 className="text-white font-serif text-3xl md:text-4xl font-bold leading-tight">
                 Free Delivery on<br />
-                <span className="text-gold-400 font-semibold">Orders above ₹500</span>
+                <span className="text-gold-400 font-semibold">Orders above ₹399</span>
               </h2>
             </div>
             <div className="flex-shrink-0">
@@ -362,7 +362,7 @@ export const Home: React.FC = () => {
                 </div>
                 <div>
                   <div className="font-serif font-bold text-lg text-white">SHAGUN</div>
-                  <div className="text-[9px] tracking-widest text-cream-400">GENERAL STORE</div>
+                  <div className="text-[9px] tracking-widest text-cream-400">MART</div>
                 </div>
               </div>
               <p className="text-sm leading-relaxed" style={{ color: 'rgba(251,243,231,0.6)' }}>
