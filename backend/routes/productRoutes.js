@@ -143,8 +143,14 @@ router.post('/', protect, adminOnly, async (req, res) => {
     try {
         const { name, price, mrp, category, stock, description, image, images, rating, reviews, isBestseller } = req.body;
 
-        if (!name || price === undefined || !category || stock === undefined || !description || !image) {
-            return res.status(400).json({ message: 'Please provide all required product fields' });
+        let productImages = Array.isArray(images) && images.length > 0
+            ? images.filter(Boolean)
+            : (image ? [image] : []);
+        productImages = productImages.slice(0, 4);
+        const primaryImage = image || productImages[0];
+
+        if (!name || price === undefined || !category || stock === undefined || !description || !primaryImage) {
+            return res.status(400).json({ message: 'Please provide all required product fields including at least 1 image' });
         }
 
         const product = new Product({
@@ -154,8 +160,8 @@ router.post('/', protect, adminOnly, async (req, res) => {
             category,
             stock: Math.max(0, Number(stock) || 0),
             description,
-            image,
-            images: images || [],
+            image: primaryImage,
+            images: productImages.length > 0 ? productImages : [primaryImage],
             rating: rating ? Number(rating) : 0,
             reviews: reviews ? Number(reviews) : 0,
             isBestseller: Boolean(isBestseller)
@@ -181,6 +187,12 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
         const updateData = { ...req.body };
         if (updateData.stock !== undefined) {
             updateData.stock = Math.max(0, Number(updateData.stock) || 0);
+        }
+        if (Array.isArray(updateData.images)) {
+            updateData.images = updateData.images.filter(Boolean).slice(0, 4);
+            if (!updateData.image && updateData.images.length > 0) {
+                updateData.image = updateData.images[0];
+            }
         }
 
         const updatedProduct = await Product.findByIdAndUpdate(

@@ -28,6 +28,12 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
   const [imgSrc, setImgSrc] = useState<string>(product.image || FALLBACK_IMAGE);
   const [added, setAdded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+
+  const productImages: string[] = (product.images && product.images.length > 0)
+    ? product.images
+    : (product.image ? [product.image] : [FALLBACK_IMAGE]);
+
   const [isWishlisted, setIsWishlisted] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('shagun_wishlist') || '[]');
@@ -39,7 +45,14 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
 
   useEffect(() => {
     setImgSrc(product.image || FALLBACK_IMAGE);
-  }, [product.image]);
+    setSelectedImgIdx(0);
+  }, [product.image, product._id]);
+
+  useEffect(() => {
+    if (showDetail) {
+      setSelectedImgIdx(0);
+    }
+  }, [showDetail]);
 
   // WCAG 2.1.2: Close modal on Escape key
   useEffect(() => {
@@ -146,6 +159,11 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
                 {discountPercent}% OFF
               </span>
             )}
+            {productImages.length > 1 && (
+              <span className="badge bg-black/60 text-white font-medium text-[10px] shadow-sm backdrop-blur-xs inline-flex items-center gap-1">
+                <i className="fas fa-images text-[9px]" /> {productImages.length}
+              </span>
+            )}
           </div>
 
           {/* Wishlist button */}
@@ -233,10 +251,10 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
           >
             <div className="relative h-64 bg-cream-200">
               <img
-                src={imgSrc}
-                alt={product.name}
+                src={productImages[selectedImgIdx] || imgSrc}
+                alt={`${product.name} view ${selectedImgIdx + 1}`}
                 onError={() => setImgSrc(FALLBACK_IMAGE)}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-all duration-200"
               />
               <button
                 type="button"
@@ -255,7 +273,38 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
               >
                 <i className="fas fa-heart text-xs" aria-hidden="true" />
               </button>
+              {productImages.length > 1 && (
+                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-xs">
+                  {selectedImgIdx + 1} / {productImages.length}
+                </div>
+              )}
             </div>
+
+            {/* Multi-image thumbnail strip (1-4 images) */}
+            {productImages.length > 1 && (
+              <div className="flex gap-2 px-6 pt-3 pb-2 bg-cream-50 border-b border-cream-200 overflow-x-auto">
+                {productImages.slice(0, 4).map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImgIdx(idx)}
+                    className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
+                      selectedImgIdx === idx
+                        ? 'border-maroon-800 ring-2 ring-maroon-300 scale-105'
+                        : 'border-cream-300 opacity-65 hover:opacity-100 hover:border-maroon-400'
+                    }`}
+                    aria-label={`View photo ${idx + 1}`}
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} thumbnail ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMAGE; }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">

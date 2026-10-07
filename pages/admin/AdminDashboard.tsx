@@ -206,8 +206,23 @@ export const AdminDashboard: React.FC = () => {
         e.preventDefault();
         try {
             if (editingProduct) {
-                console.log('Saving product:', editingProduct);
-                await mockApi.saveProduct(editingProduct);
+                const prodImages = editingProduct.images && editingProduct.images.length > 0
+                    ? editingProduct.images
+                    : (editingProduct.image ? [editingProduct.image] : []);
+
+                if (prodImages.length === 0) {
+                    alert('Please add at least 1 image for the product (up to 4 images allowed).');
+                    return;
+                }
+
+                const productToSave = {
+                    ...editingProduct,
+                    images: prodImages.slice(0, 4),
+                    image: prodImages[0]
+                };
+
+                console.log('Saving product:', productToSave);
+                await mockApi.saveProduct(productToSave as any);
                 console.log('Product saved successfully');
                 setIsFormOpen(false);
                 setEditingProduct(null);
@@ -353,40 +368,56 @@ export const AdminDashboard: React.FC = () => {
 
     // Image Upload Handler using Cloudinary API
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'lehenga') => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
         setImageUploading(true);
         try {
-            const formData = new FormData();
-            formData.append('image', file);
-
             const token = getAuthToken();
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-                body: formData
-            });
+            const maxAllowed = type === 'product' ? 4 : 8;
 
-            if (!res.ok) throw new Error('Upload failed');
-            
-            const data = await res.json();
-            
-            if (type === 'product') {
-                setEditingProduct(prev => prev ? { ...prev, image: data.imageUrl } : null);
-            } else if (type === 'lehenga') {
-                setEditingLehenga(prev => {
-                    if (!prev) return null;
-                    const currentImages = prev.images || (prev.image ? [prev.image] : []);
-                    if (currentImages.length >= 8) {
-                        alert("Maximum 8 images allowed.");
-                        return prev;
-                    }
-                    const newImages = [...currentImages, data.imageUrl];
-                    return { ...prev, images: newImages, image: newImages[0] };
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const formData = new FormData();
+                formData.append('image', file);
+
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: formData
                 });
+
+                if (!res.ok) throw new Error('Upload failed');
+
+                const data = await res.json();
+
+                if (type === 'product') {
+                    setEditingProduct(prev => {
+                        if (!prev) return null;
+                        const currentImages = prev.images && prev.images.length > 0
+                            ? [...prev.images]
+                            : (prev.image ? [prev.image] : []);
+                        if (currentImages.length >= maxAllowed) {
+                            alert(`Maximum ${maxAllowed} images allowed for a product.`);
+                            return prev;
+                        }
+                        const newImages = [...currentImages, data.imageUrl];
+                        return { ...prev, images: newImages, image: newImages[0] };
+                    });
+                } else if (type === 'lehenga') {
+                    setEditingLehenga(prev => {
+                        if (!prev) return null;
+                        const currentImages = prev.images || (prev.image ? [prev.image] : []);
+                        if (currentImages.length >= maxAllowed) {
+                            alert(`Maximum ${maxAllowed} images allowed.`);
+                            return prev;
+                        }
+                        const newImages = [...currentImages, data.imageUrl];
+                        return { ...prev, images: newImages, image: newImages[0] };
+                    });
+                }
             }
         } catch (error) {
             console.error('Image upload failed', error);
@@ -514,7 +545,7 @@ export const AdminDashboard: React.FC = () => {
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl text-white font-bold">Product List</h2>
                                 <button
-                                    onClick={() => { setEditingProduct({}); setIsFormOpen(true); }}
+                                    onClick={() => { setEditingProduct({ images: [] }); setIsFormOpen(true); }}
                                     className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors"
                                 >
                                     + Add Product
@@ -608,34 +639,151 @@ export const AdminDashboard: React.FC = () => {
                                                 ))}
                                             </select>
 
-                                            {/* Image Upload / URL */}
+                                            {/* Product Images (1 - 4 images) */}
                                             <div className="space-y-2">
-                                                <label className="text-gray-400 text-sm font-medium">Product Image</label>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="relative w-20 h-20 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
-                                                        {editingProduct?.image ? (
-                                                            <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <i className="fas fa-image text-gray-500 text-2xl"></i>
-                                                        )}
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-gray-300 text-xs font-semibold">
+                                                        Product Images (1 to 4 images) *
+                                                    </label>
+                                                    <span className="text-[11px] text-gold-400 font-medium">
+                                                        {((editingProduct?.images && editingProduct.images.length > 0)
+                                                            ? editingProduct.images.length
+                                                            : (editingProduct?.image ? 1 : 0))}/4 images
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex flex-col gap-3">
+                                                    {/* 4-Slots Thumbnail Preview */}
+                                                    <div className="grid grid-cols-4 gap-2.5">
+                                                        {[0, 1, 2, 3].map((slotIdx) => {
+                                                            const currentImages = editingProduct?.images && editingProduct.images.length > 0
+                                                                ? editingProduct.images
+                                                                : (editingProduct?.image ? [editingProduct.image] : []);
+                                                            const imgUrl = currentImages[slotIdx];
+
+                                                            return (
+                                                                <div
+                                                                    key={slotIdx}
+                                                                    className={`relative aspect-square rounded-xl overflow-hidden border ${
+                                                                        imgUrl
+                                                                            ? slotIdx === 0
+                                                                                ? 'border-gold-500 shadow-md ring-1 ring-gold-500/50'
+                                                                                : 'border-white/20'
+                                                                            : 'border-dashed border-white/10 bg-white/5'
+                                                                    } flex flex-col items-center justify-center group`}
+                                                                >
+                                                                    {imgUrl ? (
+                                                                        <>
+                                                                            <img src={imgUrl} alt={`Slot ${slotIdx + 1}`} className="w-full h-full object-cover" />
+                                                                            {slotIdx === 0 && (
+                                                                                <span className="absolute top-1 left-1 bg-gold-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded shadow">
+                                                                                    Main
+                                                                                </span>
+                                                                            )}
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const updated = currentImages.filter((_, idx) => idx !== slotIdx);
+                                                                                    setEditingProduct({
+                                                                                        ...editingProduct,
+                                                                                        images: updated,
+                                                                                        image: updated[0] || ''
+                                                                                    });
+                                                                                }}
+                                                                                className="absolute inset-0 bg-black/75 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300"
+                                                                                title="Remove image"
+                                                                            >
+                                                                                <i className="fas fa-trash text-sm"></i>
+                                                                            </button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <div className="flex flex-col items-center justify-center text-gray-500 text-xs">
+                                                                            <i className="fas fa-plus text-sm mb-1 text-gray-500"></i>
+                                                                            <span className="text-[10px]">Slot {slotIdx + 1}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                    <div className="flex-1 space-y-2">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Paste Image URL (or upload below)"
-                                                            className="w-full bg-white/5 p-2 rounded text-white text-xs border border-white/10 focus:border-gold-500 outline-none"
-                                                            value={editingProduct?.image && !editingProduct.image.startsWith('data:') ? editingProduct.image : ''}
-                                                            onChange={e => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                                                        />
+
+                                                    {/* Upload input and URL input */}
+                                                    <div className="space-y-2 bg-white/5 p-3 rounded-xl border border-white/10">
                                                         <div className="flex items-center gap-2">
                                                             <input
                                                                 type="file"
                                                                 accept="image/*"
+                                                                multiple
                                                                 onChange={(e) => handleImageUpload(e, 'product')}
                                                                 className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold-500 file:text-black hover:file:bg-gold-400 cursor-pointer"
                                                             />
-                                                            {imageUploading && <span className="text-xs text-gold-400 font-semibold animate-pulse whitespace-nowrap">Optimizing...</span>}
+                                                            {imageUploading && (
+                                                                <span className="text-xs text-gold-400 font-semibold animate-pulse whitespace-nowrap">
+                                                                    Uploading...
+                                                                </span>
+                                                            )}
                                                         </div>
+
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                id="admin-product-img-url"
+                                                                placeholder="Or paste image URL & press Enter"
+                                                                className="flex-1 bg-white/5 p-2 rounded text-white text-xs border border-white/10 focus:border-gold-500 outline-none"
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        e.preventDefault();
+                                                                        const inputEl = e.currentTarget;
+                                                                        const val = inputEl.value.trim();
+                                                                        if (val) {
+                                                                            const currentImages = editingProduct?.images && editingProduct.images.length > 0
+                                                                                ? editingProduct.images
+                                                                                : (editingProduct?.image ? [editingProduct.image] : []);
+                                                                            if (currentImages.length >= 4) {
+                                                                                alert("Maximum 4 images allowed.");
+                                                                                return;
+                                                                            }
+                                                                            const updated = [...currentImages, val];
+                                                                            setEditingProduct({
+                                                                                ...editingProduct,
+                                                                                images: updated,
+                                                                                image: updated[0]
+                                                                            });
+                                                                            inputEl.value = '';
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const inputEl = document.getElementById('admin-product-img-url') as HTMLInputElement;
+                                                                    const val = inputEl?.value.trim();
+                                                                    if (val) {
+                                                                        const currentImages = editingProduct?.images && editingProduct.images.length > 0
+                                                                            ? editingProduct.images
+                                                                            : (editingProduct?.image ? [editingProduct.image] : []);
+                                                                        if (currentImages.length >= 4) {
+                                                                            alert("Maximum 4 images allowed.");
+                                                                            return;
+                                                                        }
+                                                                        const updated = [...currentImages, val];
+                                                                        setEditingProduct({
+                                                                            ...editingProduct,
+                                                                            images: updated,
+                                                                            image: updated[0]
+                                                                        });
+                                                                        inputEl.value = '';
+                                                                    }
+                                                                }}
+                                                                className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded text-xs transition-colors shrink-0"
+                                                            >
+                                                                + Add
+                                                            </button>
+                                                        </div>
+                                                        <span className="text-[10px] text-gray-400 block">
+                                                            Select up to 4 files or paste URLs. Slot 1 is the main thumbnail. Hover over any photo to delete.
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -747,7 +895,7 @@ export const AdminDashboard: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="p-3 flex gap-2">
-                                                    <button onClick={() => { setEditingProduct(p); setIsFormOpen(true); }} className="text-blue-400 hover:text-blue-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-edit"></i></button>
+                                                    <button onClick={() => { setEditingProduct({ ...p, images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []) }); setIsFormOpen(true); }} className="text-blue-400 hover:text-blue-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-edit"></i></button>
                                                     <button onClick={() => handleDeleteProduct(p._id)} className="text-red-400 hover:text-red-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-trash"></i></button>
                                                 </td>
                                             </tr>
