@@ -50,11 +50,10 @@ export const TopBar: React.FC = () => {
             </a>
           )}
 
-          <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
+          <a href="/shagun-app.apk" download className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
             <Smartphone size={15} strokeWidth={1.5} />
             <span>Download App</span>
-            <ChevronDown size={14} strokeWidth={1.5} className="opacity-80" />
-          </div>
+          </a>
         </div>
       </div>
     </div>
