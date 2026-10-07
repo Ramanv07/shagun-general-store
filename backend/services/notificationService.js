@@ -26,7 +26,7 @@ export async function sendAdminOrderNotification(order) {
     // ==========================================
     // 1. NTFY.SH PUSH NOTIFICATION (Pop-up on phone)
     // ==========================================
-    const ntfyTitle = `🛍️ New Order: ₹${total} by ${customerName}`;
+    const ntfyTitle = `New Order: Rs. ${total} by ${customerName}`;
     const ntfyBody = `Order #${orderId}\n` +
       `📞 Phone: ${customerPhone}\n` +
       `📍 City: ${city}\n` +
