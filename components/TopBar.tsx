@@ -7,7 +7,7 @@ export const TopBar: React.FC = () => {
   const { isAuthenticated } = useAuth();
   
   return (
-    <div className="w-full bg-maroon-900 text-cream-50 text-[13px] h-[44px] flex items-center font-sans">
+    <div className="hidden lg:flex w-full bg-maroon-900 text-cream-50 text-[13px] h-[44px] items-center font-sans">
       <div className="max-w-[1440px] w-full mx-auto px-5 lg:px-16 flex items-center justify-between">
         {/* Left: Location */}
         <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors">
