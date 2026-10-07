@@ -415,6 +415,15 @@ export const Account: React.FC = () => {
                                     <i className="fas fa-store mr-2.5 text-gold-500"></i>
                                     Continue Shopping
                                 </Link>
+                                {user.role === 'admin' && (
+                                    <Link
+                                        to="/admin"
+                                        className="flex items-center justify-center w-full bg-maroon-50 hover:bg-maroon-100 text-maroon-900 py-3.5 rounded-xl transition text-center font-bold border border-maroon-100 shadow-sm mt-3"
+                                    >
+                                        <i className="fas fa-shield-alt mr-2.5"></i>
+                                        Admin Dashboard
+                                    </Link>
+                                )}
                                 <div className="pt-4 mt-2 border-t border-gray-100">
                                     <button
                                         onClick={handleLogout}
