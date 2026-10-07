@@ -93,7 +93,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
         className="product-card card group cursor-pointer animate-fade-in relative focus-visible:outline-2 focus-visible:outline-maroon-900"
       >
         {/* ── Image ── */}
-        <div className="relative h-56 overflow-hidden bg-cream-300">
+        <div className="relative aspect-square sm:aspect-auto sm:h-56 overflow-hidden bg-cream-300">
           <img
             src={imgSrc}
             alt={product.name}
@@ -132,40 +132,42 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
             type="button"
             onClick={toggleWishlist}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-            className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${isWishlisted
+            className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${isWishlisted
                 ? 'bg-red-50 text-red-600 scale-110'
                 : 'bg-white/80 hover:bg-white text-ink-500 hover:text-red-500'
               }`}
           >
-            <i className={`fas fa-heart text-xs ${isWishlisted ? 'text-red-600' : ''}`} />
+            <i className={`fas fa-heart text-[10px] sm:text-xs ${isWishlisted ? 'text-red-600' : ''}`} />
           </button>
         </div>
 
         {/* ── Content ── */}
-        <div className="p-4">
-          <div className="text-[10px] text-gold-700 font-semibold uppercase tracking-wider mb-1">
+        <div className="p-2 sm:p-4">
+          <div className="text-[8px] sm:text-[10px] text-gold-700 font-semibold uppercase tracking-wider mb-1 truncate">
             {product.category}
           </div>
-          <h3 className="font-semibold text-cream-900 text-base leading-tight mb-1 line-clamp-2 group-hover:text-maroon-600 transition-colors">
+          <h3 className="font-semibold text-cream-900 text-xs sm:text-base leading-tight mb-1 line-clamp-2 group-hover:text-maroon-600 transition-colors">
             {product.name}
           </h3>
 
           {/* Rating row */}
-          <div className="flex items-center gap-2 mb-3">
-            <StarRating rating={product.rating} />
-            <span className="text-xs text-cream-700">{product.rating.toFixed(1)}</span>
-            <span className="text-xs text-cream-700">({product.reviews})</span>
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+            <div className="scale-75 sm:scale-100 origin-left flex items-center">
+              <StarRating rating={product.rating} />
+            </div>
+            <span className="text-[10px] sm:text-xs text-cream-700">{product.rating.toFixed(1)}</span>
+            <span className="text-[10px] sm:text-xs text-cream-700 truncate">({product.reviews})</span>
           </div>
 
           {/* Price + Quick Add */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-auto">
             <div>
-              <span className="text-xl font-bold text-maroon-600">₹{product.price.toLocaleString('en-IN')}</span>
+              <span className="text-sm sm:text-xl font-bold text-maroon-600">₹{product.price.toLocaleString('en-IN')}</span>
             </div>
             <button
               onClick={handleAdd}
               aria-label={`Add ${product.name} to cart`}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all text-sm
+              className={`w-6 h-6 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all text-[10px] sm:text-sm
                 ${added
                   ? 'bg-gold-500 text-maroon-800'
                   : 'bg-cream-200 text-maroon-600 hover:bg-maroon-600 hover:text-white'

@@ -138,7 +138,7 @@ export const Home: React.FC = () => {
                 View All <i className="fas fa-arrow-right text-xs" />
               </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
               {bestsellers.map((p, i) => (
                 <div key={p._id} className={`animate-fade-in-up anim-delay-${Math.min(i + 1, 4)}`}>
                   <ProductCard product={p} />
@@ -196,13 +196,13 @@ export const Home: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="card h-80 bg-cream-300 animate-pulse" />
+                <div key={i} className="card h-40 sm:h-80 bg-cream-300 animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
               {trending.map((p, i) => (
                 <div key={p._id} className={`animate-fade-in-up anim-delay-${Math.min(i + 1, 4)}`}>
                   <ProductCard product={p} />

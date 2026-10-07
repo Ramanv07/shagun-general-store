@@ -246,9 +246,9 @@ export const Shop: React.FC = () => {
             )}
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="card h-80 bg-cream-300 animate-pulse" />
+                  <div key={i} className="card h-40 sm:h-80 bg-cream-300 animate-pulse" />
                 ))}
               </div>
             ) : error && filteredProducts.length === 0 ? (
@@ -283,7 +283,7 @@ export const Shop: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6">
                 {filteredProducts.map((p, i) => (
                   <div key={p._id} className="animate-fade-in-up" style={{ animationDelay: `${(i % 8) * 0.06}s` }}>
                     <ProductCard product={p} />
