@@ -34,24 +34,24 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement; adminOnly?: boole
 };
 
 const PAGE_TITLES: Record<string, string> = {
-  '/': 'Home — Everything You Need Under One Roof | Shagun General Store',
-  '/shop': 'Shop Products | Shagun General Store',
-  '/beauty-parlor': 'Beauty Parlor & Salon Appointments | Shagun General Store',
-  '/bridal-lehenga': 'Bridal Lehenga Rentals | Shagun General Store',
-  '/cart': 'Shopping Cart | Shagun General Store',
-  '/checkout': 'Shipping & Checkout | Shagun General Store',
-  '/orders': 'My Orders | Shagun General Store',
-  '/account': 'My Account | Shagun General Store',
-  '/login': 'Sign In / Register | Shagun General Store',
-  '/privacy': 'Privacy Policy & Terms | Shagun General Store',
-  '/admin': 'Admin Dashboard | Shagun General Store',
+  '/': 'Home — Everything You Need Under One Roof | Shagun Mart',
+  '/shop': 'Shop Products | Shagun Mart',
+  '/beauty-parlor': 'Beauty Parlor & Salon Appointments | Shagun Mart',
+  '/bridal-lehenga': 'Bridal Lehenga Rentals | Shagun Mart',
+  '/cart': 'Shopping Cart | Shagun Mart',
+  '/checkout': 'Shipping & Checkout | Shagun Mart',
+  '/orders': 'My Orders | Shagun Mart',
+  '/account': 'My Account | Shagun Mart',
+  '/login': 'Sign In / Register | Shagun Mart',
+  '/privacy': 'Privacy Policy & Terms | Shagun Mart',
+  '/admin': 'Admin Dashboard | Shagun Mart',
 };
 
 const AppRoutes: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const title = PAGE_TITLES[location.pathname] || 'Shagun General Store | Bamitha';
+    const title = PAGE_TITLES[location.pathname] || 'Shagun Mart | Bamitha';
     document.title = title;
   }, [location.pathname]);
 

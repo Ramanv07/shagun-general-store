@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 export const TopBar: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  
+
   return (
     <div className="hidden lg:flex w-full bg-maroon-900 text-cream-50 text-[13px] h-[44px] items-center font-sans">
       <div className="max-w-[1440px] w-full mx-auto px-5 lg:px-16 flex items-center justify-between">
@@ -19,7 +19,7 @@ export const TopBar: React.FC = () => {
         {/* Center: Delivery Announcement (hidden on small mobile, visible md+) */}
         <div className="hidden md:flex items-center gap-2">
           <Truck size={16} strokeWidth={1.5} className="text-gold-500 shrink-0" />
-          <span>Free delivery on orders above ₹499</span>
+          <span>Free delivery on orders above ₹399</span>
         </div>
 
         {/* Right: Support, Track Order, Download App */}

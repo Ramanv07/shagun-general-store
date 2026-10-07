@@ -95,7 +95,7 @@ app.use(express.static(distPath, {
 }));
 
 app.get('/', (req, res) => {
-    res.send('Shagun General Store API is running...');
+    res.send('Shagun Mart API is running...');
 });
 
 // --- M1: Global error handler — never leak internals to client ---

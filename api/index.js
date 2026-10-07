@@ -43,10 +43,10 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/parlor-services', parlorServiceRoutes);
 
 app.get('/api', (_req, res) => {
-  res.json({ 
-    status: 'Shagun General Store API is running ✅', 
+  res.json({
+    status: 'Shagun Mart API is running ✅',
     dbConnected: mongoose.connection.readyState === 1,
-    ts: new Date().toISOString() 
+    ts: new Date().toISOString()
   });
 });
 

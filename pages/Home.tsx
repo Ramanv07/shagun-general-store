@@ -443,7 +443,7 @@ export const Home: React.FC = () => {
           <div className="ornament-divider mb-6"></div>
 
           <p className="text-center text-xs" style={{ color: 'rgba(251,243,231,0.4)' }}>
-            © 2026 Shagun General Store. All rights reserved. Bamitha, Madhya Pradesh.
+            © 2026 Shagun Mart. All rights reserved. Bamitha, Madhya Pradesh.
           </p>
         </div>
       </footer>

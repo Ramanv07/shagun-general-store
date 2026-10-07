@@ -1,6 +1,6 @@
-# 📱 Shagun General Store — Native App
+# 📱 Shagun Mart — Native App
 
-React Native (Expo) mobile app for Shagun General Store.
+React Native (Expo) mobile app for Shagun Mart.
 Shares the same **MongoDB Atlas** backend with the web app.
 
 ---

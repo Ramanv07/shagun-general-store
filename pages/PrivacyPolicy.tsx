@@ -11,7 +11,7 @@ export const PrivacyPolicy: React.FC = () => {
           <div>
             <h2 className="text-xl font-semibold text-stone-900 mb-2">1. Overview</h2>
             <p>
-              Welcome to <strong>Shagun General Store</strong> (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring your personal information is handled safely and responsibly. This Privacy Policy applies to our website and our mobile application.
+              Welcome to <strong>Shagun Mart</strong> (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring your personal information is handled safely and responsibly. This Privacy Policy applies to our website and our mobile application.
             </p>
           </div>
 
@@ -61,7 +61,7 @@ export const PrivacyPolicy: React.FC = () => {
               If you have any questions or concerns about this Privacy Policy, please contact:
             </p>
             <div className="mt-2 p-4 bg-stone-100 rounded-lg text-sm text-stone-800 space-y-1">
-              <p><strong>Shagun General Store</strong></p>
+              <p><strong>Shagun Mart</strong></p>
               <p>Support WhatsApp: +91 88272 59023</p>
               <p>Email: support@shagun.com</p>
             </div>

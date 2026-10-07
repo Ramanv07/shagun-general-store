@@ -2,7 +2,7 @@
     "name": "shagun-backend",
     "version": "1.0.0",
     "type": "module",
-    "description": "Backend API for Shagun General Store",
+    "description": "Backend API for Shagun Mart",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",

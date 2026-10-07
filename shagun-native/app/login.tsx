@@ -48,7 +48,7 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Ionicons name="bag-handle-outline" size={40} color="#7c1f3e" style={{ marginBottom: 6 }} />
-          <Text style={styles.title}>Shagun General Store</Text>
+          <Text style={styles.title}>Shagun Mart</Text>
           <Text style={styles.subtitle}>{mode === 'login' ? 'Welcome back!' : 'Create your account'}</Text>
         </View>
 
