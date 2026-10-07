@@ -1,6 +1,6 @@
 import express from 'express';
 import Product from '../models/Product.js';
-import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { protect, adminOnly, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -192,6 +192,37 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).json({ message: 'Failed to delete product' });
+    }
+});
+
+
+// @route   POST /api/products/:id/rate
+// @desc    Rate a product
+router.post('/:id/rate', optionalAuth, async (req, res) => {
+    try {
+        const { rating } = req.body;
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+        }
+
+        const product = await Product.findById(req.params.id);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        // Calculate new average rating
+        const currentTotal = (product.rating || 0) * (product.reviews || 0);
+        const newReviewsCount = (product.reviews || 0) + 1;
+        const newRating = (currentTotal + rating) / newReviewsCount;
+
+        product.rating = parseFloat(newRating.toFixed(1));
+        product.reviews = newReviewsCount;
+        await product.save();
+
+        res.json({ message: 'Rating submitted successfully', rating: product.rating, reviews: product.reviews });
+    } catch (error) {
+        console.error('Error rating product:', error);
+        res.status(500).json({ message: 'Failed to rate product' });
     }
 });
 

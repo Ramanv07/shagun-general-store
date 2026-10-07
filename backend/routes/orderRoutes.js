@@ -11,6 +11,12 @@ const router = express.Router();
 // @desc    Get all orders (admin) or user's own orders (customer)
 router.get('/', protect, async (req, res) => {
     try {
+        // Automatically mark COD payment as Completed if order is already delivered
+        await Order.updateMany(
+            { status: 'Delivered', paymentStatus: 'Pending' },
+            { $set: { paymentStatus: 'Completed' } }
+        );
+
         let query = {};
         if (req.user.role !== 'admin') {
             query = {
@@ -35,6 +41,12 @@ router.get('/', protect, async (req, res) => {
 // @desc    Get orders of logged-in user
 router.get('/myorders', protect, async (req, res) => {
     try {
+        // Automatically mark COD payment as Completed if order is already delivered
+        await Order.updateMany(
+            { status: 'Delivered', paymentStatus: 'Pending' },
+            { $set: { paymentStatus: 'Completed' } }
+        );
+
         const orders = await Order.find({
             $or: [
                 { user: req.user._id },
@@ -124,6 +136,11 @@ router.get('/:id', protect, async (req, res) => {
 
         if (req.user.role !== 'admin' && !isOwner) {
             return res.status(403).json({ message: 'Access denied' });
+        }
+
+        if (order.status === 'Delivered' && order.paymentStatus === 'Pending') {
+            order.paymentStatus = 'Completed';
+            await order.save();
         }
 
         res.json(order);
@@ -243,6 +260,24 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
                 if (item.product) {
                     await Product.findByIdAndUpdate(item.product, {
                         $inc: { stock: item.quantity }
+                    });
+                }
+            }
+        }
+
+        // If transitioning to Delivered and was not Delivered before:
+        if (status === 'Delivered' && existingOrder.status !== 'Delivered') {
+            // Fix COD pending payment to Completed
+            if (existingOrder.paymentMethod === 'COD' || existingOrder.paymentStatus === 'Pending') {
+                existingOrder.paymentStatus = 'Completed';
+            }
+
+            // Customer review count increase by 2 for each delivered product
+            for (const item of existingOrder.items) {
+                const prodId = item.product?._id || item.product;
+                if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
+                    await Product.findByIdAndUpdate(prodId, {
+                        $inc: { reviews: 2 }
                     });
                 }
             }

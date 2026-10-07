@@ -283,6 +283,28 @@ export const mockApi = {
   },
 
   addReview: async (productId: string, rating: number): Promise<void> => {
+    try {
+      const res = await fetch(`/api/products/${productId}/rate`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ rating })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
+        const index = products.findIndex((p: Product) => p._id === productId);
+        if (index > -1) {
+          products[index] = { ...products[index], rating: data.rating, reviews: data.reviews };
+          safeSetItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+          updateTimestamp();
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to submit rating to backend API:', e);
+    }
+
+    // Local fallback update
     const products = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]');
     const index = products.findIndex((p: Product) => p._id === productId);
     if (index > -1) {

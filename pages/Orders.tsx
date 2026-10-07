@@ -37,6 +37,15 @@ export const Orders: React.FC = () => {
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [ratingProduct, setRatingProduct] = useState<{ id: string; name: string } | null>(null);
   const [ratingValue, setRatingValue] = useState(5);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSuccess, setRatingSuccess] = useState(false);
+  const [ratedProductIds, setRatedProductIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('shagun_rated_products') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   if (!user) {
     return (
@@ -72,9 +81,25 @@ export const Orders: React.FC = () => {
 
   const handleRateProduct = async () => {
     if (ratingProduct) {
-      await mockApi.addReview(ratingProduct.id, ratingValue);
-      setRatingModalOpen(false);
-      setRatingProduct(null);
+      try {
+        setSubmittingRating(true);
+        await mockApi.addReview(ratingProduct.id, ratingValue);
+        const updated = [...ratedProductIds, ratingProduct.id];
+        setRatedProductIds(updated);
+        try {
+          localStorage.setItem('shagun_rated_products', JSON.stringify(updated));
+        } catch (e) {}
+        setRatingSuccess(true);
+        setTimeout(() => {
+          setRatingModalOpen(false);
+          setRatingProduct(null);
+          setRatingSuccess(false);
+        }, 1200);
+      } catch (err: any) {
+        alert(err.message || 'Failed to submit rating');
+      } finally {
+        setSubmittingRating(false);
+      }
     }
   };
 
@@ -239,14 +264,28 @@ export const Orders: React.FC = () => {
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <p className="text-maroon-700 font-bold text-sm">Rs.{(item.price * item.quantity).toLocaleString()}</p>
-                          {selectedOrder.status === OrderStatus.DELIVERED && (
-                            <button
-                              onClick={e => { e.stopPropagation(); setRatingProduct({ id: item._id, name: item.name }); setRatingModalOpen(true); }}
-                              className="btn btn-gold btn-sm text-xs"
-                            >
-                              Rate
-                            </button>
-                          )}
+                          {selectedOrder.status === OrderStatus.DELIVERED && (() => {
+                            const pId = String((item as any).product?._id || (item as any).product || item._id);
+                            const isRated = ratedProductIds.includes(pId);
+                            return isRated ? (
+                              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                                <i className="fas fa-check text-[10px]"></i> Rated
+                              </span>
+                            ) : (
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setRatingProduct({ id: pId, name: item.name });
+                                  setRatingValue(5);
+                                  setRatingSuccess(false);
+                                  setRatingModalOpen(true);
+                                }}
+                                className="btn btn-gold btn-sm text-xs flex items-center gap-1 shadow-sm hover:scale-105 transition-all"
+                              >
+                                <i className="fas fa-star text-[10px]"></i> Rate
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}
@@ -273,10 +312,20 @@ export const Orders: React.FC = () => {
                   <div className="bg-cream-200 p-4 rounded-xl flex justify-between items-center">
                     <div>
                       <p className="text-maroon-700 font-medium">{selectedOrder.paymentMethod || 'Cash on Delivery (COD)'}</p>
-                      <p className="text-cream-700 text-xs mt-0.5">Pay upon delivery to courier</p>
+                      <p className="text-cream-700 text-xs mt-0.5">
+                        {(selectedOrder.status === OrderStatus.DELIVERED || selectedOrder.paymentStatus === 'Completed')
+                          ? 'Payment received upon delivery'
+                          : 'Pay upon delivery to courier'}
+                      </p>
                     </div>
-                    <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold rounded-full">
-                      {selectedOrder.paymentStatus || 'Pending'}
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                      (selectedOrder.status === OrderStatus.DELIVERED || selectedOrder.paymentStatus === 'Completed')
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {(selectedOrder.status === OrderStatus.DELIVERED || selectedOrder.paymentStatus === 'Completed')
+                        ? 'Completed'
+                        : (selectedOrder.paymentStatus || 'Pending')}
                     </span>
                   </div>
                 </div>
@@ -309,32 +358,59 @@ export const Orders: React.FC = () => {
             style={{ background: 'rgba(44,8,16,0.75)', backdropFilter: 'blur(8px)' }}
           >
             <div className="bg-white border border-cream-300 p-6 rounded-2xl w-full max-w-sm text-center animate-scale-in shadow-maroon-lg">
-              <div className="w-12 h-12 rounded-full gradient-maroon flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-star text-gold-400"></i>
-              </div>
-              <h3 className="font-serif text-xl font-bold text-maroon-700 mb-1">Rate Product</h3>
-              <p className="text-cream-700 text-sm mb-6">{ratingProduct.name}</p>
+              {ratingSuccess ? (
+                <div className="py-4 space-y-3">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl animate-bounce">
+                    <i className="fas fa-check"></i>
+                  </div>
+                  <h3 className="font-serif text-xl font-bold text-maroon-700">Thank You!</h3>
+                  <p className="text-cream-700 text-sm">Your rating has been successfully submitted.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full gradient-maroon flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <i className="fas fa-star text-gold-400"></i>
+                  </div>
+                  <h3 className="font-serif text-xl font-bold text-maroon-700 mb-1">Rate Product</h3>
+                  <p className="text-cream-700 text-sm mb-6">{ratingProduct.name}</p>
 
-              <div className="flex justify-center gap-2 mb-6">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    onClick={() => setRatingValue(star)}
-                    className={`text-3xl transition-transform hover:scale-110 ${star <= ratingValue ? 'text-gold-500' : 'text-cream-400'}`}
-                  >
-                    <i className="fas fa-star"></i>
-                  </button>
-                ))}
-              </div>
+                  <div className="flex justify-center gap-2 mb-6">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        onClick={() => setRatingValue(star)}
+                        className={`text-3xl transition-transform hover:scale-125 focus:outline-none ${star <= ratingValue ? 'text-gold-500' : 'text-cream-400'}`}
+                        type="button"
+                      >
+                        <i className="fas fa-star"></i>
+                      </button>
+                    ))}
+                  </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => setRatingModalOpen(false)} className="flex-1 btn btn-outline">
-                  Cancel
-                </button>
-                <button onClick={handleRateProduct} className="flex-1 btn btn-gold">
-                  Submit
-                </button>
-              </div>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => setRatingModalOpen(false)} 
+                      disabled={submittingRating}
+                      className="flex-1 btn btn-outline"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleRateProduct} 
+                      disabled={submittingRating}
+                      className="flex-1 btn btn-gold flex items-center justify-center gap-2"
+                    >
+                      {submittingRating ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin"></i> Submitting...
+                        </>
+                      ) : (
+                        'Submit'
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
