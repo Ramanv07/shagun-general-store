@@ -650,12 +650,16 @@ export const AdminDashboard: React.FC = () => {
 
                                             <div className="flex gap-4">
                                                 <div className="flex-1">
+                                                    <label className="text-gray-300 text-xs font-semibold block mb-1">
+                                                        Stock Quantity *
+                                                    </label>
                                                     <input
                                                         placeholder="Stock Quantity"
                                                         type="number"
+                                                        min="0"
                                                         className="w-full bg-white/5 p-3 rounded text-white border border-white/10 focus:border-gold-500 outline-none"
-                                                        value={editingProduct?.stock || ''}
-                                                        onChange={e => setEditingProduct({ ...editingProduct, stock: Number(e.target.value) })}
+                                                        value={editingProduct?.stock ?? ''}
+                                                        onChange={e => setEditingProduct({ ...editingProduct, stock: Math.max(0, Number(e.target.value) || 0) })}
                                                         required
                                                     />
                                                 </div>
@@ -727,8 +731,20 @@ export const AdminDashboard: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="p-3 text-sm">{p.category}</td>
-                                                <td className={`p-3 font-mono ${p.stock < 10 ? 'text-red-400 font-bold' : 'text-gray-300'}`}>
-                                                    {p.stock}
+                                                <td className="p-3">
+                                                    {p.stock <= 0 ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-red-900/60 text-red-300 font-bold border border-red-700/50">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                                                            Out of Stock (0)
+                                                        </span>
+                                                    ) : p.stock <= 5 ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-amber-900/50 text-amber-300 font-bold border border-amber-700/50">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                            {p.stock} (Low Stock)
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-mono text-gray-200 font-semibold">{p.stock}</span>
+                                                    )}
                                                 </td>
                                                 <td className="p-3 flex gap-2">
                                                     <button onClick={() => { setEditingProduct(p); setIsFormOpen(true); }} className="text-blue-400 hover:text-blue-300 w-8 h-8 rounded hover:bg-white/10"><i className="fas fa-edit"></i></button>

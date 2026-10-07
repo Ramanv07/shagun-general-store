@@ -84,6 +84,20 @@ export const Checkout: React.FC = () => {
       return;
     }
 
+    // 0.1 Verify stock availability before submitting
+    for (const item of cart) {
+      if (typeof item.stock === 'number') {
+        if (item.stock <= 0) {
+          alert(`"${item.name}" is currently Out of Stock. Please remove it from your cart to proceed.`);
+          return;
+        }
+        if (item.quantity > item.stock) {
+          alert(`Only ${item.stock} unit(s) available for "${item.name}". You have ${item.quantity} in your cart. Please reduce quantity.`);
+          return;
+        }
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -131,9 +145,9 @@ export const Checkout: React.FC = () => {
       // 3. Clear Cart & Show Thank You Modal
       clearCart();
       setShowThankYou(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Checkout error:', error);
-      alert('There was an issue processing your order. Please try again.');
+      alert(error?.message || 'There was an issue processing your order. Please try again.');
     } finally {
       setLoading(false);
     }

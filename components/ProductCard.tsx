@@ -72,11 +72,13 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (product.stock <= 0) return;
     addToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };
 
+  const isOutOfStock = product.stock <= 0;
   const effectiveMrp = (product.mrp && product.mrp > product.price)
     ? product.mrp
     : Math.round(product.price * 1.25);
@@ -103,32 +105,46 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
             src={imgSrc}
             alt={product.name}
             onError={() => setImgSrc(FALLBACK_IMAGE)}
-            className="product-card-img w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`product-card-img w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? 'grayscale opacity-75' : ''}`}
             loading="lazy"
           />
 
           {/* Hover overlay */}
           <div className="add-to-cart-overlay">
-            <button
-              onClick={handleAdd}
-              className={`add-to-cart-btn-hover btn btn-gold btn-sm ${added ? 'opacity-80' : ''}`}
-            >
-              {added
-                ? <><i className="fas fa-check mr-1.5" /> Added!</>
-                : <><i className="fas fa-bag-shopping mr-1.5" /> Add to Cart</>
-              }
-            </button>
+            {isOutOfStock ? (
+              <span className="btn bg-gray-700/90 text-white text-xs px-3 py-1.5 rounded-full cursor-not-allowed">
+                <i className="fas fa-ban mr-1.5" /> Out of Stock
+              </span>
+            ) : (
+              <button
+                onClick={handleAdd}
+                className={`add-to-cart-btn-hover btn btn-gold btn-sm ${added ? 'opacity-80' : ''}`}
+              >
+                {added
+                  ? <><i className="fas fa-check mr-1.5" /> Added!</>
+                  : <><i className="fas fa-bag-shopping mr-1.5" /> Add to Cart</>
+                }
+              </button>
+            )}
           </div>
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-            {discountPercent > 0 && (
+            {isOutOfStock ? (
+              <span className="badge bg-red-600 text-white font-bold text-[10px] shadow-sm">
+                Out of Stock
+              </span>
+            ) : product.stock <= 5 ? (
+              <span className="badge bg-amber-600 text-white font-bold text-[10px] shadow-sm animate-pulse">
+                Only {product.stock} left!
+              </span>
+            ) : product.stock <= 10 ? (
+              <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
+            ) : null}
+            {discountPercent > 0 && !isOutOfStock && (
               <span className="badge bg-emerald-600 text-white font-bold text-[10px] shadow-sm">
                 {discountPercent}% OFF
               </span>
-            )}
-            {product.stock <= 10 && product.stock > 0 && (
-              <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
             )}
           </div>
 
@@ -185,15 +201,18 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
             </div>
             <button
               onClick={handleAdd}
-              aria-label={`Add ${product.name} to cart`}
+              disabled={isOutOfStock}
+              aria-label={isOutOfStock ? `${product.name} is out of stock` : `Add ${product.name} to cart`}
               className={`w-6 h-6 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all text-[10px] sm:text-sm
-                ${added
-                  ? 'bg-gold-500 text-maroon-800'
-                  : 'bg-cream-200 text-maroon-600 hover:bg-maroon-600 hover:text-white'
+                ${isOutOfStock
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                  : added
+                    ? 'bg-gold-500 text-maroon-800'
+                    : 'bg-cream-200 text-maroon-600 hover:bg-maroon-600 hover:text-white'
                 }`}
-              title="Add to cart"
+              title={isOutOfStock ? 'Out of Stock' : 'Add to cart'}
             >
-              <i className={`fas ${added ? 'fa-check' : 'fa-plus'}`} aria-hidden="true" />
+              <i className={`fas ${isOutOfStock ? 'fa-ban' : added ? 'fa-check' : 'fa-plus'}`} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -241,11 +260,19 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="badge badge-cream text-xs">{product.category}</span>
-                <span className="text-xs text-cream-700">
-                  {product.stock > 0 ? (
-                    <span className="text-green-600 font-semibold"><i className="fas fa-check-circle mr-1" aria-hidden="true" />In Stock ({product.stock})</span>
+                <span className="text-xs">
+                  {product.stock <= 0 ? (
+                    <span className="text-red-600 font-bold flex items-center gap-1">
+                      <i className="fas fa-times-circle" aria-hidden="true" /> Out of Stock
+                    </span>
+                  ) : product.stock <= 5 ? (
+                    <span className="text-amber-600 font-bold flex items-center gap-1 animate-pulse">
+                      <i className="fas fa-exclamation-triangle" aria-hidden="true" /> Only {product.stock} left in stock - order soon!
+                    </span>
                   ) : (
-                    <span className="text-red-600 font-semibold">Out of Stock</span>
+                    <span className="text-green-600 font-semibold flex items-center gap-1">
+                      <i className="fas fa-check-circle" aria-hidden="true" /> In Stock ({product.stock})
+                    </span>
                   )}
                 </span>
               </div>
@@ -290,12 +317,20 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
                 <button
                   type="button"
                   onClick={handleAdd}
-                  className="btn btn-primary flex-1 justify-center py-3"
+                  disabled={isOutOfStock}
+                  className={`btn flex-1 justify-center py-3 ${
+                    isOutOfStock
+                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300'
+                      : 'btn-primary'
+                  }`}
                 >
-                  {added
-                    ? <><i className="fas fa-check mr-2" /> Added to Cart</>
-                    : <><i className="fas fa-bag-shopping mr-2" /> Add to Cart</>
-                  }
+                  {isOutOfStock ? (
+                    <><i className="fas fa-ban mr-2" /> Out of Stock</>
+                  ) : added ? (
+                    <><i className="fas fa-check mr-2" /> Added to Cart</>
+                  ) : (
+                    <><i className="fas fa-bag-shopping mr-2" /> Add to Cart</>
+                  )}
                 </button>
                 <button
                   type="button"

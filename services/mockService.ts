@@ -256,7 +256,10 @@ export const mockApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(order)
     });
-    if (!res.ok) throw new Error('Failed to create order');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to create order');
+    }
     return await res.json();
   },
 

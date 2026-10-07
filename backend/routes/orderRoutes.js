@@ -166,13 +166,51 @@ router.post('/', protect, async (req, res) => {
             return res.status(400).json({ message: 'Please provide all shipping address fields' });
         }
 
-        // Decrement stock for purchased products
+        // 1. Verify stock availability for all items (Enterprise E-Commerce logic)
         for (const item of items) {
             const prodId = item.product || item._id;
+            const requestedQty = Number(item.quantity) || 1;
+
+            if (requestedQty <= 0) {
+                return res.status(400).json({ message: `Invalid quantity for "${item.name || 'item'}"` });
+            }
+
             if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
-                await Product.findByIdAndUpdate(prodId, {
-                    $inc: { stock: -(item.quantity || 1) }
-                });
+                const product = await Product.findById(prodId);
+                if (product) {
+                    if (product.stock <= 0) {
+                        return res.status(400).json({
+                            message: `"${product.name}" is currently Out of Stock. Please remove it from your cart to proceed.`
+                        });
+                    }
+                    if (requestedQty > product.stock) {
+                        return res.status(400).json({
+                            message: `Only ${product.stock} unit${product.stock > 1 ? 's' : ''} available for "${product.name}". You requested ${requestedQty}. Please reduce your quantity.`
+                        });
+                    }
+                }
+            }
+        }
+
+        // 2. Decrement stock atomically (never goes negative)
+        for (const item of items) {
+            const prodId = item.product || item._id;
+            const requestedQty = Number(item.quantity) || 1;
+            if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
+                const updated = await Product.findOneAndUpdate(
+                    { _id: prodId, stock: { $gte: requestedQty } },
+                    { $inc: { stock: -requestedQty } },
+                    { new: true }
+                );
+
+                if (!updated) {
+                    // Fallback to safely clamp stock at 0
+                    const currentProd = await Product.findById(prodId);
+                    if (currentProd) {
+                        currentProd.stock = Math.max(0, currentProd.stock - requestedQty);
+                        await currentProd.save();
+                    }
+                }
             }
         }
 

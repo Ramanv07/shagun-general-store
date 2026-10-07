@@ -30,14 +30,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart]);
 
   const addToCart = (product: Product, qty = 1) => {
+    const availableStock = typeof product.stock === 'number' ? product.stock : 999;
+    if (availableStock <= 0) {
+      alert(`"${product.name}" is currently Out of Stock.`);
+      return;
+    }
+
     setCart(prev => {
       const existing = prev.find(item => item._id === product._id);
       if (existing) {
+        const newQty = existing.quantity + qty;
+        if (newQty > availableStock) {
+          alert(`Only ${availableStock} unit${availableStock > 1 ? 's' : ''} available for "${product.name}". You already have ${existing.quantity} in your cart.`);
+          return prev.map(item => 
+            item._id === product._id ? { ...item, quantity: availableStock, stock: availableStock } : item
+          );
+        }
         return prev.map(item => 
-          item._id === product._id ? { ...item, quantity: item.quantity + qty } : item
+          item._id === product._id ? { ...item, quantity: newQty, stock: availableStock } : item
         );
       }
-      return [...prev, { ...product, quantity: qty }];
+      const initialQty = Math.min(qty, availableStock);
+      return [...prev, { ...product, quantity: initialQty, stock: availableStock }];
     });
   };
 
@@ -47,7 +61,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateQuantity = (productId: string, quantity: number) => {
     if (quantity < 1) return;
-    setCart(prev => prev.map(item => item._id === productId ? { ...item, quantity } : item));
+    setCart(prev => prev.map(item => {
+      if (item._id === productId) {
+        const availableStock = typeof item.stock === 'number' ? item.stock : 999;
+        if (availableStock <= 0) {
+          alert(`"${item.name}" is currently Out of Stock.`);
+          return item;
+        }
+        if (quantity > availableStock) {
+          alert(`Only ${availableStock} unit${availableStock > 1 ? 's' : ''} available for "${item.name}".`);
+          return { ...item, quantity: availableStock };
+        }
+        return { ...item, quantity };
+      }
+      return item;
+    }));
   };
 
   const clearCart = () => setCart([]);

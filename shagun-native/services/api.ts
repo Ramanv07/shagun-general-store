@@ -111,7 +111,10 @@ export const api = {
       headers,
       body: JSON.stringify(order),
     });
-    if (!res.ok) throw new Error('Failed to create order');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to place order');
+    }
     return res.json();
   },
 

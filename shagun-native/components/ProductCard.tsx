@@ -17,7 +17,10 @@ export default function ProductCard({ product, style }: Props) {
   const [added, setAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
+  const isOutOfStock = product.stock <= 0;
+
   const handleAdd = () => {
+    if (isOutOfStock) return;
     addToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
@@ -37,11 +40,19 @@ export default function ProductCard({ product, style }: Props) {
         {/* Badges */}
         <View style={styles.badgesLeft}>
 
-          {product.stock <= 10 && product.stock > 0 && (
+          {isOutOfStock ? (
+            <View style={[styles.badgeMaroon, { backgroundColor: '#dc2626' }]}>
+              <Text style={styles.badgeMaroonText}>Out of Stock</Text>
+            </View>
+          ) : product.stock <= 5 ? (
+            <View style={[styles.badgeMaroon, { backgroundColor: '#d97706' }]}>
+              <Text style={styles.badgeMaroonText}>Only {product.stock} left!</Text>
+            </View>
+          ) : product.stock <= 10 ? (
             <View style={styles.badgeMaroon}>
               <Text style={styles.badgeMaroonText}>Only {product.stock} left</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         <View style={styles.badgeRight}>
@@ -86,14 +97,19 @@ export default function ProductCard({ product, style }: Props) {
             );
           })()}
           <TouchableOpacity
-            style={[styles.addBtn, added && styles.addBtnAdded]}
+            style={[
+              styles.addBtn,
+              added && styles.addBtnAdded,
+              isOutOfStock && { backgroundColor: '#9ca3af', opacity: 0.6 }
+            ]}
             onPress={handleAdd}
+            disabled={isOutOfStock}
             activeOpacity={0.8}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel={`Add ${product.name} to cart`}
+            accessibilityLabel={isOutOfStock ? `${product.name} is out of stock` : `Add ${product.name} to cart`}
           >
-            <Ionicons name={added ? 'checkmark' : 'add'} size={18} color={added ? '#1a0a12' : '#f5ede8'} />
+            <Ionicons name={isOutOfStock ? 'ban' : added ? 'checkmark' : 'add'} size={18} color={isOutOfStock ? '#ffffff' : added ? '#1a0a12' : '#f5ede8'} />
           </TouchableOpacity>
         </View>
       </View>

@@ -72,6 +72,17 @@ export default function CheckoutScreen() {
       return;
     }
 
+    const outOfStock = cart.find(i => typeof i.stock === 'number' && i.stock <= 0);
+    if (outOfStock) {
+      Alert.alert('Out of Stock', `"${outOfStock.name}" is currently out of stock. Please remove it from your cart.`);
+      return;
+    }
+    const exceeded = cart.find(i => typeof i.stock === 'number' && i.quantity > i.stock);
+    if (exceeded) {
+      Alert.alert('Stock Limit', `Only ${exceeded.stock} available for "${exceeded.name}". Please reduce the quantity.`);
+      return;
+    }
+
     setLoading(true);
     try {
       await addOrder({

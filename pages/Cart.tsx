@@ -109,6 +109,15 @@ export const Cart: React.FC = () => {
                   <p className="text-xs text-gold-700 font-semibold uppercase tracking-wider mb-0.5">{item.category}</p>
                   <h3 className="font-semibold text-maroon-700 text-sm leading-tight mb-1 line-clamp-2">{item.name}</h3>
                   <p className="text-maroon-600 font-bold">₹{item.price.toLocaleString('en-IN')}</p>
+                  {typeof item.stock === 'number' && item.stock <= 0 ? (
+                    <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1">
+                      <i className="fas fa-times-circle" /> Out of Stock — please remove to proceed
+                    </p>
+                  ) : typeof item.stock === 'number' && item.quantity >= item.stock ? (
+                    <p className="text-[11px] text-amber-600 font-semibold mt-0.5 flex items-center gap-1">
+                      <i className="fas fa-info-circle" /> Max available stock reached ({item.stock} in stock)
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* Qty stepper */}
@@ -123,7 +132,9 @@ export const Cart: React.FC = () => {
                   <button
                     className="qty-btn"
                     onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                    disabled={typeof item.stock === 'number' && (item.stock <= 0 || item.quantity >= item.stock)}
                     aria-label={`Increase quantity of ${item.name}`}
+                    title={typeof item.stock === 'number' && item.quantity >= item.stock ? `Only ${item.stock} available in stock` : 'Increase quantity'}
                   >+</button>
                 </div>
 
@@ -234,12 +245,45 @@ export const Cart: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => navigate('/checkout')}
-                className="btn btn-primary w-full justify-center btn-lg mb-3"
-              >
-                <i className="fas fa-lock text-xs" /> Proceed to Checkout
-              </button>
+              {/* Inventory issues banner */}
+              {(() => {
+                const outOfStock = cart.some(i => typeof i.stock === 'number' && i.stock <= 0);
+                const exceededStock = cart.some(i => typeof i.stock === 'number' && i.stock > 0 && i.quantity > i.stock);
+                if (!outOfStock && !exceededStock) return null;
+                return (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
+                    <i className="fas fa-triangle-exclamation text-red-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-bold">Inventory issue: </span>
+                      {outOfStock
+                        ? 'Some items in your cart are Out of Stock. Please remove them to proceed.'
+                        : 'Some items exceed available stock. Please adjust quantities to proceed.'}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const hasInventoryIssues = cart.some(
+                  i => typeof i.stock === 'number' && (i.stock <= 0 || i.quantity > i.stock)
+                );
+                return (
+                  <button
+                    onClick={() => {
+                      if (hasInventoryIssues) return;
+                      navigate('/checkout');
+                    }}
+                    disabled={hasInventoryIssues}
+                    className={`btn w-full justify-center btn-lg mb-3 ${
+                      hasInventoryIssues
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300'
+                        : 'btn-primary'
+                    }`}
+                  >
+                    <i className="fas fa-lock text-xs" /> Proceed to Checkout
+                  </button>
+                );
+              })()}
 
               <Link to="/shop" className="btn btn-outline w-full justify-center text-sm">
                 <i className="fas fa-arrow-left text-xs" /> Continue Shopping

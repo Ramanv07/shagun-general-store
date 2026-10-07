@@ -22,6 +22,19 @@ export default function CartScreen() {
       ]);
       return;
     }
+
+    const outOfStock = cart.find(i => typeof i.stock === 'number' && i.stock <= 0);
+    if (outOfStock) {
+      Alert.alert('Out of Stock', `"${outOfStock.name}" is currently out of stock. Please remove it from your cart.`);
+      return;
+    }
+
+    const exceeded = cart.find(i => typeof i.stock === 'number' && i.quantity > i.stock);
+    if (exceeded) {
+      Alert.alert('Stock Limit', `Only ${exceeded.stock} available for "${exceeded.name}". Please reduce the quantity.`);
+      return;
+    }
+
     router.push('/checkout');
   };
 
@@ -61,6 +74,16 @@ export default function CartScreen() {
               <Text style={styles.itemCategory}>{item.category}</Text>
               <Text style={styles.itemPrice}>₹{(item.price * item.quantity).toLocaleString('en-IN')}</Text>
 
+              {typeof item.stock === 'number' && item.stock <= 0 ? (
+                <Text style={{ color: '#dc2626', fontSize: 11, fontWeight: '700', marginTop: 2 }}>
+                  Out of Stock — remove to checkout
+                </Text>
+              ) : typeof item.stock === 'number' && item.quantity >= item.stock ? (
+                <Text style={{ color: '#d97706', fontSize: 10, fontWeight: '600', marginTop: 2 }}>
+                  Max stock reached ({item.stock} in stock)
+                </Text>
+              ) : null}
+
               {/* Quantity Control */}
               <View style={styles.qtyRow}>
                 <TouchableOpacity
@@ -74,8 +97,12 @@ export default function CartScreen() {
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{item.quantity}</Text>
                 <TouchableOpacity
-                  style={styles.qtyBtn}
+                  style={[
+                    styles.qtyBtn,
+                    typeof item.stock === 'number' && (item.stock <= 0 || item.quantity >= item.stock) && { opacity: 0.4 }
+                  ]}
                   onPress={() => updateQuantity(item._id, item.quantity + 1)}
+                  disabled={typeof item.stock === 'number' && (item.stock <= 0 || item.quantity >= item.stock)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityRole="button"
                   accessibilityLabel={`Increase quantity of ${item.name}`}

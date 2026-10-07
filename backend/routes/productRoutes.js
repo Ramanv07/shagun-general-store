@@ -152,7 +152,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
             price: Number(price),
             mrp: mrp ? Number(mrp) : undefined,
             category,
-            stock: Number(stock),
+            stock: Math.max(0, Number(stock) || 0),
             description,
             image,
             images: images || [],
@@ -178,9 +178,14 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
+        const updateData = { ...req.body };
+        if (updateData.stock !== undefined) {
+            updateData.stock = Math.max(0, Number(updateData.stock) || 0);
+        }
+
         const updatedProduct = await Product.findByIdAndUpdate(
             req.params.id,
-            { $set: req.body },
+            { $set: updateData },
             { new: true, runValidators: true }
         );
 
