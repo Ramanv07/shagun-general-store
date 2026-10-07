@@ -28,4 +28,9 @@ const orderSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// High-performance indexes for lightning-fast queries
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ legacyUserId: 1, createdAt: -1 });
+orderSchema.index({ createdAt: -1 });
+
 export default mongoose.model('Order', orderSchema);

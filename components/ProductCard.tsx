@@ -141,30 +141,36 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
             )}
           </div>
 
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+          {/* Badges (Responsive & compact for mobile) */}
+          <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 flex flex-col items-start gap-1 z-10 pointer-events-none max-w-[75%]">
             {isOutOfStock ? (
-              <span className="badge bg-red-600 text-white font-bold text-[10px] shadow-sm">
+              <span className="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded-md sm:rounded-full bg-red-600 text-white font-bold text-[9px] sm:text-[10px] shadow-sm leading-tight">
                 Out of Stock
               </span>
             ) : product.stock <= 5 ? (
-              <span className="badge bg-amber-600 text-white font-bold text-[10px] shadow-sm animate-pulse">
-                Only {product.stock} left!
+              <span className="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded-md sm:rounded-full bg-amber-600 text-white font-bold text-[9px] sm:text-[10px] shadow-sm leading-tight animate-pulse">
+                <span className="sm:hidden">{product.stock} left</span>
+                <span className="hidden sm:inline">Only {product.stock} left!</span>
               </span>
             ) : product.stock <= 10 ? (
-              <span className="badge badge-maroon text-[10px]">Only {product.stock} left</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded-md sm:rounded-full bg-maroon-800 text-white font-medium text-[9px] sm:text-[10px] shadow-sm leading-tight">
+                <span className="sm:hidden">{product.stock} left</span>
+                <span className="hidden sm:inline">Only {product.stock} left</span>
+              </span>
             ) : null}
             {discountPercent > 0 && !isOutOfStock && (
-              <span className="badge bg-emerald-600 text-white font-bold text-[10px] shadow-sm">
+              <span className="inline-flex items-center px-1.5 py-0.5 sm:px-2 rounded-md sm:rounded-full bg-emerald-600 text-white font-bold text-[9px] sm:text-[10px] shadow-sm leading-tight">
                 {discountPercent}% OFF
               </span>
             )}
-            {productImages.length > 1 && (
-              <span className="badge bg-black/60 text-white font-medium text-[10px] shadow-sm backdrop-blur-xs inline-flex items-center gap-1">
-                <i className="fas fa-images text-[9px]" /> {productImages.length}
-              </span>
-            )}
           </div>
+
+          {/* Photo Count Indicator (Placed in bottom-right corner for clean mobile layout) */}
+          {productImages.length > 1 && (
+            <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 bg-black/65 text-white font-medium text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded-md backdrop-blur-xs shadow-sm inline-flex items-center gap-1 z-10 pointer-events-none">
+              <i className="fas fa-images text-[7px] sm:text-[9px]" /> {productImages.length}
+            </div>
+          )}
 
           {/* Wishlist button */}
           <button

@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
             query.name = { $regex: escaped, $options: 'i' };
         }
 
-        let products = await Product.find(query).sort({ createdAt: -1 });
+        let products = await Product.find(query).sort({ createdAt: -1 }).lean();
 
         // If store is completely empty, automatically seed initial products with reliable images
         if (products.length === 0 && (!category || category === 'All') && !search) {

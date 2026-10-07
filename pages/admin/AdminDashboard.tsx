@@ -44,13 +44,33 @@ const rentalStatusColors: Record<string, string> = {
 
 export const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices'>('overview');
-    const [products, setProducts] = useState<Product[]>([]);
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [lehengas, setLehengas] = useState<any[]>([]);
+    const [products, setProducts] = useState<Product[]>(() => {
+        try {
+            const stored = localStorage.getItem('shagun_products');
+            return stored ? JSON.parse(stored) : [];
+        } catch { return []; }
+    });
+    const [orders, setOrders] = useState<Order[]>(() => {
+        try {
+            const stored = localStorage.getItem('shagun_orders');
+            return stored ? JSON.parse(stored) : [];
+        } catch { return []; }
+    });
+    const [lehengas, setLehengas] = useState<any[]>(() => {
+        try {
+            const stored = localStorage.getItem('shagun_lehengas');
+            return stored ? JSON.parse(stored) : [];
+        } catch { return []; }
+    });
     const [rentals, setRentals] = useState<RentalBooking[]>([]);
     const [appointments, setAppointments] = useState<any[]>([]);
     const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => {
+        try {
+            const stored = localStorage.getItem('shagun_products');
+            return !stored;
+        } catch { return true; }
+    });
     const [authError, setAuthError] = useState(false);
     const [orderSearch, setOrderSearch] = useState('');
     const [rentalSearch, setRentalSearch] = useState('');
@@ -101,60 +121,61 @@ export const AdminDashboard: React.FC = () => {
         return () => clearInterval(interval);
     }, [authError]);
 
+    const authFailureCountRef = React.useRef(0);
+
     const fetchData = async () => {
         try {
+            const token = getAuthToken();
+            // Parallelize ALL 7 queries simultaneously for maximum speed
             const results = await Promise.allSettled([
                 mockApi.getProducts(),
                 mockApi.getOrders(),
                 mockApi.getLehengas(),
                 mockApi.getUsers(),
-                mockApi.getAllRentals()
+                mockApi.getAllRentals(),
+                token
+                    ? fetch('/api/appointments', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.ok ? r.json() : [])
+                    : Promise.resolve([]),
+                fetch('/api/parlor-services').then(r => r.ok ? r.json() : [])
             ]);
 
-            const [pRes, oRes, lRes, uRes, rRes] = results;
+            const [pRes, oRes, lRes, uRes, rRes, apptRes, srvRes] = results;
 
             // Check if user is unauthorized for orders or users
             if (
                 (oRes.status === 'rejected' && String(oRes.reason).includes('401')) ||
                 (uRes.status === 'rejected' && String(uRes.reason).includes('401'))
             ) {
-                setAuthError(true);
-                setLoading(false);
-                return;
+                if (!token) {
+                    setAuthError(true);
+                    setLoading(false);
+                    return;
+                }
+                // Don't kick admin out immediately on a single transient timeout/cold start;
+                // only lock out if 3 consecutive polls explicitly reject with 401
+                authFailureCountRef.current += 1;
+                if (authFailureCountRef.current >= 3) {
+                    setAuthError(true);
+                    setLoading(false);
+                    return;
+                }
+            } else {
+                authFailureCountRef.current = 0;
             }
 
-            if (pRes.status === 'fulfilled') setProducts(pRes.value);
-            if (oRes.status === 'fulfilled') setOrders(oRes.value);
+            if (pRes.status === 'fulfilled') {
+                setProducts(pRes.value);
+                try { localStorage.setItem('shagun_products', JSON.stringify(pRes.value)); } catch {}
+            }
+            if (oRes.status === 'fulfilled') {
+                setOrders(oRes.value);
+                try { localStorage.setItem('shagun_orders', JSON.stringify(oRes.value)); } catch {}
+            }
             if (lRes.status === 'fulfilled') setLehengas(lRes.value);
             if (uRes.status === 'fulfilled') setUsers(uRes.value);
             if (rRes.status === 'fulfilled') setRentals(rRes.value);
-
-            // Fetch appointments
-            try {
-                const token = getAuthToken();
-                if (token) {
-                    const apptRes = await fetch('/api/appointments', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (apptRes.ok) {
-                        const data = await apptRes.json();
-                        setAppointments(data);
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to fetch appointments", err);
-            }
-
-            // Fetch parlor services
-            try {
-                const srvRes = await fetch('/api/parlor-services');
-                if (srvRes.ok) {
-                    const data = await srvRes.json();
-                    setParlorServices(data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch parlor services", err);
-            }
+            if (apptRes.status === 'fulfilled') setAppointments(apptRes.value);
+            if (srvRes.status === 'fulfilled') setParlorServices(srvRes.value);
 
             setLoading(false);
         } catch (error) {
@@ -221,12 +242,25 @@ export const AdminDashboard: React.FC = () => {
                     image: prodImages[0]
                 };
 
-                console.log('Saving product:', productToSave);
-                await mockApi.saveProduct(productToSave as any);
-                console.log('Product saved successfully');
+                // Close modal immediately for instant snappy UX
                 setIsFormOpen(false);
                 setEditingProduct(null);
-                fetchData();
+
+                const saved = await mockApi.saveProduct(productToSave as any);
+
+                // Update local products state directly without re-fetching all 7 collections
+                if (saved) {
+                    setProducts(prev => {
+                        const idx = prev.findIndex(p => p._id === saved._id || (productToSave._id && p._id === productToSave._id));
+                        if (idx > -1) {
+                            const updated = [...prev];
+                            updated[idx] = saved;
+                            return updated;
+                        } else {
+                            return [saved, ...prev];
+                        }
+                    });
+                }
             }
         } catch (error) {
             console.error('Error saving product:', error);
@@ -245,9 +279,19 @@ export const AdminDashboard: React.FC = () => {
     };
 
     const handleDeleteProduct = async (id: string) => {
-        if (confirm('Are you sure?')) {
+        if (!confirm('Are you sure you want to delete this product?')) return;
+
+        // Optimistic UI: remove from screen in 0ms immediately!
+        const previousProducts = [...products];
+        setProducts(prev => prev.filter(p => p._id !== id));
+
+        try {
             await mockApi.deleteProduct(id);
-            fetchData();
+        } catch (err) {
+            console.error('Failed to delete product on server:', err);
+            // Rollback if server request failed
+            setProducts(previousProducts);
+            alert('Failed to delete product on server. Restored to list.');
         }
     };
 
@@ -366,7 +410,7 @@ export const AdminDashboard: React.FC = () => {
         });
     };
 
-    // Image Upload Handler using Cloudinary API
+    // Image Upload Handler using Cloudinary API (Parallel Uploads for fast speed)
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'lehenga') => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
@@ -375,9 +419,10 @@ export const AdminDashboard: React.FC = () => {
         try {
             const token = getAuthToken();
             const maxAllowed = type === 'product' ? 4 : 8;
+            const filesArray = Array.from(files);
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
+            // Upload all selected files concurrently in parallel
+            const uploadPromises = filesArray.map(async (file) => {
                 const formData = new FormData();
                 formData.append('image', file);
 
@@ -390,34 +435,28 @@ export const AdminDashboard: React.FC = () => {
                 });
 
                 if (!res.ok) throw new Error('Upload failed');
-
                 const data = await res.json();
+                return data.imageUrl as string;
+            });
 
-                if (type === 'product') {
-                    setEditingProduct(prev => {
-                        if (!prev) return null;
-                        const currentImages = prev.images && prev.images.length > 0
-                            ? [...prev.images]
-                            : (prev.image ? [prev.image] : []);
-                        if (currentImages.length >= maxAllowed) {
-                            alert(`Maximum ${maxAllowed} images allowed for a product.`);
-                            return prev;
-                        }
-                        const newImages = [...currentImages, data.imageUrl];
-                        return { ...prev, images: newImages, image: newImages[0] };
-                    });
-                } else if (type === 'lehenga') {
-                    setEditingLehenga(prev => {
-                        if (!prev) return null;
-                        const currentImages = prev.images || (prev.image ? [prev.image] : []);
-                        if (currentImages.length >= maxAllowed) {
-                            alert(`Maximum ${maxAllowed} images allowed.`);
-                            return prev;
-                        }
-                        const newImages = [...currentImages, data.imageUrl];
-                        return { ...prev, images: newImages, image: newImages[0] };
-                    });
-                }
+            const uploadedUrls = await Promise.all(uploadPromises);
+
+            if (type === 'product') {
+                setEditingProduct(prev => {
+                    if (!prev) return null;
+                    const currentImages = prev.images && prev.images.length > 0
+                        ? [...prev.images]
+                        : (prev.image ? [prev.image] : []);
+                    const combined = [...currentImages, ...uploadedUrls].slice(0, maxAllowed);
+                    return { ...prev, images: combined, image: combined[0] || '' };
+                });
+            } else if (type === 'lehenga') {
+                setEditingLehenga(prev => {
+                    if (!prev) return null;
+                    const currentImages = prev.images || (prev.image ? [prev.image] : []);
+                    const combined = [...currentImages, ...uploadedUrls].slice(0, maxAllowed);
+                    return { ...prev, images: combined, image: combined[0] || '' };
+                });
             }
         } catch (error) {
             console.error('Image upload failed', error);

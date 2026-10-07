@@ -12,11 +12,11 @@ const router = express.Router();
 // @desc    Get all orders (admin) or user's own orders (customer)
 router.get('/', protect, async (req, res) => {
     try {
-        // Automatically mark COD payment as Completed if order is already delivered
-        await Order.updateMany(
+        // Automatically mark COD payment as Completed in background without blocking GET request
+        Order.updateMany(
             { status: 'Delivered', paymentStatus: 'Pending' },
             { $set: { paymentStatus: 'Completed' } }
-        );
+        ).catch(err => console.warn('COD status sync error:', err.message));
 
         let query = {};
         if (req.user.role !== 'admin') {
@@ -30,7 +30,8 @@ router.get('/', protect, async (req, res) => {
         const orders = await Order.find(query)
             .populate('user', 'name email phone role')
             .populate('items.product', 'name price image category')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
         res.json(orders);
     } catch (error) {
         console.error('Error fetching orders:', error);
@@ -168,16 +169,23 @@ router.post('/', protect, async (req, res) => {
         }
 
         // 1. Verify stock availability for all items (Enterprise E-Commerce logic)
+        const validProdIds = items
+            .map(item => item.product || item._id)
+            .filter(id => id && mongoose.Types.ObjectId.isValid(id));
+
+        const productsInDb = await Product.find({ _id: { $in: validProdIds } });
+        const productMap = new Map(productsInDb.map(p => [p._id.toString(), p]));
+
         for (const item of items) {
-            const prodId = item.product || item._id;
+            const prodId = (item.product || item._id)?.toString();
             const requestedQty = Number(item.quantity) || 1;
 
             if (requestedQty <= 0) {
                 return res.status(400).json({ message: `Invalid quantity for "${item.name || 'item'}"` });
             }
 
-            if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
-                const product = await Product.findById(prodId);
+            if (prodId) {
+                const product = productMap.get(prodId);
                 if (product) {
                     if (product.stock <= 0) {
                         return res.status(400).json({
@@ -193,27 +201,29 @@ router.post('/', protect, async (req, res) => {
             }
         }
 
-        // 2. Decrement stock atomically (never goes negative)
-        for (const item of items) {
-            const prodId = item.product || item._id;
-            const requestedQty = Number(item.quantity) || 1;
-            if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
-                const updated = await Product.findOneAndUpdate(
-                    { _id: prodId, stock: { $gte: requestedQty } },
-                    { $inc: { stock: -requestedQty } },
-                    { new: true }
-                );
+        // 2. Decrement stock atomically (never goes negative) in parallel
+        await Promise.all(
+            items.map(async (item) => {
+                const prodId = item.product || item._id;
+                const requestedQty = Number(item.quantity) || 1;
+                if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
+                    const updated = await Product.findOneAndUpdate(
+                        { _id: prodId, stock: { $gte: requestedQty } },
+                        { $inc: { stock: -requestedQty } },
+                        { new: true }
+                    );
 
-                if (!updated) {
-                    // Fallback to safely clamp stock at 0
-                    const currentProd = await Product.findById(prodId);
-                    if (currentProd) {
-                        currentProd.stock = Math.max(0, currentProd.stock - requestedQty);
-                        await currentProd.save();
+                    if (!updated) {
+                        // Fallback to safely clamp stock at 0
+                        const currentProd = await Product.findById(prodId);
+                        if (currentProd) {
+                            currentProd.stock = Math.max(0, currentProd.stock - requestedQty);
+                            await currentProd.save();
+                        }
                     }
                 }
-            }
-        }
+            })
+        );
 
         // Normalize payment method to uppercase enum
         let normalizedPayment = 'COD';

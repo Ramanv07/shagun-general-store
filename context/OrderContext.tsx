@@ -16,29 +16,50 @@ interface OrderContextType {
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [orders, setOrders] = useState<Order[]>([]);
+    // Instant initial load from cache (0ms)
+    const [orders, setOrders] = useState<Order[]>(() => {
+        try {
+            const cached = localStorage.getItem('shagun_user_orders');
+            return cached ? JSON.parse(cached) : [];
+        } catch {
+            return [];
+        }
+    });
     const { user, logout } = useAuth();
 
-    // Load orders from mockApi on mount
+    // Load orders on mount and when user identity changes
     useEffect(() => {
+        if (!user) {
+            setOrders([]);
+            return;
+        }
+
         loadOrders();
-        // Poll for updates every 5 seconds (simulating live updates)
-        const interval = setInterval(loadOrders, 5000);
+
+        // Refresh periodically only if the browser tab is actively visible
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                loadOrders();
+            }
+        }, 15000);
+
         return () => clearInterval(interval);
-    }, []);
+    }, [user?._id, user?.email]);
 
     const loadOrders = async () => {
         try {
-            if (!user) {
-                setOrders([]);
-                return;
-            }
+            if (!user) return;
             const data = await mockApi.getOrders();
-            setOrders(data);
+            if (Array.isArray(data)) {
+                setOrders(data);
+                try {
+                    localStorage.setItem('shagun_user_orders', JSON.stringify(data));
+                } catch {}
+            }
         } catch (error: any) {
-            setOrders([]);
+            console.warn('Orders fetch warning:', error?.message);
+            // Do NOT wipe out existing orders on transient network glitch!
             if (error.message && error.message.includes('401')) {
-                // Token is invalid or expired, force logout
                 logout();
             }
         }
@@ -46,18 +67,25 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const addOrder = async (orderData: Partial<Order>): Promise<Order> => {
         const newOrder = await mockApi.createOrder(orderData);
-        await loadOrders(); // Refresh orders
+        // Optimistically put the new order in state immediately
+        setOrders(prev => {
+            const updated = [newOrder, ...prev.filter(o => o._id !== newOrder._id)];
+            try {
+                localStorage.setItem('shagun_user_orders', JSON.stringify(updated));
+            } catch {}
+            return updated;
+        });
         return newOrder;
     };
 
     const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
         await mockApi.updateOrderStatus(orderId, status);
-        await loadOrders(); // Refresh to get latest state
+        await loadOrders();
     };
 
     const cancelOrder = async (orderId: string) => {
         await mockApi.cancelOrder(orderId);
-        await loadOrders(); // Refresh to get latest state
+        await loadOrders();
     };
 
     const getUserOrders = (userId: string): Order[] => {
