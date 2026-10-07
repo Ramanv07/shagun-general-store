@@ -110,9 +110,11 @@ export default function HomeScreen() {
         <View style={styles.headerTopRow}>
           {/* Logo & Brand */}
           <View style={styles.logoRow}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoLetter}>S</Text>
-            </View>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logoImage}
+              resizeMode="cover"
+            />
             <View style={styles.brandContainer}>
               <Text style={styles.brandTitle}>SHAGUN</Text>
               <Text style={styles.brandSubtitle}>GENERAL STORE</Text>
@@ -357,19 +359,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  logoCircle: {
+  logoImage: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: THEME.colors.maroon900,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoLetter: {
-    color: THEME.colors.gold500,
-    fontSize: 20,
-    fontWeight: '700',
-    fontFamily: 'serif',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 119, 6, 0.2)',
   },
   brandContainer: {
     justifyContent: 'center',

@@ -39,9 +39,11 @@ export const Navbar: React.FC = () => {
 
         {/* ── Logo ── */}
         <Link to="/" className="flex items-center gap-3 flex-shrink-0">
-          <div className="w-9 h-9 rounded-full gradient-maroon flex items-center justify-center shadow-maroon-sm">
-            <span className="text-gold-500 font-bold text-sm font-serif">S</span>
-          </div>
+          <img
+            src="/app-icon.png"
+            alt="Shagun Mart Logo"
+            className="w-9 h-9 rounded-xl object-cover shadow-sm border border-amber-200/50"
+          />
           <div className="leading-none">
             <div className="text-xl font-serif font-bold text-maroon-600 tracking-wide">SHAGUN</div>
             <div className="text-[9px] font-medium tracking-[0.25em] text-cream-600 uppercase">General Store</div>

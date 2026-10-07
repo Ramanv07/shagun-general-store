@@ -43,12 +43,11 @@ export const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete 
         className={`flex flex-col items-center transition-opacity duration-700 relative z-10 ${stage === 1 ? 'opacity-0' : 'opacity-100'}`}
       >
         {/* Emblem */}
-        <div
-          className="w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #7A1F2E, #5C1622)' }}
-        >
-          <span className="text-3xl font-serif font-bold" style={{ color: '#C9A24B' }}>S</span>
-        </div>
+        <img
+          src="/app-icon.png"
+          alt="Shagun Mart Logo"
+          className="w-20 h-20 rounded-3xl mb-6 shadow-xl object-cover border border-amber-200/50"
+        />
 
         <div
           className="text-6xl md:text-8xl font-serif font-bold tracking-tight"

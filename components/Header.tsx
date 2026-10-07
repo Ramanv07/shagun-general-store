@@ -69,11 +69,11 @@ export const Header: React.FC = () => {
       <div className="max-w-[1440px] mx-auto px-5 lg:px-16 h-[80px] flex items-center justify-between gap-4">
         {/* Left: Logo & Store Name */}
         <Link to="/" className="flex items-center gap-3.5 shrink-0 group focus-visible:outline-2 focus-visible:outline-maroon-900 rounded-lg">
-          <div className="w-[52px] h-[52px] sm:w-[56px] sm:h-[56px] rounded-full bg-maroon-900 flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
-            <span className="font-serif text-gold-500 text-2xl sm:text-[28px] font-semibold leading-none select-none">
-              S
-            </span>
-          </div>
+          <img
+            src="/app-icon.png"
+            alt="Shagun Mart Logo"
+            className="w-[52px] h-[52px] sm:w-[56px] sm:h-[56px] rounded-2xl object-cover shadow-sm shrink-0 group-hover:scale-105 transition-transform border border-amber-200/50"
+          />
           <div className="flex flex-col justify-center">
             <span className="font-serif text-maroon-900 text-[20px] sm:text-[24px] font-semibold tracking-wider leading-none">
               SHAGUN
