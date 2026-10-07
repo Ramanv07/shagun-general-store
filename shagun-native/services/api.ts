@@ -88,6 +88,28 @@ export const api = {
     if (!res.ok) throw new Error('Failed to delete product');
   },
 
+  uploadImage: async (imageUri: string): Promise<string> => {
+    const headers = await getAuthHeaders();
+    // Remove Content-Type so fetch sets multipart boundary automatically
+    delete headers['Content-Type'];
+    const formData = new FormData();
+    const filename = imageUri.split('/').pop() || 'photo.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    formData.append('image', { uri: imageUri, name: filename, type } as any);
+    const res = await fetch(`${BASE}/api/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Image upload failed');
+    }
+    const data = await res.json();
+    return data.imageUrl;
+  },
+
   // ── Orders ────────────────────────────────────────────────────────────────
   createOrder: async (order: Partial<Order>): Promise<Order> => {
     const headers = await getAuthHeaders();
