@@ -64,6 +64,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return orders.filter(order => 
             order.user?._id === userId || 
             order.user?.email === userId || 
+            order.user === userId ||
             (order as any).legacyUserId === userId ||
             (order as any).userId === userId
         );

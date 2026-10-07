@@ -81,6 +81,7 @@ export default function OrdersScreen() {
   const userOrders = orders.filter(o =>
     o.user?._id === user?._id ||
     o.user?.email === user?.email ||
+    o.user === user?._id ||
     (o as any).legacyUserId === user?._id
   )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
