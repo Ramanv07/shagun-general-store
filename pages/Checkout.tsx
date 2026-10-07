@@ -346,12 +346,32 @@ export const Checkout: React.FC = () => {
             <h2 id="thank-you-dialog-title" className="text-3xl font-serif font-bold text-maroon-800 mb-3">Thank You for Shopping!</h2>
             <p className="text-cream-800 mb-2 font-medium">Your order has been placed successfully</p>
             <p className="text-sm text-cream-700 mb-6">Order ID: <span className="text-maroon-600 font-mono font-bold">{orderId}</span></p>
-            <p className="text-cream-700 text-sm mb-8 leading-relaxed">
-              We've received your order details. You can track its status from your orders page!
+            <p className="text-cream-700 text-sm mb-6 leading-relaxed">
+              We've received your order details. You can send a direct confirmation on WhatsApp to get faster priority delivery!
             </p>
+
+            {/* Direct WhatsApp Confirmation */}
+            <a
+              href={`https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(
+                `🛍️ *New Order Confirmation*\n\n` +
+                `Order ID: #${orderId}\n` +
+                `Name: ${formData.fullName}\n` +
+                `Phone: ${formData.mobile}\n` +
+                `Address: ${formData.houseNo}, ${formData.street}, ${formData.city} (${formData.pinCode})\n` +
+                `Total: ₹${finalAmount.toLocaleString('en-IN')} (COD)\n\n` +
+                `Hi Shagun Mart, please confirm my order!`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-2 mb-3 shadow-md"
+            >
+              <i className="fab fa-whatsapp text-xl"></i>
+              <span>Send Order on WhatsApp</span>
+            </a>
+
             <button
               onClick={handleGoToOrders}
-              className="w-full bg-maroon-600 hover:bg-maroon-700 text-white font-bold py-3 rounded-xl transition focus-visible:outline-2 focus-visible:outline-gold-400"
+              className="w-full bg-cream-100 hover:bg-cream-200 text-maroon-800 font-semibold py-3 rounded-xl transition border border-cream-300"
             >
               View My Orders
             </button>

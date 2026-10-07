@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { useCart } from '../context/CartContext';
 import { useOrders } from '../context/OrderContext';
 import { useAuth } from '../context/AuthContext';
 import { Address } from '../types';
+import { ADMIN_WHATSAPP } from '../constants';
 
 const PAYMENT_METHODS = ['COD', 'UPI', 'Online'] as const;
 
@@ -85,7 +86,7 @@ export default function CheckoutScreen() {
 
     setLoading(true);
     try {
-      await addOrder({
+      const placedOrder = await addOrder({
         user: user?._id as any, // backend expects the user's ObjectId, not the full object
         items: cart.map(item => ({ product: item._id as any, name: item.name, quantity: item.quantity, price: item.price })),
         totalAmount: totalPrice + (totalPrice >= 399 ? 0 : 30),
@@ -94,9 +95,28 @@ export default function CheckoutScreen() {
         paymentStatus: 'Pending',
       });
       clearCart();
-      Alert.alert('✅ Order Placed!', 'Your order has been confirmed.', [
-        { text: 'View Orders', onPress: () => router.replace('/orders') },
-      ]);
+
+      const finalTotal = totalPrice + (totalPrice >= 399 ? 0 : 30);
+      Alert.alert(
+        '✅ Order Placed!',
+        'Your order has been placed. Send confirmation on WhatsApp for faster priority processing?',
+        [
+          { text: 'View Orders', onPress: () => router.replace('/orders') },
+          {
+            text: '📲 Send on WhatsApp',
+            onPress: () => {
+              const waMsg = `🛍️ *New Order Placed!*\n\n` +
+                `Order ID: #${placedOrder?._id || 'N/A'}\n` +
+                `Customer: ${address.fullName} (${address.mobile})\n` +
+                `Address: ${address.houseNo}, ${address.street}, ${address.city}\n` +
+                `Total: ₹${finalTotal.toLocaleString('en-IN')} (${paymentMethod})\n\n` +
+                `Hi Shagun Mart, please confirm my order!`;
+              Linking.openURL(`https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(waMsg)}`);
+              router.replace('/orders');
+            }
+          }
+        ]
+      );
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to place order');
     } finally {

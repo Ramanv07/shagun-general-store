@@ -4,6 +4,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { sendAdminOrderNotification } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -268,6 +269,11 @@ router.post('/', protect, async (req, res) => {
         const populatedOrder = await Order.findById(savedOrder._id)
             .populate('user', 'name email phone')
             .populate('items.product', 'name price image');
+
+        // Dispatch instant phone & WhatsApp notification to store owner
+        sendAdminOrderNotification(populatedOrder || savedOrder).catch(err =>
+            console.error('Failed to dispatch notification:', err)
+        );
 
         res.status(201).json(populatedOrder);
     } catch (error) {
