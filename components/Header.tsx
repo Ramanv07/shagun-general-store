@@ -8,7 +8,7 @@ import { UserRole } from '../types';
 export const Header: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const { user, isAuthenticated, logout } = useAuth();
   const { cartCount } = useCart();
   const navigate = useNavigate();
@@ -79,7 +79,7 @@ export const Header: React.FC = () => {
               SHAGUN
             </span>
             <span className="font-sans text-ink-500 text-[9px] sm:text-[10px] tracking-[0.22em] font-semibold uppercase mt-1 leading-none">
-              GENERAL STORE
+              Mart
             </span>
           </div>
         </Link>
@@ -88,71 +88,64 @@ export const Header: React.FC = () => {
         <nav className="hidden xl:flex items-center gap-6 2xl:gap-8 h-full text-[15px] font-medium text-ink-900">
           <Link
             to="/"
-            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${
-              isActive('/')
+            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${isActive('/')
                 ? 'text-maroon-900 font-semibold relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900'
                 : 'text-ink-900 hover:text-maroon-700 hover:underline underline-offset-8 decoration-maroon-700'
-            }`}
+              }`}
           >
             Home
           </Link>
           <Link
             to="/bridal-lehenga"
-            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${
-              isActive('/bridal-lehenga')
+            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${isActive('/bridal-lehenga')
                 ? 'text-maroon-900 font-semibold relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900'
                 : 'text-ink-900 hover:text-maroon-700 hover:underline underline-offset-8 decoration-maroon-700'
-            }`}
+              }`}
           >
             Bridal Lehenga
           </Link>
           <Link
             to="/beauty-parlor"
-            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${
-              isActive('/beauty-parlor')
+            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${isActive('/beauty-parlor')
                 ? 'text-maroon-900 font-semibold relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900'
                 : 'text-ink-900 hover:text-maroon-700 hover:underline underline-offset-8 decoration-maroon-700'
-            }`}
+              }`}
           >
             Beauty Parlor
           </Link>
           <Link
             to="/shop"
-            className={`h-full flex items-center gap-1 transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${
-              isActive('/shop')
+            className={`h-full flex items-center gap-1 transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${isActive('/shop')
                 ? 'text-maroon-900 font-semibold relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900'
                 : 'text-ink-900 hover:text-maroon-700 hover:underline underline-offset-8 decoration-maroon-700'
-            }`}
+              }`}
           >
             <span>Shop</span>
             <ChevronDown size={14} strokeWidth={1.5} className="text-ink-500" />
           </Link>
           <Link
             to="/shop?cat=Offers"
-            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${
-              location.search.includes('Offers')
+            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${location.search.includes('Offers')
                 ? 'text-maroon-900 font-semibold relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900'
                 : 'text-ink-900 hover:text-maroon-700 hover:underline underline-offset-8 decoration-maroon-700'
-            }`}
+              }`}
           >
             Offers
           </Link>
           <Link
             to="/orders"
-            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${
-              isActive('/orders')
+            className={`h-full flex items-center transition-colors focus-visible:outline-2 focus-visible:outline-maroon-900 ${isActive('/orders')
                 ? 'text-maroon-900 font-semibold relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900'
                 : 'text-ink-900 hover:text-maroon-700 hover:underline underline-offset-8 decoration-maroon-700'
-            }`}
+              }`}
           >
             Orders
           </Link>
           {user?.role === UserRole.ADMIN && (
             <Link
               to="/admin"
-              className={`h-full flex items-center gap-1 transition-colors text-maroon-700 font-semibold hover:underline underline-offset-8 decoration-maroon-700 ${
-                isActive('/admin') ? 'relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900' : ''
-              }`}
+              className={`h-full flex items-center gap-1 transition-colors text-maroon-700 font-semibold hover:underline underline-offset-8 decoration-maroon-700 ${isActive('/admin') ? 'relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-maroon-900' : ''
+                }`}
             >
               <ShieldCheck size={16} strokeWidth={1.5} />
               <span>Admin</span>
