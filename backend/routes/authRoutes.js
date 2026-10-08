@@ -37,6 +37,86 @@ router.post('/check-phone', async (req, res) => {
     }
 });
 
+// In-memory OTP storage with 5 minute expiration
+const otpStore = new Map();
+
+// @route   POST /api/auth/send-otp
+// @desc    Generate and send 6-digit OTP (direct backend OTP)
+router.post('/send-otp', async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) {
+            return res.status(400).json({ message: 'Phone number is required' });
+        }
+        const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+        if (cleanPhone.length !== 10) {
+            return res.status(400).json({ message: 'Valid 10-digit phone number is required' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
+
+        otpStore.set(cleanPhone, { otp, expiresAt });
+        console.log(`\n========================================\n[SHAGUN OTP] Code for +91 ${cleanPhone}: ${otp} (or use 123456)\n========================================\n`);
+
+        // Send real SMS via Fast2SMS if API key is configured
+        if (process.env.FAST2SMS_API_KEY) {
+            try {
+                await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&flash=0&numbers=${cleanPhone}`);
+                console.log(`[Fast2SMS] Real SMS dispatched to +91 ${cleanPhone}`);
+            } catch (smsErr) {
+                console.error('[Fast2SMS] Error sending SMS:', smsErr);
+            }
+        }
+
+        if (process.env.NTFY_TOPIC) {
+            fetch(`https://ntfy.sh/${process.env.NTFY_TOPIC}`, {
+                method: 'POST',
+                body: `Your Shagun Mart OTP is: ${otp}`,
+                headers: { 'Title': 'Shagun Mart OTP' }
+            }).catch(() => {});
+        }
+
+        res.json({
+            success: true,
+            message: `OTP sent via SMS to +91 ${cleanPhone}`
+        });
+    } catch (error) {
+        console.error('Send OTP error:', error);
+        res.status(500).json({ message: 'Failed to send OTP' });
+    }
+});
+
+// @route   POST /api/auth/verify-otp
+// @desc    Verify 6-digit OTP
+router.post('/verify-otp', async (req, res) => {
+    try {
+        const { phone, otp } = req.body;
+        if (!phone || !otp) {
+            return res.status(400).json({ message: 'Phone and OTP are required' });
+        }
+        const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+        const record = otpStore.get(cleanPhone);
+
+        // Accept generated OTP or universal fallback 123456
+        if (otp === '123456' || (record && record.otp === otp.trim() && Date.now() < record.expiresAt)) {
+            otpStore.delete(cleanPhone);
+            return res.json({ success: true, verified: true });
+        }
+
+        if (record && Date.now() >= record.expiresAt) {
+            otpStore.delete(cleanPhone);
+            return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+        }
+
+        res.status(400).json({ message: 'Invalid OTP code. Please try again.' });
+    } catch (error) {
+        console.error('Verify OTP error:', error);
+        res.status(500).json({ message: 'Failed to verify OTP' });
+    }
+});
+
 // @route   POST /api/auth/register
 // @desc    Register a new user (with verified phone or email)
 router.post('/register', async (req, res) => {

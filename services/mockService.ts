@@ -166,6 +166,32 @@ export const mockApi = {
     return false;
   },
 
+  sendBackendOtp: async (phone: string): Promise<{ success: boolean; message: string; otp?: string }> => {
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to send OTP');
+  },
+
+  verifyBackendOtp: async (phone: string, otp: string): Promise<boolean> => {
+    const res = await fetch('/api/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, otp })
+    });
+    if (res.ok) {
+      return true;
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Invalid OTP code');
+  },
+
   register: async (name: string, email: string, password: string, phone?: string): Promise<User> => {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
