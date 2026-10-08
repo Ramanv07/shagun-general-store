@@ -2,10 +2,12 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { FALLBACK_IMAGE } from '../constants';
 
 export const Cart: React.FC = () => {
   const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [couponCode, setCouponCode] = React.useState('');
@@ -268,20 +270,33 @@ export const Cart: React.FC = () => {
                   i => typeof i.stock === 'number' && (i.stock <= 0 || i.quantity > i.stock)
                 );
                 return (
-                  <button
-                    onClick={() => {
-                      if (hasInventoryIssues) return;
-                      navigate('/checkout');
-                    }}
-                    disabled={hasInventoryIssues}
-                    className={`btn w-full justify-center btn-lg mb-3 ${
-                      hasInventoryIssues
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300'
-                        : 'btn-primary'
-                    }`}
-                  >
-                    <i className="fas fa-lock text-xs" /> Proceed to Checkout
-                  </button>
+                  <div>
+                    {!isAuthenticated && (
+                      <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                        <i className="fas fa-lock text-amber-600 shrink-0" />
+                        <span>Sign in or create an account with OTP to complete your order.</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (hasInventoryIssues) return;
+                        if (!isAuthenticated) {
+                          navigate('/login?redirect=/checkout&msg=' + encodeURIComponent('Please sign in or create an account with OTP to complete your order.'));
+                          return;
+                        }
+                        navigate('/checkout');
+                      }}
+                      disabled={hasInventoryIssues}
+                      className={`btn w-full justify-center btn-lg mb-3 ${
+                        hasInventoryIssues
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300'
+                          : 'btn-primary'
+                      }`}
+                    >
+                      <i className="fas fa-lock text-xs mr-1" />
+                      {!isAuthenticated ? 'Sign In / Register to Order' : 'Proceed to Checkout'}
+                    </button>
+                  </div>
                 );
               })()}
 

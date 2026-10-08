@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.shagungeneralstore.app',
+  appId: 'com.raman.shagunmart',
   appName: 'Shagun Mart',
   webDir: 'dist',
   server: {

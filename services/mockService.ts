@@ -134,11 +134,11 @@ export const mockApi = {
   updateTimestamp,
   checkUpdates,
 
-  login: async (email: string, password: string): Promise<User> => {
+  login: async (identifierOrEmail: string, password: string): Promise<User> => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ identifier: identifierOrEmail, email: identifierOrEmail, password })
     });
     if (res.ok) {
       const user = await res.json();
@@ -146,7 +146,24 @@ export const mockApi = {
       return user;
     }
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || 'Invalid email or password');
+    throw new Error(err.message || 'Invalid phone/email or password');
+  },
+
+  checkPhone: async (phone: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/check-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return !!data.exists;
+      }
+    } catch (e) {
+      console.warn('Check phone failed', e);
+    }
+    return false;
   },
 
   register: async (name: string, email: string, password: string, phone?: string): Promise<User> => {
@@ -162,6 +179,21 @@ export const mockApi = {
     }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || 'Registration failed');
+  },
+
+  loginWithGoogle: async (googleData: { name: string; email: string; googleId?: string; photoUrl?: string }): Promise<User> => {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(googleData)
+    });
+    if (res.ok) {
+      const user = await res.json();
+      safeSetItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      return user;
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Google login failed');
   },
 
   getProducts: async (): Promise<Product[]> => {

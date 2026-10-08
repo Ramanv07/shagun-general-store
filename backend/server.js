@@ -31,7 +31,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // --- H2: Security headers (CSP, HSTS, X-Frame-Options, hide X-Powered-By) ---
-app.use(helmet());
+app.use(helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
+}));
 
 // --- H1: Restrict CORS to actual frontend origins ---
 const allowedOrigins = [

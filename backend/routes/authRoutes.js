@@ -8,27 +8,61 @@ const router = express.Router();
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '7d'
+        expiresIn: '90d' // Long-lasting session so user never gets logged out
     });
 };
 
 // C2: /force-seed-admin route REMOVED for security. Use CLI seed script instead.
 
+// @route   POST /api/auth/check-phone
+// @desc    Check if a phone number is already registered
+router.post('/check-phone', async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) {
+            return res.status(400).json({ message: 'Phone number is required' });
+        }
+        const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+        const userExists = await User.findOne({
+            $or: [
+                { phone: cleanPhone },
+                { phone: `+91${cleanPhone}` },
+                { phone: `91${cleanPhone}` }
+            ]
+        });
+        res.json({ exists: !!userExists });
+    } catch (error) {
+        console.error('Check phone error:', error);
+        res.status(500).json({ message: 'Error checking phone' });
+    }
+});
+
 // @route   POST /api/auth/register
-// @desc    Register a new user
+// @desc    Register a new user (with verified phone or email)
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role, phone, address } = req.body;
+        const { name, email, password, phone, address } = req.body;
 
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: 'Please provide all required fields (name, email, password)' });
+        if (!name || !password || (!email && !phone)) {
+            return res.status(400).json({ message: 'Please provide all required fields (name, password, and phone/email)' });
         }
 
-        const normalizedEmail = email.toLowerCase().trim();
-        const userExists = await User.findOne({ email: normalizedEmail });
+        const cleanPhone = phone ? String(phone).replace(/\D/g, '').slice(-10) : '';
+        const normalizedEmail = email ? email.toLowerCase().trim() : (cleanPhone ? `${cleanPhone}@shagunmart.com` : '');
 
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists with this email' });
+        // Check if user already exists
+        const checkConditions = [];
+        if (normalizedEmail) checkConditions.push({ email: normalizedEmail });
+        if (cleanPhone) {
+            checkConditions.push({ phone: cleanPhone });
+            checkConditions.push({ phone: `+91${cleanPhone}` });
+        }
+
+        if (checkConditions.length > 0) {
+            const userExists = await User.findOne({ $or: checkConditions });
+            if (userExists) {
+                return res.status(400).json({ message: 'An account with this phone number or email already exists. Please log in.' });
+            }
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -43,8 +77,8 @@ router.post('/register', async (req, res) => {
             name,
             email: normalizedEmail,
             password: hashedPassword,
-            phone: phone || (address?.mobile || ''),
-            role: 'user', // M3: Never accept role from client input
+            phone: cleanPhone || (address?.mobile || ''),
+            role: 'user', // Never accept role from client input
             addresses
         });
 
@@ -63,27 +97,96 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// @route   POST /api/auth/login
-// @desc    Authenticate user & get token
-router.post('/login', async (req, res) => {
+// @route   POST /api/auth/google
+// @desc    Authenticate or register user with Google OAuth
+router.post('/google', async (req, res) => {
     try {
-        const { email, password } = req.body;
-
-        // H4: Validate types to prevent NoSQL injection
-        if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
-            return res.status(400).json({ message: 'Please provide email and password' });
+        const { name, email, googleId, photoUrl } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required for Google authentication' });
         }
 
         const normalizedEmail = email.toLowerCase().trim();
-        const user = await User.findOne({ email: normalizedEmail });
+        let user = await User.findOne({
+            $or: [
+                { email: normalizedEmail },
+                ...(googleId ? [{ googleId }] : [])
+            ]
+        });
+
+        if (user) {
+            if (!user.googleId && googleId) user.googleId = googleId;
+            if (!user.avatar && photoUrl) user.avatar = photoUrl;
+            await user.save();
+        } else {
+            const randomPassword = Math.random().toString(36).slice(-10) + Date.now().toString(36);
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+            user = await User.create({
+                name: name || normalizedEmail.split('@')[0],
+                email: normalizedEmail,
+                password: hashedPassword,
+                googleId: googleId || '',
+                avatar: photoUrl || '',
+                role: 'user',
+                addresses: []
+            });
+        }
+
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone || '',
+            avatar: user.avatar || photoUrl || '',
+            role: user.role,
+            addresses: user.addresses || [],
+            token: generateToken(user._id)
+        });
+    } catch (error) {
+        console.error('Google auth error:', error);
+        res.status(500).json({ message: 'Google authentication failed' });
+    }
+});
+
+// @route   POST /api/auth/login
+// @desc    Authenticate user & get token (supports either phone number OR email)
+router.post('/login', async (req, res) => {
+    try {
+        const { email, identifier: rawId, password } = req.body;
+        const identifier = (email || rawId || '').trim();
+
+        if (!identifier || !password || typeof identifier !== 'string' || typeof password !== 'string') {
+            return res.status(400).json({ message: 'Please provide phone number / email and password' });
+        }
+
+        const cleanPhone = identifier.replace(/\D/g, '').slice(-10);
+        const isPhoneNumber = cleanPhone.length === 10;
+
+        let query;
+        if (isPhoneNumber) {
+            query = {
+                $or: [
+                    { phone: cleanPhone },
+                    { phone: `+91${cleanPhone}` },
+                    { phone: `91${cleanPhone}` },
+                    { email: identifier.toLowerCase() }
+                ]
+            };
+        } else {
+            query = { email: identifier.toLowerCase() };
+        }
+
+        const user = await User.findOne(query);
 
         if (!user) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            return res.status(401).json({ message: 'Invalid phone number / email or password' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            return res.status(401).json({ message: 'Invalid phone number / email or password' });
         }
 
         res.json({

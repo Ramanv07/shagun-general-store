@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { OrderProvider } from './context/OrderContext';
@@ -49,11 +49,21 @@ const PAGE_TITLES: Record<string, string> = {
 
 const AppRoutes: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const title = PAGE_TITLES[location.pathname] || 'Shagun Mart | Bamitha';
     document.title = title;
   }, [location.pathname]);
+
+  // Welcome Gate: Prompt unauthenticated guest to login/signup on first open (with skip option)
+  useEffect(() => {
+    const hasSkipped = sessionStorage.getItem('shagun_guest_browse');
+    if (!isAuthenticated && !hasSkipped && location.pathname === '/') {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
 
   return (
     <div className="min-h-screen bg-cream-50 text-ink-900 font-sans flex flex-col selection:bg-maroon-900 selection:text-cream-50 pb-16 xl:pb-0">

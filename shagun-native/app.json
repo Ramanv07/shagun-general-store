@@ -14,7 +14,8 @@
       "bundleIdentifier": "com.shagun.generalstore"
     },
     "android": {
-      "package": "com.shagun.generalstore",
+      "package": "com.raman.shagunmart",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",

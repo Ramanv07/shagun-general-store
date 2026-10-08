@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "156770476319",
+    "project_id": "shagunmart-29a7d",
+    "storage_bucket": "shagunmart-29a7d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:156770476319:android:3749273ce3add5a198902a",
+        "android_client_info": {
+          "package_name": "com.raman.shagunmart"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "156770476319-ehps2jqltr552lnirg9jrv3t3ahq3efb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.raman.shagunmart",
+            "certificate_hash": "75d1b08490ab8cf40fe561ecebd040d43edac59c"
+          }
+        },
+        {
+          "client_id": "156770476319-nppam5is29ap7gvav7gup1slkffjvovg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAi6Ke_p8CDdx9kJRQ5VAYsHHXUpZoPI8s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "156770476319-nppam5is29ap7gvav7gup1slkffjvovg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
