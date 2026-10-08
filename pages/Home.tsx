@@ -442,9 +442,12 @@ export const Home: React.FC = () => {
 
           <div className="ornament-divider mb-6"></div>
 
-          <p className="text-center text-xs" style={{ color: 'rgba(251,243,231,0.4)' }}>
-            © 2026 Shagun Mart. All rights reserved. Bamitha, Madhya Pradesh.
-          </p>
+          <div className="text-center text-xs space-y-1.5" style={{ color: 'rgba(251,243,231,0.5)' }}>
+            <p>© 2026 Shagun Mart. All rights reserved. Bamitha, Madhya Pradesh.</p>
+            <p className="text-[11px] font-medium tracking-wider" style={{ color: 'rgba(251,243,231,0.7)' }}>
+              Created by <span className="font-semibold text-gold-400">R-V</span>
+            </p>
+          </div>
         </div>
       </footer>
     </div>

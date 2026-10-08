@@ -472,6 +472,11 @@ export const Login: React.FC = () => {
           </button>
         </div>
 
+        {/* Creator Signature */}
+        <div className="mt-5 text-center text-[11px] text-gray-400 font-medium tracking-wide">
+          Created by <span className="font-semibold text-gray-700">R-V</span>
+        </div>
+
         {/* Forgot Password Modal */}
         {showForgot && (
           <div
