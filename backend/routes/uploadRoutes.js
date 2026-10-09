@@ -16,13 +16,22 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configure Multer to use Cloudinary for storage
+// Configure Multer to use Cloudinary for storage with unique public_ids
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'shagun_general_store',
-    allowedFormats: ['jpg', 'png', 'jpeg', 'webp', 'avif'],
-    transformation: [{ width: 800, crop: 'limit' }], // Automatically resize large images
+  params: async (req, file) => {
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const cleanName = (file.originalname || 'product')
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .substring(0, 30);
+    return {
+      folder: 'shagun_general_store',
+      public_id: `${cleanName}_${timestamp}_${randomStr}`,
+      allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'avif'],
+      transformation: [{ width: 800, crop: 'limit' }], // Automatically resize large images
+    };
   },
 });
 
@@ -49,8 +58,11 @@ router.post('/base64', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'No image provided' });
     }
 
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
     const uploadResponse = await cloudinary.uploader.upload(image, {
       folder: 'shagun_general_store',
+      public_id: `prod_${timestamp}_${randomStr}`,
       transformation: [{ width: 800, crop: 'limit' }],
     });
 

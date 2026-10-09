@@ -87,9 +87,18 @@ export const Shop: React.FC = () => {
 
   useEffect(() => {
     let result = [...products];
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+    if (search.trim()) {
+      const terms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      result = result.filter(p => {
+        const text = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+        return terms.every(term => text.includes(term));
+      });
+      const q = search.trim().toLowerCase();
+      result.sort((a, b) => {
+        const aStarts = a.name.toLowerCase().startsWith(q) ? 1 : 0;
+        const bStarts = b.name.toLowerCase().startsWith(q) ? 1 : 0;
+        return bStarts - aStarts;
+      });
     }
     if (category === 'Wishlist') {
       try {
@@ -149,8 +158,18 @@ export const Shop: React.FC = () => {
               aria-label="Search products"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="input-field pl-10 pr-4 text-sm"
+              className="input-field pl-10 pr-9 text-sm"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-cream-500 hover:text-maroon-800 text-xs w-5 h-5 flex items-center justify-center rounded-full hover:bg-cream-200 transition-colors cursor-pointer"
+                aria-label="Clear search"
+              >
+                <i className="fas fa-times" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
