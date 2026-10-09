@@ -112,3 +112,23 @@ export interface ActiveRentalInfo {
   status: string;
 }
 
+export interface CategorySectionItem {
+  _id?: string;
+  name: string;
+  slug: string;
+  image: string;
+  localImage?: string;
+  link: string;
+  bgColor?: string;
+  badge?: string;
+  order?: number;
+}
+
+export interface CategorySectionGroup {
+  _id: string;
+  sectionTitle: string;
+  sectionSubtitle?: string;
+  order: number;
+  items: CategorySectionItem[];
+}
+

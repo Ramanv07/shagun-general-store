@@ -20,7 +20,7 @@ body {
   padding: 0;
   background-color: var(--cream-50);
   color: var(--ink-900);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
@@ -40,11 +40,15 @@ body {
 
 /* Base custom font helpers */
 .font-serif {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Cormorant Garamond', Georgia, serif;
 }
 
 .font-sans {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Outfit', sans-serif;
+}
+
+.font-accent {
+  font-family: 'Jost', sans-serif;
 }
 
 /* ── Container Alignment ───────────────────────────────────── */
@@ -71,7 +75,7 @@ body {
 
 /* ── Typography & Section Dividers ────────────────────────── */
 .section-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 1.85rem;
   font-weight: 700;
   color: var(--maroon-900);
@@ -100,6 +104,7 @@ body {
   gap: 0.35rem;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
+  font-family: 'Jost', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -121,6 +126,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  font-family: 'Jost', sans-serif;
   font-weight: 600;
   border-radius: 9999px;
   transition: all 0.2s ease;

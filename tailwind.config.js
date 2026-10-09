@@ -71,8 +71,9 @@ export default {
         white: '#FFFFFF',
       },
       fontFamily: {
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
-        sans: ['Inter', 'sans-serif'],
+        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        sans: ['Outfit', 'sans-serif'],
+        accent: ['Jost', 'sans-serif'],
       },
       boxShadow: {
         soft: '0 8px 24px rgba(90, 15, 30, 0.08)',

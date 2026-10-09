@@ -7,6 +7,7 @@ import { LehengaSection } from '../components/LehengaSection';
 import { Hero } from '../components/Hero';
 import { CategoryStrip } from '../components/CategoryStrip';
 import { PromoCards } from '../components/PromoCards';
+import { QuickCategoryGrid } from '../components/QuickCategoryGrid';
 import { mockApi } from '../services/mockService';
 
 /* ── Typewriter component ──────────────────────────────── */
@@ -134,7 +135,7 @@ export const Home: React.FC = () => {
                 View All <i className="fas fa-arrow-right text-xs" />
               </Link>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {bestsellers.map((p, i) => (
                 <div key={p._id} className={`animate-fade-in-up anim-delay-${Math.min(i + 1, 4)}`}>
                   <ProductCard product={p} />
@@ -174,6 +175,11 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ════════════════════════════════════════════
+          QUICK CATEGORY GRID (Zepto / Quick Commerce Style)
+      ════════════════════════════════════════════ */}
+      <QuickCategoryGrid />
+
+      {/* ════════════════════════════════════════════
           TRENDING SECTION
       ════════════════════════════════════════════ */}
       <section id="trending" ref={trendingRef} className="py-16 bg-cream-200">
@@ -192,13 +198,13 @@ export const Home: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="card h-40 sm:h-80 bg-cream-300 animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {trending.map((p, i) => (
                 <div key={p._id} className={`animate-fade-in-up anim-delay-${Math.min(i + 1, 4)}`}>
                   <ProductCard product={p} />

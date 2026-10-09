@@ -1,5 +1,5 @@
 import { MOCK_PRODUCTS, STORAGE_KEYS, FALLBACK_IMAGE } from '../constants';
-import { Product, User, UserRole, Order, OrderStatus, RentalBooking, RentalStatus, ActiveRentalInfo } from '../types';
+import { Product, User, UserRole, Order, OrderStatus, RentalBooking, RentalStatus, ActiveRentalInfo, CategorySectionGroup } from '../types';
 
 // Helper for auth headers
 const getAuthHeaders = (): Record<string, string> => {
@@ -538,5 +538,41 @@ export const mockApi = {
       throw new Error(data.message || 'Failed to delete rental booking');
     }
     updateTimestamp();
+  },
+
+  getCategorySections: async (): Promise<CategorySectionGroup[]> => {
+    try {
+      const res = await fetch('/api/categories/sections');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          localStorage.setItem('shagun_category_sections', JSON.stringify(data));
+          return data;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch category sections from backend, checking cache...', err);
+    }
+    const cached = localStorage.getItem('shagun_category_sections');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return [];
+  },
+
+  syncCategories: async (): Promise<void> => {
+    try {
+      const res = await fetch('/api/categories/sync', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sections) {
+          localStorage.setItem('shagun_category_sections', JSON.stringify(data.sections));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to sync categories', e);
+    }
   }
 };
