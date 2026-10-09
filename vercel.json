@@ -10,6 +10,10 @@
   },
   "rewrites": [
     {
+      "source": "/__/auth/:path*",
+      "destination": "https://shagunmart-29a7d.firebaseapp.com/__/auth/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/index.js"
     },

@@ -8,9 +8,18 @@ import {
   ConfirmationResult 
 } from 'firebase/auth';
 
+const isBrowser = typeof window !== 'undefined';
+const isLocal = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+// In production, using the same domain as authDomain (proxied via vercel.json)
+// solves the "Unable to process request due to missing initial state" error in mobile browsers
+const authDomain = (isBrowser && !isLocal && window.location.host) 
+  ? window.location.host 
+  : "shagunmart-29a7d.firebaseapp.com";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCikxkLsxuSjc9QR_bnCBRImG8Ek8K_2sA",
-  authDomain: "shagunmart-29a7d.firebaseapp.com",
+  authDomain: authDomain,
   projectId: "shagunmart-29a7d",
   storageBucket: "shagunmart-29a7d.firebasestorage.app",
   messagingSenderId: "156770476319",

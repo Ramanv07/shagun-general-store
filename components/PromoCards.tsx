@@ -38,9 +38,13 @@ const promoCards: PromoCardData[] = [
   }
 ];
 
-export const PromoCards: React.FC = () => {
+interface PromoCardsProps {
+  className?: string;
+}
+
+export const PromoCards: React.FC<PromoCardsProps> = ({ className }) => {
   return (
-    <section className="max-w-[1440px] mx-auto px-5 lg:px-16 mt-8 sm:mt-10 mb-16">
+    <div className={className ?? "max-w-[1440px] mx-auto px-5 lg:px-16 mt-8 sm:mt-10 mb-16"}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
         {promoCards.map((card) => (
           <div
@@ -94,6 +98,6 @@ export const PromoCards: React.FC = () => {
           </div>
         ))}
       </div>
-    </section>
+    </div>
   );
 };

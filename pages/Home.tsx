@@ -115,10 +115,6 @@ export const Home: React.FC = () => {
       ════════════════════════════════════════════ */}
       <CategoryStrip />
 
-      {/* ════════════════════════════════════════════
-          THREE PROMO CARDS
-      ════════════════════════════════════════════ */}
-      <PromoCards />
 
       {/* ════════════════════════════════════════════
           BESTSELLERS BANNER
@@ -210,6 +206,9 @@ export const Home: React.FC = () => {
               ))}
             </div>
           )}
+
+          {/* Promotional Category Cards */}
+          <PromoCards className="mt-12 sm:mt-14 w-full" />
         </div>
       </section>
 
