@@ -559,7 +559,37 @@ export const mockApi = {
         return JSON.parse(cached);
       } catch (e) {}
     }
-    return [];
+    
+    // Fallback if backend is unreachable and cache is empty (e.g. on Vercel)
+    return [
+      {
+          _id: "sec1",
+          sectionTitle: 'Beauty & personal care',
+          sectionSubtitle: 'Daily essentials for personal hygiene & glow',
+          order: 1,
+          items: [
+              { name: 'Bath & body', slug: 'bath-body', image: '/images/quick-categories/bath-body.jpg', link: '/shop?search=body', bgColor: '#FDF0F3', order: 1 },
+              { name: 'Baby care', slug: 'baby-care', image: '/images/quick-categories/baby-care.jpg', link: '/shop?search=baby', bgColor: '#FDF0F3', order: 2 },
+              { name: 'Hair care', slug: 'hair-care', image: '/images/quick-categories/hair-care.jpg', link: '/shop?search=hair', bgColor: '#FDF0F3', order: 3 },
+              { name: 'Beauty', slug: 'beauty', image: '/images/quick-categories/beauty.jpg', link: '/shop?cat=Makeup', bgColor: '#FDF0F3', order: 4 },
+              { name: 'Fragrances', slug: 'fragrances', image: '/images/quick-categories/fragrances.jpg', link: '/shop?search=perfume', bgColor: '#FDF0F3', order: 5 },
+              { name: 'Grooming & hygiene', slug: 'grooming-hygiene', image: '/images/quick-categories/grooming-hygiene.jpg', link: '/shop?search=hygiene', bgColor: '#FDF0F3', order: 6 }
+          ]
+      },
+      {
+          _id: "sec2",
+          sectionTitle: 'Household & lifestyle',
+          sectionSubtitle: 'Essentials for a clean & organized home',
+          order: 2,
+          items: [
+              { name: 'Cleaning essentials', slug: 'cleaning-essentials', image: '/images/quick-categories/cleaning-essentials.jpg', link: '/shop?search=clean', bgColor: '#FDF0F3', order: 1 },
+              { name: 'Home & furnishing', slug: 'home-furnishing', image: '/images/quick-categories/home-furnishing.jpg', link: '/shop?search=home', bgColor: '#FDF0F3', order: 2 },
+              { name: 'Kitchen needs', slug: 'kitchen-needs', image: '/images/quick-categories/kitchen-needs.jpg', link: '/shop?search=kitchen', bgColor: '#FDF0F3', order: 3 },
+              { name: 'Stationery supplies', slug: 'stationery-supplies', image: '/images/quick-categories/stationery-supplies.jpg', link: '/shop?search=stationery', bgColor: '#FDF0F3', order: 4 },
+              { name: 'Toys & games', slug: 'toys-games', image: '/images/quick-categories/toys-games.jpg', link: '/shop?cat=Toy', bgColor: '#FDF0F3', order: 5 }
+          ]
+      }
+    ];
   },
 
   syncCategories: async (): Promise<void> => {
