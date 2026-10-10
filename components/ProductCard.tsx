@@ -189,6 +189,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
         <div className="relative aspect-square sm:aspect-auto sm:h-56 overflow-hidden bg-[#FAF6F2] p-2.5 sm:p-3 flex items-center justify-center">
           <img
             src={imgSrc}
+            loading="lazy"
             alt={product.name}
             onError={() => setImgSrc(FALLBACK_IMAGE)}
             className={`product-card-img w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? 'grayscale opacity-75' : ''}`}
@@ -451,6 +452,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
                     >
                       <img
                         src={img}
+                        loading="lazy"
                         alt={`${product.name} thumbnail ${idx + 1}`}
                         className="w-full h-full object-contain"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).src = FALLBACK_IMAGE; }}

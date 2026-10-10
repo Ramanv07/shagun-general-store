@@ -121,6 +121,7 @@ export const QuickCategoryGrid: React.FC<QuickCategoryGridProps> = ({ className 
                       >
                         <img
                           src={item.image}
+                          loading="lazy"
                           alt={item.name}
                           loading="lazy"
                           className="w-full h-full object-contain drop-shadow-xs transition-transform duration-300 group-hover:scale-108"

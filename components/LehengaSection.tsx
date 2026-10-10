@@ -257,12 +257,14 @@ export const LehengaSection: React.FC = () => {
                 <div className="relative h-[380px] overflow-hidden bg-cream-200">
                   <img
                     src={lehenga.image || (lehenga.images && lehenga.images[0])}
+                    loading="lazy"
                     alt={lehenga.name}
                     className={`product-card-img w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${(lehenga.images && lehenga.images.length > 1) ? 'group-hover:opacity-0' : ''}`}
                   />
                   {lehenga.images && lehenga.images.length > 1 && (
                     <img
                       src={lehenga.images[1]}
+                      loading="lazy"
                       alt={lehenga.name}
                       className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                     />
