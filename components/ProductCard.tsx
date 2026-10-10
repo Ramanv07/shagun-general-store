@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { FALLBACK_IMAGE } from '../constants';
 
 interface Props {
@@ -25,6 +27,8 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
 
 export const ProductCard: React.FC<Props> = ({ product }) => {
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [imgSrc, setImgSrc] = useState<string>(product.image || FALLBACK_IMAGE);
   const [added, setAdded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
@@ -142,6 +146,22 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
     addToCart(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  };
+
+  const handleBuyNow = () => {
+    if (product.stock <= 0) return;
+
+    // Buy Now uses the same cart and checkout path as Add to Cart.
+    // The backend verifies stock again when the order is submitted.
+    addToCart(product);
+    setShowDetail(false);
+
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/checkout&msg=' + encodeURIComponent('Please sign in or create an account to buy this item.'));
+      return;
+    }
+
+    navigate('/checkout');
   };
 
   const isOutOfStock = product.stock <= 0;
@@ -301,7 +321,7 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
           role="dialog"
           aria-modal="true"
           aria-labelledby={`product-dialog-title-${product._id}`}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
           onClick={() => setShowDetail(false)}
         >
           <div
@@ -518,10 +538,10 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
                 type="button"
                 onClick={handleAdd}
                 disabled={isOutOfStock}
-                className={`btn flex-1 justify-center py-3.5 text-base font-semibold shadow-md ${
+                className={`btn flex-1 justify-center py-3.5 text-sm sm:text-base font-semibold shadow-md ${
                   isOutOfStock
                     ? 'bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300'
-                    : 'btn-primary'
+                    : 'btn-outline'
                 }`}
               >
                 {isOutOfStock ? (
@@ -529,15 +549,20 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
                 ) : added ? (
                   <><i className="fas fa-check mr-2" /> Added to Cart</>
                 ) : (
-                  <><i className="fas fa-bag-shopping mr-2" /> Add to Cart • ₹{product.price.toLocaleString('en-IN')}</>
+                  <><i className="fas fa-bag-shopping mr-2" /> Add to Cart</>
                 )}
               </button>
               <button
                 type="button"
-                onClick={() => setShowDetail(false)}
-                className="btn btn-outline px-5 py-3.5"
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
+                className={`btn flex-1 justify-center py-3.5 text-sm sm:text-base font-semibold shadow-md ${
+                  isOutOfStock
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300'
+                    : 'btn-primary'
+                }`}
               >
-                Close
+                <i className="fas fa-bolt mr-2" /> Buy Now
               </button>
             </div>
           </div>

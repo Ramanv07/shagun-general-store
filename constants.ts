@@ -14,6 +14,17 @@ export const CATEGORIES = [
   "Bangle",
   "Cream",
   "Powder",
+  "Bath & body",
+  "Baby care",
+  "Hair care",
+  "Beauty",
+  "Fragrances",
+  "Grooming & hygiene",
+  "Cleaning essentials",
+  "Home & furnishing",
+  "Kitchen needs",
+  "Stationery supplies",
+  "Toys & games",
   "Other"
 ];
 

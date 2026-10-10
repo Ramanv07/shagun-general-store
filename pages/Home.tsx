@@ -90,8 +90,7 @@ export const Home: React.FC = () => {
       }
     };
     fetchTrending(true);
-    const iv = setInterval(() => fetchTrending(), 2500);
-    return () => clearInterval(iv);
+    // Removed the aggressive 2.5s polling loop to dramatically improve frontend performance
   }, []);
 
   const scrollToTrending = (e: React.MouseEvent) => {
