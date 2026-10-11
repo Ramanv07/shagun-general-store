@@ -2,7 +2,7 @@
   "expo": {
     "name": "Shagun Mart",
     "slug": "shagun-general-store",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,14 +16,16 @@
     "android": {
       "package": "com.raman.shagunmart",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#FAF6F0",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
       ],
       "softwareKeyboardLayoutMode": "pan"
     },
