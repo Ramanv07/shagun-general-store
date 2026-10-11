@@ -9,8 +9,10 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Address } from '../../types';
 import { PRIVACY_POLICY_URL } from '../../constants';
+import { useBackToHome } from '../../components/useAndroidBackHandler';
 
 export default function AccountScreen() {
+  useBackToHome();
   const { user, isAuthenticated, logout, updateUser } = useAuth();
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);

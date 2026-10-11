@@ -3,6 +3,7 @@ import {
   View, Text, Image, TouchableOpacity, StyleSheet, ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { FALLBACK_IMAGE } from '../constants';
@@ -13,11 +14,22 @@ interface Props {
 }
 
 export default function ProductCard({ product, style }: Props) {
+  const router = useRouter();
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   const isOutOfStock = product.stock <= 0;
+
+  const handleOpenDetails = () => {
+    router.push({
+      pathname: '/product-details',
+      params: {
+        id: product._id,
+        productJson: JSON.stringify(product),
+      },
+    });
+  };
 
   const handleAdd = () => {
     if (isOutOfStock) return;
@@ -27,7 +39,11 @@ export default function ProductCard({ product, style }: Props) {
   };
 
   return (
-    <View style={[styles.card, style]}>
+    <TouchableOpacity
+      style={[styles.card, style]}
+      activeOpacity={0.88}
+      onPress={handleOpenDetails}
+    >
       {/* Image */}
       <View style={styles.imageContainer}>
         <Image
@@ -113,7 +129,7 @@ export default function ProductCard({ product, style }: Props) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

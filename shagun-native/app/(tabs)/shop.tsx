@@ -8,8 +8,10 @@ import { api } from '../../services/api';
 import { Product } from '../../types';
 import { CATEGORIES } from '../../constants';
 import ProductCard from '../../components/ProductCard';
+import { useBackToHome } from '../../components/useAndroidBackHandler';
 
 export default function ShopScreen() {
+  useBackToHome();
   const params = useLocalSearchParams<{ category?: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);

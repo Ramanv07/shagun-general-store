@@ -2,8 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { THEME } from '../../constants/theme';
 import { Tag } from 'lucide-react-native';
+import { useBackToHome } from '../../components/useAndroidBackHandler';
 
 export default function OffersScreen() {
+  useBackToHome();
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>

@@ -8,8 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { FALLBACK_IMAGE } from '../../constants';
+import { useBackToHome } from '../../components/useAndroidBackHandler';
 
 export default function CartScreen() {
+  useBackToHome();
   const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const { isAuthenticated } = useAuth();
   const router = useRouter();

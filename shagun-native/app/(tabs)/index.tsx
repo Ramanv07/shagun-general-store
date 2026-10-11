@@ -79,9 +79,14 @@ const PROMO_CARDS = [
   },
 ];
 
+import { useDoubleBackToExit } from '../../components/useAndroidBackHandler';
+
 export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Handle Android hardware back press (toast on 1st tap, exit on 2nd)
+  useDoubleBackToExit();
 
   return (
     <SafeAreaView style={styles.safeArea}>

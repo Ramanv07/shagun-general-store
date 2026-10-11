@@ -60,7 +60,10 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
+import { useBackToHome } from '../../components/useAndroidBackHandler';
+
 export default function OrdersScreen() {
+  useBackToHome();
   const { orders, refreshOrders } = useOrders();
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
