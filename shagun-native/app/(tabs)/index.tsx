@@ -19,11 +19,13 @@ import {
   Truck,
   Search,
   ShoppingBag,
+  Bell,
   ArrowRight,
   Calendar,
   ShieldCheck,
   Users,
 } from 'lucide-react-native';
+import NotificationModal from '../../components/NotificationModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -84,6 +86,7 @@ import { useDoubleBackToExit } from '../../components/useAndroidBackHandler';
 export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Handle Android hardware back press (toast on 1st tap, exit on 2nd)
   useDoubleBackToExit();
@@ -126,17 +129,27 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Cart Icon with Badge */}
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={() => router.push('/(tabs)/cart')}
-            activeOpacity={0.7}
-          >
-            <ShoppingBag size={22} color={THEME.colors.ink900} strokeWidth={1.5} />
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>2</Text>
-            </View>
-          </TouchableOpacity>
+          {/* Header Action Icons (Bell & Cart) */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity
+              style={styles.cartButton}
+              onPress={() => setShowNotifications(true)}
+              activeOpacity={0.7}
+            >
+              <Bell size={22} color={THEME.colors.ink900} strokeWidth={1.5} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cartButton}
+              onPress={() => router.push('/(tabs)/cart')}
+              activeOpacity={0.7}
+            >
+              <ShoppingBag size={22} color={THEME.colors.ink900} strokeWidth={1.5} />
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>2</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Pill Search Input */}
@@ -296,6 +309,12 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
+
+      {/* In-App Customer Notification Center */}
+      <NotificationModal
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
     </SafeAreaView>
   );
 }

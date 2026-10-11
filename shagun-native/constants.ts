@@ -40,6 +40,7 @@ export const PRIVACY_POLICY_URL = "https://shagun-general-store.vercel.app/priva
 export const STORAGE_KEYS = {
   CURRENT_USER: 'shagun_current_user',
   CART: 'shagun_cart',
+  PUSH_TOKEN: 'shagun_push_token',
 };
 
 export const MOCK_REVIEWS: Review[] = [

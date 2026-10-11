@@ -17,6 +17,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import parlorServiceRoutes from './routes/parlorServiceRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -80,6 +81,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/parlor-services', parlorServiceRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // --- P2: Production Static File Serving & Cache-Control Headers ---
 const distPath = path.resolve(__dirname, '../dist');

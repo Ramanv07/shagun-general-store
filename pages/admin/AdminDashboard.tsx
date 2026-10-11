@@ -43,7 +43,12 @@ const rentalStatusColors: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications'>('overview');
+    const [broadcastTitle, setBroadcastTitle] = useState('');
+    const [broadcastBody, setBroadcastBody] = useState('');
+    const [broadcastTarget, setBroadcastTarget] = useState('home');
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
+    const [broadcastFeedback, setBroadcastFeedback] = useState<{ success: boolean; message: string } | null>(null);
     const [products, setProducts] = useState<Product[]>(() => {
         try {
             const stored = localStorage.getItem('shagun_products');
@@ -526,6 +531,7 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'overview', label: 'Overview' },
                         { id: 'products', label: 'Products' },
                         { id: 'orders', label: 'Orders' },
+                        { id: 'notifications', label: '📢 Customer Alerts' },
                         { id: 'rentals', label: 'Lehenga Rentals' },
                         { id: 'lehengas', label: 'Lehenga Catalog' },
                         { id: 'parlor', label: 'Parlor Bookings' },
@@ -1739,6 +1745,271 @@ export const AdminDashboard: React.FC = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* CUSTOMER PUSH NOTIFICATIONS */}
+                    {activeTab === 'notifications' && (
+                        <div className="space-y-8 animate-fade-in">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-700/60 pb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                        <span className="p-2 bg-rose-600/20 text-rose-400 rounded-xl border border-rose-500/30">
+                                            <i className="fas fa-bell"></i>
+                                        </span>
+                                        Customer Push Notifications
+                                    </h2>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        Send instant lockscreen notifications & marketing campaigns to all app users (Flipkart-style).
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-xl">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    <span>Expo Push Service Active</span>
+                                </div>
+                            </div>
+
+                            {/* How notifications work info card */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-gray-700/60 p-5 rounded-2xl">
+                                    <h3 className="text-white font-semibold flex items-center gap-2 mb-2 text-sm">
+                                        <i className="fas fa-magic text-rose-400"></i> Automatic Order Status Alerts
+                                    </h3>
+                                    <p className="text-gray-400 text-xs leading-relaxed">
+                                        Whenever you update an order status in the <strong>Orders</strong> tab (e.g. <em>Packed</em>, <em>Out for Delivery</em>, <em>Delivered</em>), the customer's phone automatically receives a high-priority lockscreen push notification with their order ID!
+                                    </p>
+                                </div>
+                                <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-gray-700/60 p-5 rounded-2xl">
+                                    <h3 className="text-white font-semibold flex items-center gap-2 mb-2 text-sm">
+                                        <i className="fas fa-bullhorn text-amber-400"></i> Promotional & Marketing Broadcasts
+                                    </h3>
+                                    <p className="text-gray-400 text-xs leading-relaxed">
+                                        Use the form below to send announcement notifications (like Flipkart/Amazon sales). The message reaches all customers who have installed the Shagun Mart app.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Quick Presets */}
+                            <div>
+                                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-3">
+                                    ⚡ Quick Campaign Presets (Click to Auto-Fill)
+                                </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                    {[
+                                        {
+                                            title: "🔥 Big Sale is Live Now!",
+                                            body: "Flat 20% OFF on all Skincare, Beauty & Cosmetics today. Grab your favorites now!",
+                                            target: "shop"
+                                        },
+                                        {
+                                            title: "👰 New Bridal Lehenga Collection",
+                                            body: "Exclusive designer bridal lehengas are now available for rent! Book your slot today.",
+                                            target: "bridal-lehenga"
+                                        },
+                                        {
+                                            title: "⚡ Flash Discount - 2 Hours Only!",
+                                            body: "Special discount on personal care & baby care items. Order before stocks run out!",
+                                            target: "shop"
+                                        },
+                                        {
+                                            title: "💅 Beauty Parlor Special Package",
+                                            body: "Book your bridal or festive makeup session today and get 15% instant cashback!",
+                                            target: "beauty-parlor"
+                                        }
+                                    ].map((preset, pIdx) => (
+                                        <button
+                                            key={pIdx}
+                                            type="button"
+                                            onClick={() => {
+                                                setBroadcastTitle(preset.title);
+                                                setBroadcastBody(preset.body);
+                                                setBroadcastTarget(preset.target);
+                                            }}
+                                            className="text-left p-3.5 rounded-xl bg-gray-900/60 border border-gray-700/60 hover:border-rose-500/50 hover:bg-rose-950/20 transition-all group"
+                                        >
+                                            <p className="text-white text-xs font-semibold group-hover:text-rose-400 transition-colors">
+                                                {preset.title}
+                                            </p>
+                                            <p className="text-gray-400 text-[11px] mt-1 line-clamp-2">
+                                                {preset.body}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Broadcast Form & Live Phone Preview */}
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                                {/* Form */}
+                                <form
+                                    onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        if (!broadcastTitle.trim() || !broadcastBody.trim()) {
+                                            alert('Please enter both Notification Title and Message');
+                                            return;
+                                        }
+                                        setIsBroadcasting(true);
+                                        setBroadcastFeedback(null);
+                                        try {
+                                            const token = getAuthToken();
+                                            const res = await fetch('/api/notifications/broadcast', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'Authorization': `Bearer ${token}`
+                                                },
+                                                body: JSON.stringify({
+                                                    title: broadcastTitle,
+                                                    body: broadcastBody,
+                                                    data: { target: broadcastTarget, type: 'promotion' }
+                                                })
+                                            });
+                                            const data = await res.json();
+                                            if (res.ok) {
+                                                setBroadcastFeedback({
+                                                    success: true,
+                                                    message: data.message || `Dispatched to ${data.devicesReached || 0} customer devices!`
+                                                });
+                                                setBroadcastTitle('');
+                                                setBroadcastBody('');
+                                            } else {
+                                                setBroadcastFeedback({
+                                                    success: false,
+                                                    message: data.message || 'Failed to dispatch broadcast'
+                                                });
+                                            }
+                                        } catch (err: any) {
+                                            setBroadcastFeedback({
+                                                success: false,
+                                                message: err.message || 'Network error occurred'
+                                            });
+                                        } finally {
+                                            setIsBroadcasting(false);
+                                        }
+                                    }}
+                                    className="lg:col-span-7 bg-gray-900/60 border border-gray-700/60 p-6 rounded-2xl space-y-5"
+                                >
+                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                        <i className="fas fa-paper-plane text-rose-500"></i> Compose Notification
+                                    </h3>
+
+                                    {broadcastFeedback && (
+                                        <div className={`p-4 rounded-xl text-sm border flex items-center gap-3 ${
+                                            broadcastFeedback.success
+                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                        }`}>
+                                            <i className={`fas ${broadcastFeedback.success ? 'fa-check-circle' : 'fa-exclamation-circle'} text-lg`}></i>
+                                            <span>{broadcastFeedback.message}</span>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-300 block mb-2">
+                                            Notification Title *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={broadcastTitle}
+                                            onChange={(e) => setBroadcastTitle(e.target.value)}
+                                            placeholder="e.g. 🎉 Mega Sale is Live Now!"
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-300 block mb-2">
+                                            Notification Message / Description *
+                                        </label>
+                                        <textarea
+                                            value={broadcastBody}
+                                            onChange={(e) => setBroadcastBody(e.target.value)}
+                                            placeholder="e.g. Flat 30% discount on all cosmetics and skincare. Hurry, valid for next 24 hours only!"
+                                            rows={3}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-300 block mb-2">
+                                            Destination Screen on Tap
+                                        </label>
+                                        <select
+                                            value={broadcastTarget}
+                                            onChange={(e) => setBroadcastTarget(e.target.value)}
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                                        >
+                                            <option value="home">Home Page</option>
+                                            <option value="shop">Shop / Categories</option>
+                                            <option value="bridal-lehenga">Bridal Lehenga Collection</option>
+                                            <option value="beauty-parlor">Beauty Parlor Services</option>
+                                            <option value="orders">My Orders Screen</option>
+                                        </select>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isBroadcasting}
+                                        className="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 active:scale-[0.99] transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {isBroadcasting ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Broadcasting to Devices...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fas fa-paper-plane"></i>
+                                                <span>Send Push Notification to All Customers</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+
+                                {/* Phone Lockscreen Mockup Preview */}
+                                <div className="lg:col-span-5 bg-gray-900/60 border border-gray-700/60 p-6 rounded-2xl flex flex-col items-center">
+                                    <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4 self-start flex items-center gap-2">
+                                        <i className="fas fa-mobile-alt text-rose-400"></i> Customer Lockscreen Preview
+                                    </h3>
+
+                                    {/* Mock Phone Frame */}
+                                    <div className="w-full max-w-[320px] bg-black/90 border-4 border-gray-700 rounded-[36px] p-4 shadow-2xl relative">
+                                        {/* Phone Speaker Notch */}
+                                        <div className="w-24 h-4 bg-gray-800 rounded-full mx-auto mb-4"></div>
+
+                                        {/* Mock Time */}
+                                        <div className="text-center my-3">
+                                            <p className="text-4xl font-light text-white tracking-tight">10:42</p>
+                                            <p className="text-xs text-gray-400 mt-1">Wednesday, October 14</p>
+                                        </div>
+
+                                        {/* Notification Card */}
+                                        <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 my-4 shadow-lg text-left">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded-md bg-gradient-to-br from-rose-600 to-amber-600 flex items-center justify-center text-[10px] text-white font-bold">
+                                                        S
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-white/90">SHAGUN MART</span>
+                                                </div>
+                                                <span className="text-[10px] text-gray-400">now</span>
+                                            </div>
+                                            <p className="text-xs font-bold text-white">
+                                                {broadcastTitle || '🎉 Order Confirmed / Mega Sale!'}
+                                            </p>
+                                            <p className="text-[11px] text-gray-300 mt-0.5 leading-snug">
+                                                {broadcastBody || 'Your order has been packed and will be delivered shortly! Tap to view details.'}
+                                            </p>
+                                        </div>
+
+                                        <p className="text-[10px] text-center text-gray-500 mt-6 mb-2">
+                                            Swipe up to open Shagun Mart
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

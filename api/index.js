@@ -16,6 +16,7 @@ import uploadRoutes from '../backend/routes/uploadRoutes.js';
 import appointmentRoutes from '../backend/routes/appointmentRoutes.js';
 import parlorServiceRoutes from '../backend/routes/parlorServiceRoutes.js';
 import categoryRoutes from '../backend/routes/categoryRoutes.js';
+import notificationRoutes from '../backend/routes/notificationRoutes.js';
 
 // ─── App Setup ───────────────────────────────────────────────────
 const app = express();
@@ -43,6 +44,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/parlor-services', parlorServiceRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({

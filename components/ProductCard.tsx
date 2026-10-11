@@ -193,7 +193,6 @@ export const ProductCard: React.FC<Props> = ({ product }) => {
             alt={product.name}
             onError={() => setImgSrc(FALLBACK_IMAGE)}
             className={`product-card-img w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? 'grayscale opacity-75' : ''}`}
-            loading="lazy"
           />
 
           {/* Hover overlay */}

@@ -41,6 +41,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#FAF6F0"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#D47343"
+        }
       ]
     ],
     "scheme": "shagun",

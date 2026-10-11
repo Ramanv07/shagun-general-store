@@ -4,6 +4,7 @@ import { User, UserRole } from '../types';
 import { STORAGE_KEYS } from '../constants';
 import { api } from '../services/api';
 import { useRouter } from 'expo-router';
+import { registerForPushNotificationsAsync } from '../services/notification';
 
 interface AuthContextType {
   user: User | null;
@@ -27,7 +28,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (async () => {
       try {
         const stored = await SecureStore.getItemAsync(STORAGE_KEYS.CURRENT_USER);
-        if (stored) setUser(JSON.parse(stored));
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setUser(parsed);
+          registerForPushNotificationsAsync(parsed._id || parsed.id).catch(() => {});
+        } else {
+          registerForPushNotificationsAsync().catch(() => {});
+        }
       } catch (e) {
         console.error('Failed to load user from SecureStore', e);
       } finally {
@@ -39,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (userData: User) => {
     setUser(userData);
     await SecureStore.setItemAsync(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
+    registerForPushNotificationsAsync(userData._id || (userData as any).id).catch(() => {});
   };
 
   const logout = async () => {

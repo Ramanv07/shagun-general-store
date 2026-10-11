@@ -4,7 +4,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
-import { sendAdminOrderNotification } from '../services/notificationService.js';
+import { sendAdminOrderNotification, sendCustomerOrderNotification } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -282,7 +282,12 @@ router.post('/', protect, async (req, res) => {
 
         // Dispatch instant phone & WhatsApp notification to store owner
         sendAdminOrderNotification(populatedOrder || savedOrder).catch(err =>
-            console.error('Failed to dispatch notification:', err)
+            console.error('Failed to dispatch admin notification:', err)
+        );
+
+        // Dispatch instant push & in-app notification to customer
+        sendCustomerOrderNotification(populatedOrder || savedOrder, 'Placed').catch(err =>
+            console.error('Failed to dispatch customer notification:', err)
         );
 
         res.status(201).json(populatedOrder);
@@ -339,6 +344,11 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
 
         existingOrder.status = status;
         const updatedOrder = await existingOrder.save();
+
+        // Dispatch status update notification to customer (Lockscreen push + in-app)
+        sendCustomerOrderNotification(existingOrder, status).catch(err =>
+            console.error('Failed to notify customer of status change:', err)
+        );
 
         res.json(updatedOrder);
     } catch (error) {

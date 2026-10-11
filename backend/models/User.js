@@ -19,7 +19,16 @@ const userSchema = new mongoose.Schema({
     googleId: { type: String, default: '' },
     avatar: { type: String, default: '' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
-    addresses: [addressSchema]
+    addresses: [addressSchema],
+    pushTokens: [{ type: String }],
+    notifications: [{
+        title: { type: String, required: true },
+        body: { type: String, required: true },
+        type: { type: String, default: 'order' }, // 'order' | 'promotion' | 'system'
+        read: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now },
+        data: { type: mongoose.Schema.Types.Mixed, default: {} }
+    }]
 }, { timestamps: true });
 
 userSchema.index({ phone: 1 });
