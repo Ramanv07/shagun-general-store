@@ -115,8 +115,19 @@ router.post('/', protect, async (req, res) => {
             return res.status(400).json({ message: 'Invalid start date or return date format.' });
         }
 
-        if (parsedReturn < parsedStart) {
-            return res.status(400).json({ message: 'Return date cannot be before booking date.' });
+        const todayIST = new Date();
+        todayIST.setHours(0, 0, 0, 0);
+        if (parsedStart < todayIST) {
+            return res.status(400).json({ message: 'Start date cannot be in the past.' });
+        }
+
+        if (parsedReturn <= parsedStart) {
+            return res.status(400).json({ message: 'Return date must be after start date.' });
+        }
+
+        const durationDays = (parsedReturn.getTime() - parsedStart.getTime()) / (1000 * 60 * 60 * 24);
+        if (durationDays > 30) {
+            return res.status(400).json({ message: 'Maximum rental period is 30 days.' });
         }
 
         // Check if lehenga exists in DB
@@ -140,7 +151,7 @@ router.post('/', protect, async (req, res) => {
                 month: 'short',
                 year: 'numeric'
             });
-            return res.status(400).json({
+            return res.status(409).json({
                 message: `This lehenga is already booked for these dates. It will be available for rent starting ${conflictReturn}.`,
                 conflict: {
                     startDate: conflictingRental.startDate,
@@ -150,8 +161,9 @@ router.post('/', protect, async (req, res) => {
             });
         }
 
-        const finalRentalPrice = rentalPrice !== undefined ? Number(rentalPrice) : Number(lehenga.price);
-        const finalDeposit = securityDeposit !== undefined ? Number(securityDeposit) : 0;
+        // Server strictly enforces product catalog rental price (W1-07)
+        const finalRentalPrice = Number(lehenga.price);
+        const finalDeposit = securityDeposit !== undefined ? Math.max(0, Number(securityDeposit)) : 0;
         const totalAmount = finalRentalPrice + finalDeposit;
 
         const newRental = new Rental({

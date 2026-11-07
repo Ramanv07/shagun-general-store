@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { appStorage } from './storage';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants';
 
 // Configure foreground notification behavior (Flipkart-style banner alert + sound)
@@ -11,6 +11,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -56,7 +58,7 @@ export async function registerForPushNotificationsAsync(userId?: string): Promis
       console.log('[Push] Received Expo Push Token:', token);
 
       // Save token locally
-      await SecureStore.setItemAsync(STORAGE_KEYS.PUSH_TOKEN, token);
+      await appStorage.setItem(STORAGE_KEYS.PUSH_TOKEN, token);
 
       // Register with backend server
       await sendTokenToBackend(token, userId);
@@ -78,7 +80,7 @@ export async function sendTokenToBackend(pushToken: string, userId?: string) {
     let authHeader = '';
     let resolvedUserId = userId;
 
-    const userStr = await SecureStore.getItemAsync(STORAGE_KEYS.CURRENT_USER);
+    const userStr = await appStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (userStr) {
       const u = JSON.parse(userStr);
       if (u?.token) authHeader = `Bearer ${u.token}`;
@@ -109,7 +111,7 @@ export async function sendTokenToBackend(pushToken: string, userId?: string) {
  */
 export async function fetchCustomerNotifications() {
   try {
-    const userStr = await SecureStore.getItemAsync(STORAGE_KEYS.CURRENT_USER);
+    const userStr = await appStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (!userStr) return [];
     const u = JSON.parse(userStr);
     if (!u?.token) return [];
@@ -131,7 +133,7 @@ export async function fetchCustomerNotifications() {
  */
 export async function markCustomerNotificationsRead() {
   try {
-    const userStr = await SecureStore.getItemAsync(STORAGE_KEYS.CURRENT_USER);
+    const userStr = await appStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (!userStr) return;
     const u = JSON.parse(userStr);
     if (!u?.token) return;

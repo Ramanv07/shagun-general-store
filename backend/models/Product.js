@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
@@ -12,7 +11,8 @@ const productSchema = new mongoose.Schema({
     images: { type: [String], default: [] },
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },
-    isBestseller: { type: Boolean, default: false }
+    isBestseller: { type: Boolean, default: false },
+    brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', required: false }
 }, { timestamps: true });
 
-export default mongoose.model('Product', productSchema);
+export default mongoose.models.Product || mongoose.model('Product', productSchema);

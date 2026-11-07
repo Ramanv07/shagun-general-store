@@ -10,6 +10,7 @@ import {
   Dimensions,
   Share,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -27,49 +28,79 @@ export default function ProductDetailsScreen() {
   const params = useLocalSearchParams<{ id?: string; productJson?: string }>();
   const { addToCart, cartCount } = useCart();
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const parsedFromParams = React.useMemo(() => {
+    if (params.productJson) {
+      try {
+        let raw = params.productJson;
+        if (typeof raw === 'string' && (raw.includes('%') || raw.startsWith('%7B'))) {
+          try {
+            raw = decodeURIComponent(raw);
+          } catch {}
+        }
+        const obj = JSON.parse(raw);
+        if (obj && (obj._id || obj.id || obj.name)) {
+          return {
+            ...obj,
+            _id: obj._id || obj.id,
+          } as Product;
+        }
+      } catch (err) {
+        console.warn('Failed to parse productJson:', err);
+      }
+    }
+    return null;
+  }, [params.productJson]);
+
+  const [product, setProduct] = useState<Product | null>(() => parsedFromParams);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => !parsedFromParams);
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
-    loadProductData();
-  }, [params.id, params.productJson]);
+    let current: Product | null = parsedFromParams;
 
-  const loadProductData = async () => {
-    try {
-      setLoading(true);
-      let current: Product | null = null;
-
-      if (params.productJson) {
-        try {
-          current = JSON.parse(params.productJson);
-        } catch {}
-      }
-
-      const allProducts = await api.getProducts();
-
-      if (!current && params.id) {
-        current = allProducts.find(p => p._id === params.id || (p as any).id === params.id) || null;
-      }
-
-      if (current) {
-        setProduct(current);
-        setSelectedImgIdx(0);
-
-        // Filter similar products from same category, excluding current
-        const similar = allProducts.filter(
-          p => p.category === current?.category && p._id !== current?._id
-        );
-        setSimilarProducts(similar.slice(0, 10));
-      }
-    } catch (e) {
-      console.warn('Failed to load product details', e);
-    } finally {
+    if (current) {
+      setProduct(current);
+      setSelectedImgIdx(0);
       setLoading(false);
+    } else if (!product) {
+      setLoading(true);
     }
-  };
+
+    // Load full details / similar products asynchronously in background
+    (async () => {
+      try {
+        let activeProduct = current || product;
+        if (!activeProduct && params.id) {
+          try {
+            activeProduct = await api.getProductById(params.id);
+          } catch {
+            const all = await api.getProducts().catch(() => []);
+            activeProduct = all.find(p => p._id === params.id || (p as any).id === params.id) || null;
+          }
+          if (activeProduct) {
+            setProduct(activeProduct);
+            setSelectedImgIdx(0);
+          }
+        }
+
+        if (activeProduct) {
+          setLoading(false);
+        }
+
+        if (activeProduct?.category) {
+          const all = await api.getProducts(activeProduct.category).catch(() => []);
+          const similar = all.filter(p => p._id !== activeProduct?._id);
+          setSimilarProducts(similar.slice(0, 10));
+        }
+      } catch (e) {
+        console.warn('Failed to load similar products', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [params.id, params.productJson, parsedFromParams]);
 
   const handleShare = async () => {
     if (!product) return;
@@ -93,6 +124,18 @@ export default function ProductDetailsScreen() {
     router.push('/checkout');
   };
 
+  const handleBack = () => {
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)/shop');
+      }
+    } catch {
+      router.replace('/(tabs)/shop');
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -110,7 +153,7 @@ export default function ProductDetailsScreen() {
         <Ionicons name="alert-circle-outline" size={60} color="#7c1f3e" />
         <Text style={styles.errorTitle}>Product Not Found</Text>
         <Text style={styles.errorSubtitle}>The product you are looking for may have been removed or is unavailable.</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -133,7 +176,7 @@ export default function ProductDetailsScreen() {
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.iconBtn}
-          onPress={() => router.back()}
+          onPress={handleBack}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="arrow-back" size={24} color="#1f2937" />

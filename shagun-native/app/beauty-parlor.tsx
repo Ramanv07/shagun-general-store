@@ -1,7 +1,9 @@
 import React from 'react';
 import {
   View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Linking,
+  SafeAreaView, StatusBar,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ADMIN_WHATSAPP } from '../constants';
 
@@ -15,6 +17,16 @@ const SERVICES: { icon: keyof typeof Ionicons.glyphMap; name: string; desc: stri
 ];
 
 export default function BeautyParlorScreen() {
+  const router = useRouter();
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   const openWhatsApp = (service?: string) => {
     const msg = service
       ? `Hello! I'd like to book an appointment for *${service}* at Shagun Beauty Parlor.`
@@ -23,17 +35,33 @@ export default function BeautyParlorScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Hero */}
-      <View style={styles.hero}>
-        <Ionicons name="flower-outline" size={36} color="#d4a853" style={{ marginBottom: 8 }} />
-        <Text style={styles.heroTitle}>Shagun Beauty Parlor</Text>
-        <Text style={styles.heroSubtitle}>Premium beauty services for every occasion</Text>
-        <TouchableOpacity style={styles.heroBtn} onPress={() => openWhatsApp()}>
-          <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-          <Text style={styles.heroBtnText}>Book Appointment</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#7c1f3e' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#7c1f3e" />
+
+      {/* Top Bar with Back Button */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={handleBack}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
+        <Text style={styles.topBarTitle}>Beauty Parlor</Text>
+        <View style={{ width: 36 }} />
       </View>
+
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={styles.hero}>
+          <Ionicons name="flower-outline" size={36} color="#d4a853" style={{ marginBottom: 8 }} />
+          <Text style={styles.heroTitle}>Shagun Beauty Parlor</Text>
+          <Text style={styles.heroSubtitle}>Premium beauty services for every occasion</Text>
+          <TouchableOpacity style={styles.heroBtn} onPress={() => openWhatsApp()}>
+            <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+            <Text style={styles.heroBtnText}>Book Appointment</Text>
+          </TouchableOpacity>
+        </View>
 
       {/* Services */}
       <Text style={styles.sectionTitle}>Our Services</Text>
@@ -65,10 +93,28 @@ export default function BeautyParlorScreen() {
       </TouchableOpacity>
       <View style={{ height: 32 }} />
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#7c1f3e',
+  },
+  backBtn: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  topBarTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
   container: { flex: 1, backgroundColor: '#f5ede8' },
   hero: {
     backgroundColor: '#7c1f3e', padding: 32, alignItems: 'center', gap: 8,

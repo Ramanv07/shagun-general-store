@@ -6,10 +6,19 @@ export const THEME = {
     cream50: '#FBF5EE',
     peach100: '#F6E4D6',
     blush200: '#F3D3D3',
+    blush50: '#FDF3F2',
+    blushCard: '#FBE3E1',
     ink900: '#2A1A1D',
     ink500: '#6E5A5D',
     white: '#FFFFFF',
     line: '#EADBD0',
+    success: '#16A34A',
+    error: '#DC2626',
+  },
+  radius: {
+    card: 16,
+    pill: 24,
+    sm: 8,
   },
   shadow: {
     shadowColor: '#5A0F1E',
@@ -17,5 +26,5 @@ export const THEME = {
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 3,
-  }
+  },
 };

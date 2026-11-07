@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, Image, TouchableOpacity, StyleSheet,
   Linking, ActivityIndicator, Dimensions, Modal, TextInput,
-  ScrollView, Alert, RefreshControl, Platform
+  ScrollView, Alert, RefreshControl, Platform, SafeAreaView, StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,8 @@ import { ADMIN_WHATSAPP } from '../constants';
 const { width } = Dimensions.get('window');
 
 export default function BridalLehengaScreen() {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [lehengas, setLehengas] = useState<Product[]>([]);
   const [activeRentalsMap, setActiveRentalsMap] = useState<Record<string, ActiveRentalInfo>>({});
   const [loading, setLoading] = useState(true);
@@ -67,9 +69,6 @@ export default function BridalLehengaScreen() {
       return dateStr;
     }
   };
-
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
 
   const openRentalModal = (lehenga: Product) => {
     if (!isAuthenticated) {
@@ -174,9 +173,33 @@ export default function BridalLehengaScreen() {
     Linking.openURL(`https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(msg)}`);
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5ede8' }}>
-      <FlatList
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#7c1f3e' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#7c1f3e" />
+
+      {/* Top Bar with Back Button */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={handleBack}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.topBarTitle}>Bridal Lehenga</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
+      <View style={{ flex: 1, backgroundColor: '#f5ede8' }}>
+        <FlatList
         data={lehengas}
         keyExtractor={item => item._id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#7c1f3e']} />}
@@ -452,11 +475,29 @@ export default function BridalLehengaScreen() {
           </View>
         </Modal>
       )}
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#7c1f3e',
+  },
+  backBtn: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  topBarTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
   hero: {
     backgroundColor: '#4a0f22',
     padding: 28,

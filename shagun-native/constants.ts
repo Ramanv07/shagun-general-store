@@ -27,7 +27,7 @@ export const CATEGORIES = [
   "Other"
 ];
 
-export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800";
+export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800";
 
 // Production backend API URL (Vercel + MongoDB Atlas):
 export const API_BASE_URL = "https://shagun-general-store.vercel.app";

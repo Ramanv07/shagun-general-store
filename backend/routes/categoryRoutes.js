@@ -142,19 +142,19 @@ const getDefaultSections = () => {
 };
 
 // @route   GET /api/categories/sections
-// @desc    Get all category sections and items from MongoDB Atlas (auto-seeds if empty)
+// @route   GET /api/categories/sections
+// @desc    Get all category sections and items from MongoDB (read-only)
 // @access  Public
 router.get('/sections', async (req, res) => {
     try {
-        let sections = await CategorySection.find().sort({ order: 1 });
+        const sections = await CategorySection.find().sort({ order: 1 });
         if (!sections || sections.length === 0) {
-            console.log('CategorySection collection empty — auto-seeding defaults with Cloudinary URLs...');
-            const defaultData = getDefaultSections();
-            sections = await CategorySection.insertMany(defaultData);
+            // Read-only fallback: return defaults without writing to DB (W1-10)
+            return res.json(getDefaultSections());
         }
         res.json(sections);
     } catch (error) {
-        console.error('Error fetching category sections:', error);
+        console.error('Error fetching category sections:', error.message);
         // Fallback to static in-memory data so client never crashes
         res.json(getDefaultSections());
     }

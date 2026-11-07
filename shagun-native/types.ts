@@ -14,6 +14,15 @@ export interface User {
   token?: string;
 }
 
+export interface Brand {
+  _id: string;
+  name: string;
+  slug: string;
+  logo?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -27,6 +36,7 @@ export interface Product {
   rating?: number;
   reviews?: number;
   isBestseller?: boolean;
+  brand_id?: string | Brand;
 }
 
 export interface CartItem extends Product {
@@ -118,4 +128,10 @@ export interface ActiveRentalInfo {
   availableFrom: string;
   status: string;
 }
+
+export interface PaymentPreference {
+  preferred_method: 'COD' | 'UPI';
+  upi_id?: string;
+}
+
 

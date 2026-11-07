@@ -49,11 +49,12 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="login" options={{ headerShown: false }} />
-              <Stack.Screen name="checkout" options={{ title: 'Checkout', headerStyle: { backgroundColor: '#7c1f3e' }, headerTintColor: '#fff' }} />
-              <Stack.Screen name="beauty-parlor" options={{ title: 'Beauty Parlor', headerStyle: { backgroundColor: '#7c1f3e' }, headerTintColor: '#fff', headerShown: true }} />
-              <Stack.Screen name="bridal-lehenga" options={{ title: 'Bridal Lehenga', headerStyle: { backgroundColor: '#7c1f3e' }, headerTintColor: '#fff', headerShown: true }} />
-              <Stack.Screen name="admin/dashboard" options={{ title: 'Admin Dashboard', headerStyle: { backgroundColor: '#7c1f3e' }, headerTintColor: '#fff', headerShown: true }} />
+              <Stack.Screen name="checkout" options={{ headerShown: false }} />
+              <Stack.Screen name="beauty-parlor" options={{ headerShown: false }} />
+              <Stack.Screen name="bridal-lehenga" options={{ headerShown: false }} />
+              <Stack.Screen name="admin/dashboard" options={{ headerShown: false }} />
               <Stack.Screen name="product-details" options={{ headerShown: false }} />
+              <Stack.Screen name="search" options={{ headerShown: false }} />
             </Stack>
           </View>
         </CartProvider>

@@ -1,3 +1,4 @@
+import StoreSetting from '../models/StoreSetting.js';
 import express from 'express';
 import mongoose from 'mongoose';
 import Order from '../models/Order.js';
@@ -29,7 +30,7 @@ router.get('/', protect, async (req, res) => {
         }
         const orders = await Order.find(query)
             .populate('user', 'name email phone role')
-            .populate('items.product', 'name price image category')
+            .populate('items.product', 'name price image images category')
             .sort({ createdAt: -1 })
             .lean();
         res.json(orders);
@@ -56,7 +57,7 @@ router.get('/myorders', protect, async (req, res) => {
             ]
         })
             .populate('user', 'name email phone role')
-            .populate('items.product', 'name price image category')
+            .populate('items.product', 'name price image images category')
             .sort({ createdAt: -1 });
         res.json(orders);
     } catch (error) {
@@ -80,7 +81,7 @@ router.get('/user/:userId', protect, async (req, res) => {
             ]
         })
             .populate('user', 'name email phone role')
-            .populate('items.product', 'name price image category')
+            .populate('items.product', 'name price image images category')
             .sort({ createdAt: -1 });
         res.json(orders);
     } catch (error) {
@@ -99,7 +100,7 @@ router.post('/track', async (req, res) => {
         }
 
         const order = await Order.findById(orderId)
-            .populate('items.product', 'name price image category');
+            .populate('items.product', 'name price image images category');
             
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
@@ -124,7 +125,7 @@ router.get('/:id', protect, async (req, res) => {
     try {
         const order = await Order.findById(req.params.id)
             .populate('user', 'name email phone role')
-            .populate('items.product', 'name price image category');
+            .populate('items.product', 'name price image images category');
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
@@ -168,7 +169,7 @@ router.post('/', protect, async (req, res) => {
             return res.status(400).json({ message: 'Please provide all shipping address fields' });
         }
 
-        // 1. Verify stock availability for all items (Enterprise E-Commerce logic)
+        // 1. Verify products & calculate authoritative server-side prices (W1-05)
         const validProdIds = items
             .map(item => item.product || item._id)
             .filter(id => id && mongoose.Types.ObjectId.isValid(id));
@@ -176,54 +177,80 @@ router.post('/', protect, async (req, res) => {
         const productsInDb = await Product.find({ _id: { $in: validProdIds } });
         const productMap = new Map(productsInDb.map(p => [p._id.toString(), p]));
 
+        let serverSubtotal = 0;
+        const verifiedItems = [];
+
         for (const item of items) {
             const prodId = (item.product || item._id)?.toString();
-            const requestedQty = Number(item.quantity) || 1;
+            const requestedQty = Number(item.quantity);
 
-            if (requestedQty <= 0) {
-                return res.status(400).json({ message: `Invalid quantity for "${item.name || 'item'}"` });
+            if (!Number.isInteger(requestedQty) || requestedQty <= 0) {
+                return res.status(400).json({ message: `Invalid integer quantity for "${item.name || 'item'}"` });
             }
 
-            if (prodId) {
-                const product = productMap.get(prodId);
-                if (product) {
-                    if (product.stock <= 0) {
-                        return res.status(400).json({
-                            message: `"${product.name}" is currently Out of Stock. Please remove it from your cart to proceed.`
-                        });
-                    }
-                    if (requestedQty > product.stock) {
-                        return res.status(400).json({
-                            message: `Only ${product.stock} unit${product.stock > 1 ? 's' : ''} available for "${product.name}". You requested ${requestedQty}. Please reduce your quantity.`
-                        });
-                    }
-                }
+            if (!prodId || !productMap.has(prodId)) {
+                return res.status(400).json({ message: `Product not found for item "${item.name || 'item'}"` });
             }
+
+            const product = productMap.get(prodId);
+            if (product.stock <= 0) {
+                return res.status(400).json({
+                    message: `"${product.name}" is currently Out of Stock. Please remove it from your cart to proceed.`
+                });
+            }
+            if (requestedQty > product.stock) {
+                return res.status(400).json({
+                    message: `Only ${product.stock} unit${product.stock > 1 ? 's' : ''} available for "${product.name}". You requested ${requestedQty}. Please reduce your quantity.`
+                });
+            }
+
+            const verifiedPrice = Number(product.price);
+            serverSubtotal += verifiedPrice * requestedQty;
+
+            verifiedItems.push({
+                product: product._id,
+                name: product.name,
+                image: product.image || item.image || '',
+                quantity: requestedQty,
+                price: verifiedPrice
+            });
         }
 
-        // 2. Decrement stock atomically (never goes negative) in parallel
-        await Promise.all(
-            items.map(async (item) => {
-                const prodId = item.product || item._id;
-                const requestedQty = Number(item.quantity) || 1;
-                if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
-                    const updated = await Product.findOneAndUpdate(
-                        { _id: prodId, stock: { $gte: requestedQty } },
-                        { $inc: { stock: -requestedQty } },
-                        { new: true }
-                    );
+        // Fetch dynamic delivery threshold from StoreSetting or defaults
+        let freeDeliveryThreshold = 399;
+        let standardDeliveryFee = 30;
+        try {
+            const settings = await StoreSetting.find({ key: { $in: ['freeDeliveryThreshold', 'deliveryFee'] } });
+            for (const s of settings) {
+                if (s.key === 'freeDeliveryThreshold') freeDeliveryThreshold = Number(s.value) || 399;
+                if (s.key === 'deliveryFee') standardDeliveryFee = Number(s.value) || 30;
+            }
+        } catch (sErr) {}
 
-                    if (!updated) {
-                        // Fallback to safely clamp stock at 0
-                        const currentProd = await Product.findById(prodId);
-                        if (currentProd) {
-                            currentProd.stock = Math.max(0, currentProd.stock - requestedQty);
-                            await currentProd.save();
-                        }
-                    }
+        const serverDeliveryFee = serverSubtotal >= freeDeliveryThreshold ? 0 : standardDeliveryFee;
+        const serverGrandTotal = serverSubtotal + serverDeliveryFee;
+
+        // 2. Decrement stock atomically with rollback on collision (W1-06)
+        const decrementedList = [];
+        for (const item of verifiedItems) {
+            const updated = await Product.findOneAndUpdate(
+                { _id: item.product, stock: { $gte: item.quantity } },
+                { $inc: { stock: -item.quantity } },
+                { new: true }
+            );
+
+            if (!updated) {
+                // Rollback all prior decrements to prevent overselling
+                for (const d of decrementedList) {
+                    await Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } });
                 }
-            })
-        );
+                return res.status(409).json({
+                    message: `Inventory for "${item.name}" was just reserved by another customer. Please adjust quantity.`
+                });
+            }
+
+            decrementedList.push({ id: item.product, qty: item.quantity });
+        }
 
         // Normalize payment method to uppercase enum
         let normalizedPayment = 'COD';
@@ -237,16 +264,8 @@ router.post('/', protect, async (req, res) => {
 
         const newOrder = new Order({
             user: req.user._id,
-            items: items.map(item => {
-                const pId = item.product || item._id;
-                return {
-                    product: mongoose.Types.ObjectId.isValid(pId) ? pId : null,
-                    name: item.name,
-                    quantity: item.quantity || 1,
-                    price: item.price
-                };
-            }),
-            totalAmount: Number(totalAmount),
+            items: verifiedItems,
+            totalAmount: serverGrandTotal,
             shippingAddress,
             paymentMethod: normalizedPayment,
             paymentStatus: normalizedPayment === 'COD' ? 'Pending' : 'Completed',

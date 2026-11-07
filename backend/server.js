@@ -18,6 +18,11 @@ import appointmentRoutes from './routes/appointmentRoutes.js';
 import parlorServiceRoutes from './routes/parlorServiceRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import settingRoutes from './routes/settingRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import brandRoutes from './routes/brandRoutes.js';
+import paymentPreferenceRoutes from './routes/paymentPreferenceRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -82,6 +87,11 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/parlor-services', parlorServiceRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/settings', settingRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/brands', brandRoutes);
+app.use('/api/payment-preferences', paymentPreferenceRoutes);
 
 // --- P2: Production Static File Serving & Cache-Control Headers ---
 const distPath = path.resolve(__dirname, '../dist');
@@ -111,7 +121,7 @@ app.use((err, req, res, _next) => {
 });
 
 // Database Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shagun-store';
+const MONGODB_URI = process.env.STAGING_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/shagun-store';
 
 mongoose.connect(MONGODB_URI)
     .then(() => {
@@ -119,7 +129,11 @@ mongoose.connect(MONGODB_URI)
         app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     })
     .catch(err => {
-        console.log('MongoDB connection error:', err);
-        console.log('Starting server without database connection...');
-        app.listen(PORT, () => console.log(`Server running on port ${PORT} (DB not connected)`));
+        console.error('CRITICAL: Database connection failed on startup:', err.message);
+        if (process.env.NODE_ENV === 'production') {
+            console.error('Fatal: Exiting process because database is required in production.');
+            process.exit(1);
+        }
+        console.warn('Development warning: Starting server in degraded offline state...');
+        app.listen(PORT, () => console.log(`Server running on port ${PORT} (DB offline)`));
     });

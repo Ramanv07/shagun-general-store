@@ -43,3 +43,6 @@ dist-ssr
 tsc_output.txt
 backend/test_*.js
 test_*.js
+
+backend/backups/
+backend/staging-data/

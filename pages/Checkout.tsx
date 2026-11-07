@@ -163,6 +163,12 @@ export const Checkout: React.FC = () => {
     return null;
   }
 
+  // W1-15: Guard against checkout with empty cart
+  if (cart.length === 0) {
+    navigate('/shop', { replace: true });
+    return null;
+  }
+
   return (
     <div className="min-h-screen pt-28 px-4 pb-20" style={{ backgroundColor: 'var(--clr-cream)' }}>
       <div className="max-w-2xl mx-auto">

@@ -1,5 +1,7 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Product from '../models/Product.js';
+import Brand from '../models/Brand.js';
 import { protect, adminOnly, optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -8,22 +10,38 @@ const router = express.Router();
 // @desc    Get all products (with optional category query)
 router.get('/', async (req, res) => {
     try {
-        const { category, search } = req.query;
+        const { category, search, brand } = req.query;
         let query = {};
 
         if (category && category !== 'All') {
             query.category = category;
         }
 
+        if (brand && brand !== 'All') {
+            if (mongoose.Types.ObjectId.isValid(brand) && String(new mongoose.Types.ObjectId(brand)) === String(brand)) {
+                query.brand_id = brand;
+            } else {
+                const foundBrand = await Brand.findOne({
+                    $or: [
+                        { slug: String(brand).toLowerCase().trim() },
+                        { name: { $regex: new RegExp('^' + String(brand).trim() + '$', 'i') } }
+                    ]
+                }).lean();
+                if (foundBrand) {
+                    query.brand_id = foundBrand._id;
+                } else {
+                    return res.json([]);
+                }
+            }
+        }
+
         if (search) {
-            // M2: Escape regex special chars to prevent ReDoS
             const escaped = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             query.name = { $regex: escaped, $options: 'i' };
         }
 
-        let products = await Product.find(query).sort({ createdAt: -1 }).lean();
+        let products = await Product.find(query).populate('brand_id', 'name slug logo').sort({ createdAt: -1 }).lean();
 
-        // If store is completely empty, automatically seed initial products with reliable images
         if (products.length === 0 && (!category || category === 'All') && !search) {
             const count = await Product.countDocuments();
             if (count === 0) {

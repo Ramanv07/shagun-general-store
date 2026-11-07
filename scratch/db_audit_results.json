@@ -1,0 +1,58 @@
+{
+  "checksumBefore": "f792b316b6a0b6870085c483cdaf356d3c240ddaa8b66f581498a285cd816e9c",
+  "checksumAfter": "f792b316b6a0b6870085c483cdaf356d3c240ddaa8b66f581498a285cd816e9c",
+  "counts": {
+    "blocker": 2,
+    "high": 2,
+    "medium": 1,
+    "low": 0,
+    "total": 5
+  },
+  "findings": [
+    {
+      "severity": "🔴 BLOCKER",
+      "area": "DB/Schema",
+      "title": "Missing compound unique index on Review (user_id + product_id)",
+      "evidence": "File: backend/models/Review.js:12, autoIndex: false, no compound index",
+      "expected": "Review schema must enforce unique compound index { user_id: 1, product_id: 1 } to prevent duplicate reviews",
+      "actual": "No unique index exists; duplicate reviews can be created indefinitely",
+      "fix": "Add reviewSchema.index({ user_id: 1, product_id: 1 }, { unique: true });"
+    },
+    {
+      "severity": "🔴 BLOCKER",
+      "area": "DB/Schema",
+      "title": "Missing compound unique index on WishlistItem (user_id + product_id)",
+      "evidence": "File: backend/models/WishlistItem.js:10, autoIndex: false, no compound index",
+      "expected": "WishlistItem schema must enforce unique compound index { user_id: 1, product_id: 1 } to prevent spamming duplicate items",
+      "actual": "No unique index exists; duplicate wishlist entries can be created indefinitely",
+      "fix": "Add wishlistItemSchema.index({ user_id: 1, product_id: 1 }, { unique: true });"
+    },
+    {
+      "severity": "🟠 HIGH",
+      "area": "DB/Schema",
+      "title": "Inconsistent timestamp field naming between models",
+      "evidence": "Review & WishlistItem use snake_case \"created_at\" whereas Order & User use camelCase \"createdAt\" (Mongoose timestamps)",
+      "expected": "All collections should follow consistent timestamp convention (\"createdAt\" and \"updatedAt\")",
+      "actual": "Models mix snake_case created_at with camelCase timestamps: true",
+      "fix": "Standardize timestamp convention across all Mongoose schemas"
+    },
+    {
+      "severity": "🟡 MEDIUM",
+      "area": "DB/Schema",
+      "title": "Missing text/search index on Product (name, description, category)",
+      "evidence": "File: backend/models/Product.js, no text index defined",
+      "expected": "Fast catalog search requires compound or text index on name, category, and brand_id",
+      "actual": "Queries rely on regex table scans ($regex) without text index",
+      "fix": "Add productSchema.index({ name: \"text\", category: \"text\" });"
+    },
+    {
+      "severity": "🟠 HIGH",
+      "area": "DB/Schema",
+      "title": "Lack of soft-delete pattern across catalog and transactional models",
+      "evidence": "Files: backend/models/Product.js, backend/models/User.js",
+      "expected": "Production e-commerce systems should support soft-delete (isDeleted flag) to preserve order history integrity",
+      "actual": "Deleting a product or user can leave orphan references in historical orders and reviews",
+      "fix": "Implement soft-delete middleware with { isDeleted: { type: Boolean, default: false } }"
+    }
+  ]
+}

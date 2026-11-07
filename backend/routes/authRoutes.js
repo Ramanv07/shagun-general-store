@@ -1,7 +1,11 @@
+import crypto from 'crypto';
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
+
+const googleClient = new OAuth2Client();
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -37,11 +41,22 @@ router.post('/check-phone', async (req, res) => {
     }
 });
 
-// In-memory OTP storage with 5 minute expiration
+// Mask sensitive phone number for logs
+const maskPhone = (phone) => {
+    const str = String(phone || '').replace(/\D/g, '').slice(-10);
+    return str.length === 10 ? `${str.slice(0, 2)}****${str.slice(-4)}` : '******';
+};
+
+// In-memory OTP storage with secure SHA-256 hash, attempt counting, and cooldown
 const otpStore = new Map();
 
+const hashOtp = (otp, phone) => {
+    const secret = process.env.JWT_SECRET || 'shagun_default_otp_salt';
+    return crypto.createHash('sha256').update(`${otp.trim()}:${phone}:${secret}`).digest('hex');
+};
+
 // @route   POST /api/auth/send-otp
-// @desc    Generate and send 6-digit OTP (direct backend OTP)
+// @desc    Generate and send 6-digit OTP
 router.post('/send-otp', async (req, res) => {
     try {
         const { phone } = req.body;
@@ -53,43 +68,50 @@ router.post('/send-otp', async (req, res) => {
             return res.status(400).json({ message: 'Valid 10-digit phone number is required' });
         }
 
-        // Generate 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
-
-        otpStore.set(cleanPhone, { otp, expiresAt });
-        console.log(`\n========================================\n[SHAGUN OTP] Code for +91 ${cleanPhone}: ${otp} (or use 123456)\n========================================\n`);
-
-        // Send real SMS via Fast2SMS if API key is configured
-        if (process.env.FAST2SMS_API_KEY) {
-            try {
-                await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&flash=0&numbers=${cleanPhone}`);
-                console.log(`[Fast2SMS] Real SMS dispatched to +91 ${cleanPhone}`);
-            } catch (smsErr) {
-                console.error('[Fast2SMS] Error sending SMS:', smsErr);
-            }
+        // Rate limit: 60-second cooldown between requests
+        const existing = otpStore.get(cleanPhone);
+        if (existing && Date.now() - existing.lastSentAt < 60000) {
+            const waitSeconds = Math.ceil((60000 - (Date.now() - existing.lastSentAt)) / 1000);
+            return res.status(429).json({ message: `Please wait ${waitSeconds} seconds before requesting another OTP` });
         }
 
-        if (process.env.NTFY_TOPIC) {
-            fetch(`https://ntfy.sh/${process.env.NTFY_TOPIC}`, {
-                method: 'POST',
-                body: `Your Shagun Mart OTP is: ${otp}`,
-                headers: { 'Title': 'Shagun Mart OTP' }
-            }).catch(() => {});
+        // Generate cryptographically random 6-digit OTP
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const hashedOtp = hashOtp(otp, cleanPhone);
+        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
+
+        otpStore.set(cleanPhone, {
+            hashedOtp,
+            expiresAt,
+            attempts: 0,
+            lastSentAt: Date.now()
+        });
+
+        // Test mode hook ONLY when explicit flag enabled in non-production
+        const isTestMode = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
+
+        // Real SMS dispatch (Fast2SMS)
+        if (process.env.FAST2SMS_API_KEY && !isTestMode) {
+            try {
+                await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&flash=0&numbers=${cleanPhone}`);
+            } catch (smsErr) {
+                console.error('[SMS Dispatch] Failed for masked phone:', maskPhone(cleanPhone));
+            }
         }
 
         res.json({
             success: true,
-            message: `OTP sent via SMS to +91 ${cleanPhone}`
+            message: `OTP sent via SMS to +91 ${maskPhone(cleanPhone)}`,
+            ...(isTestMode ? { testOtp: otp } : {})
         });
     } catch (error) {
-        console.error('Send OTP error:', error);
+        console.error('Send OTP error:', error.message);
         res.status(500).json({ message: 'Failed to send OTP' });
     }
 });
 
 // @route   POST /api/auth/verify-otp
-// @desc    Verify 6-digit OTP
+// @desc    Verify 6-digit OTP (hashed comparison, max 5 attempts)
 router.post('/verify-otp', async (req, res) => {
     try {
         const { phone, otp } = req.body;
@@ -99,20 +121,37 @@ router.post('/verify-otp', async (req, res) => {
         const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
         const record = otpStore.get(cleanPhone);
 
-        // Accept generated OTP or universal fallback 123456
-        if (otp === '123456' || (record && record.otp === otp.trim() && Date.now() < record.expiresAt)) {
+        // Fixed test OTP allowed ONLY when explicit test flag enabled in non-production
+        const isTestOtpAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
+        if (isTestOtpAllowed && otp.trim() === '999999') {
             otpStore.delete(cleanPhone);
             return res.json({ success: true, verified: true });
         }
 
-        if (record && Date.now() >= record.expiresAt) {
+        if (!record) {
+            return res.status(400).json({ message: 'No OTP requested for this number or OTP expired' });
+        }
+
+        if (Date.now() >= record.expiresAt) {
             otpStore.delete(cleanPhone);
             return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
         }
 
-        res.status(400).json({ message: 'Invalid OTP code. Please try again.' });
+        record.attempts += 1;
+        if (record.attempts > 5) {
+            otpStore.delete(cleanPhone);
+            return res.status(429).json({ message: 'Too many invalid attempts. Please request a new OTP.' });
+        }
+
+        const candidateHash = hashOtp(String(otp), cleanPhone);
+        if (record.hashedOtp === candidateHash) {
+            otpStore.delete(cleanPhone);
+            return res.json({ success: true, verified: true });
+        }
+
+        res.status(400).json({ message: `Invalid OTP code. ${5 - record.attempts} attempts remaining.` });
     } catch (error) {
-        console.error('Verify OTP error:', error);
+        console.error('Verify OTP error:', error.message);
         res.status(500).json({ message: 'Failed to verify OTP' });
     }
 });
@@ -178,25 +217,64 @@ router.post('/register', async (req, res) => {
 });
 
 // @route   POST /api/auth/google
-// @desc    Authenticate or register user with Google OAuth
+// @desc    Authenticate or register user with Google OAuth (Verified ID Token)
 router.post('/google', async (req, res) => {
     try {
-        const { name, email, googleId, photoUrl } = req.body;
-        if (!email) {
-            return res.status(400).json({ message: 'Email is required for Google authentication' });
+        const { idToken, token, credential } = req.body;
+        const rawToken = idToken || token || credential;
+
+        if (!rawToken) {
+            return res.status(400).json({ message: 'Valid Google idToken is required for Google authentication' });
         }
 
-        const normalizedEmail = email.toLowerCase().trim();
+        let verifiedEmail = '';
+        let verifiedName = '';
+        let verifiedGoogleId = '';
+        let verifiedPhotoUrl = '';
+
+        if (process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_GOOGLE_AUTH === 'true' && rawToken.startsWith('test_google_token_')) {
+            verifiedEmail = req.body.email?.toLowerCase().trim();
+            verifiedName = req.body.name || verifiedEmail.split('@')[0];
+            verifiedGoogleId = 'test_google_id_' + Date.now();
+            verifiedPhotoUrl = req.body.photoUrl || '';
+        } else {
+            const clientIds = [
+                process.env.GOOGLE_CLIENT_ID_WEB,
+                process.env.GOOGLE_CLIENT_ID_ANDROID,
+                process.env.GOOGLE_CLIENT_ID_IOS,
+                process.env.GOOGLE_CLIENT_ID
+            ].filter(Boolean);
+
+            const ticket = await googleClient.verifyIdToken({
+                idToken: rawToken,
+                audience: clientIds.length > 0 ? clientIds : undefined
+            });
+
+            const payload = ticket.getPayload();
+            if (!payload || !payload.email) {
+                return res.status(401).json({ message: 'Google token payload is missing email' });
+            }
+
+            if (!payload.email_verified) {
+                return res.status(401).json({ message: 'Google email address is not verified' });
+            }
+
+            verifiedEmail = payload.email.toLowerCase().trim();
+            verifiedName = payload.name || verifiedEmail.split('@')[0];
+            verifiedGoogleId = payload.sub || '';
+            verifiedPhotoUrl = payload.picture || '';
+        }
+
         let user = await User.findOne({
             $or: [
-                { email: normalizedEmail },
-                ...(googleId ? [{ googleId }] : [])
+                { email: verifiedEmail },
+                ...(verifiedGoogleId ? [{ googleId: verifiedGoogleId }] : [])
             ]
         });
 
         if (user) {
-            if (!user.googleId && googleId) user.googleId = googleId;
-            if (!user.avatar && photoUrl) user.avatar = photoUrl;
+            if (!user.googleId && verifiedGoogleId) user.googleId = verifiedGoogleId;
+            if (!user.avatar && verifiedPhotoUrl) user.avatar = verifiedPhotoUrl;
             await user.save();
         } else {
             const randomPassword = Math.random().toString(36).slice(-10) + Date.now().toString(36);
@@ -204,11 +282,11 @@ router.post('/google', async (req, res) => {
             const hashedPassword = await bcrypt.hash(randomPassword, salt);
 
             user = await User.create({
-                name: name || normalizedEmail.split('@')[0],
-                email: normalizedEmail,
+                name: verifiedName,
+                email: verifiedEmail,
                 password: hashedPassword,
-                googleId: googleId || '',
-                avatar: photoUrl || '',
+                googleId: verifiedGoogleId,
+                avatar: verifiedPhotoUrl,
                 role: 'user',
                 addresses: []
             });

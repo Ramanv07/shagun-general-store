@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { appStorage } from '../services/storage';
 import { User, UserRole } from '../types';
 import { STORAGE_KEYS } from '../constants';
 import { api } from '../services/api';
@@ -27,16 +27,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     (async () => {
       try {
-        const stored = await SecureStore.getItemAsync(STORAGE_KEYS.CURRENT_USER);
+        const stored = await appStorage.getItem(STORAGE_KEYS.CURRENT_USER);
         if (stored) {
           const parsed = JSON.parse(stored);
           setUser(parsed);
-          registerForPushNotificationsAsync(parsed._id || parsed.id).catch(() => {});
+          registerForPushNotificationsAsync(parsed._id || parsed.id).catch(() => { });
         } else {
-          registerForPushNotificationsAsync().catch(() => {});
+          registerForPushNotificationsAsync().catch(() => { });
         }
       } catch (e) {
-        console.error('Failed to load user from SecureStore', e);
+        console.warn('Failed to load user', e);
       } finally {
         setLoading(false);
       }
@@ -45,8 +45,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (userData: User) => {
     setUser(userData);
-    await SecureStore.setItemAsync(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
-    registerForPushNotificationsAsync(userData._id || (userData as any).id).catch(() => {});
+    await appStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
+    registerForPushNotificationsAsync(userData._id || (userData as any).id).catch(() => { });
   };
 
   const logout = async () => {
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUser = async (userData: User) => {
     setUser(userData);
-    await SecureStore.setItemAsync(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
+    await appStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
   };
 
   return (

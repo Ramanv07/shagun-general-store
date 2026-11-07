@@ -9,23 +9,51 @@ const router = express.Router();
 router.post('/', optionalAuth, async (req, res) => {
     try {
         const { serviceId, serviceName, price, date, slot, customerName, customerPhone, notes } = req.body;
-        
+
+        if (!customerName || !customerPhone || !date || !slot || !serviceId) {
+            return res.status(400).json({ message: 'Please provide service, date, slot, name, and phone number' });
+        }
+
+        // Validate date is today or future in IST (W1-08)
+        const parsedDate = new Date(date);
+        const todayIST = new Date();
+        todayIST.setHours(0, 0, 0, 0);
+        if (isNaN(parsedDate.getTime()) || parsedDate < todayIST) {
+            return res.status(400).json({ message: 'Appointment date cannot be in the past' });
+        }
+
+        // Check slot collision: 1 customer per slot (W1-08)
+        const conflictingAppt = await Appointment.findOne({
+            serviceId,
+            date,
+            slot,
+            status: { $ne: 'Cancelled' }
+        });
+
+        if (conflictingAppt) {
+            return res.status(409).json({ message: 'This time slot is already booked and unavailable. Please choose another slot.' });
+        }
+
         const appointment = new Appointment({
             user: req.user ? req.user._id : null,
             serviceId,
-            serviceName,
-            price,
+            serviceName: serviceName || 'Parlor Service',
+            price: Number(price) || 0,
             date,
             slot,
-            customerName,
-            customerPhone,
-            notes
+            customerName: customerName.trim(),
+            customerPhone: customerPhone.trim(),
+            notes: notes || '',
+            status: 'Confirmed'
         });
 
         const createdAppointment = await appointment.save();
         res.status(201).json(createdAppointment);
     } catch (error) {
-        console.error('Error creating appointment:', error);
+        if (error.code === 11000) {
+            return res.status(409).json({ message: 'This time slot is already booked and unavailable.' });
+        }
+        console.error('Error creating appointment:', error.message);
         res.status(500).json({ message: 'Failed to create appointment' });
     }
 });

@@ -1,672 +1,778 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
+  View, Text, StyleSheet, ScrollView, Image,
+  TouchableOpacity, SafeAreaView, StatusBar, Dimensions,
+  AppState, AccessibilityInfo, Platform,
+  NativeScrollEvent, NativeSyntheticEvent, ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { THEME } from '../../constants/theme';
 import {
-  MapPin,
-  ChevronDown,
-  Truck,
-  Search,
-  ShoppingBag,
-  Bell,
-  ArrowRight,
-  Calendar,
-  ShieldCheck,
-  Users,
+  Bell, MapPin, ChevronDown, Search, ArrowRight,
+  Zap, Bike,
 } from 'lucide-react-native';
 import NotificationModal from '../../components/NotificationModal';
+import { useDoubleBackToExit } from '../../components/useAndroidBackHandler';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
+import ProductCard from '../../components/ProductCard';
+import { Product } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Local image assets mapping
-const ASSETS = {
-  heroVanity: require('../../assets/images/hero-vanity.jpg'),
-  catPersonalCare: require('../../assets/images/cat-personal-care.jpg'),
-  catBangles: require('../../assets/images/cat-bangles.jpg'),
-  catToys: require('../../assets/images/cat-toys.jpg'),
-  catHousehold: require('../../assets/images/cat-household.jpg'),
-  catBeauty: require('../../assets/images/cat-beauty.jpg'),
-  catLehenga: require('../../assets/images/cat-lehenga.jpg'),
-  catParlour: require('../../assets/images/cat-parlour.jpg'),
-  promoEssentials: require('../../assets/images/promo-essentials.jpg'),
-  promoLehenga: require('../../assets/images/promo-lehenga.jpg'),
-  promoParlour: require('../../assets/images/promo-parlour.jpg'),
-};
-
-const CATEGORIES = [
-  { id: 'personal-care', name: 'Personal Care', image: ASSETS.catPersonalCare },
-  { id: 'bangles', name: 'Bangles', image: ASSETS.catBangles },
-  { id: 'toys', name: 'Toys', image: ASSETS.catToys },
-  { id: 'household', name: 'Household', image: ASSETS.catHousehold },
-  { id: 'beauty', name: 'Beauty & Makeup', image: ASSETS.catBeauty },
-  { id: 'lehenga', name: 'Bridal Lehenga Rental', image: ASSETS.catLehenga },
-  { id: 'parlour', name: 'Beauty Parlour Booking', image: ASSETS.catParlour },
-];
-
-const PROMO_CARDS = [
+/* ── Banner data (existing promo image assets – no new data) ── */
+const BANNERS = [
   {
-    id: 'essentials',
-    title: 'Shop Everyday Essentials',
-    text: 'Personal care, household items, beauty & more for your daily needs.',
-    buttonText: 'Explore Products →',
-    image: ASSETS.promoEssentials,
+    id: 'beauty-essentials',
+    title: 'Beauty &\nMakeup\nCollection',
+    sub: 'Lipsticks, foundation & makeup essentials',
+    buttonText: 'Shop Makeup',
+    image: require('../../assets/images/cat-beauty.jpg'),
     route: '/(tabs)/shop',
   },
   {
-    id: 'lehenga',
-    title: 'Rent Your Bridal Look',
-    text: 'Premium bridal lehenga collection for your special day.',
-    buttonText: 'View Collection →',
-    image: ASSETS.promoLehenga,
+    id: 'daily-essentials',
+    title: 'Daily Care\nEssentials for\nYour Home',
+    sub: 'Personal care & household needs',
+    buttonText: 'Explore Now',
+    image: require('../../assets/images/cat-personal-care.jpg'),
+    route: '/(tabs)/shop',
+  },
+  {
+    id: 'bridal-special',
+    title: 'Rent Your\nBridal Look\nToday',
+    sub: 'Premium bridal lehenga collection',
+    buttonText: 'View Collection',
+    image: require('../../assets/images/cat-lehenga.jpg'),
     route: '/bridal-lehenga',
   },
   {
-    id: 'parlour',
-    title: 'Book a Beauty Appointment',
-    text: 'Makeup, skincare, hairstyling and more — by trusted professionals.',
-    buttonText: 'Book Now →',
-    image: ASSETS.promoParlour,
+    id: 'beauty-parlor',
+    title: 'Beauty Parlour\nAppointments\nAvailable',
+    sub: 'Skincare, hairstyling & makeover',
+    buttonText: 'Book Now',
+    image: require('../../assets/images/cat-parlour.jpg'),
     route: '/beauty-parlor',
   },
 ];
 
-import { useDoubleBackToExit } from '../../components/useAndroidBackHandler';
+/* ── 4×2 Category grid with existing images in place of icons ── */
+const HOME_CATEGORIES = [
+  {
+    id: 'beauty-makeup',
+    name: 'Beauty &\nMakeup',
+    image: require('../../assets/images/cat-beauty.jpg'),
+    filter: 'Beauty',
+  },
+  {
+    id: 'personal-care',
+    name: 'Personal\nCare',
+    image: require('../../assets/images/cat-personal-care.jpg'),
+    filter: 'Personal Care',
+  },
+  {
+    id: 'hair-care',
+    name: 'Hair\nCare',
+    image: require('../../assets/images/cat-household.jpg'),
+    filter: 'Hair care',
+  },
+  {
+    id: 'skin-care',
+    name: 'Skin\nCare',
+    image: require('../../assets/images/hero-vanity.jpg'),
+    filter: 'Skin Care',
+  },
+  {
+    id: 'fragrance',
+    name: 'Fragrance',
+    image: require('../../assets/images/cat-bangles.jpg'),
+    filter: 'Fragrances',
+  },
+  {
+    id: 'bridal',
+    name: 'Bridal\nLehenga',
+    image: require('../../assets/images/cat-lehenga.jpg'),
+    filter: 'Bridal Lehenga',
+    route: '/bridal-lehenga',
+  },
+  {
+    id: 'home-lifestyle',
+    name: 'Home &\nLifestyle',
+    image: require('../../assets/images/promo-essentials.jpg'),
+    filter: 'General Use',
+  },
+  {
+    id: 'toys-kids',
+    name: 'Toys &\nKids',
+    image: require('../../assets/images/cat-toys.jpg'),
+    filter: 'Toy',
+  },
+];
 
-export default function HomeScreen() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showNotifications, setShowNotifications] = useState(false);
+/* ═══════════════════ AUTO-SCROLL POSTER ═══════════════════ */
+function AutoScrollPoster({ router, focused }: { router: ReturnType<typeof useRouter>; focused: boolean }) {
+  const count = BANNERS.length;
+  if (count === 0) return null;
 
-  // Handle Android hardware back press (toast on 1st tap, exit on 2nd)
-  useDoubleBackToExit();
+  const ref = useRef<ScrollView>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [slideWidth, setSlideWidth] = useState(SCREEN_WIDTH - 32);
+  const isDragging = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-slide every 3.5 seconds
+  useEffect(() => {
+    if (!focused) return;
+
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    timerRef.current = setInterval(() => {
+      if (isDragging.current) return;
+      setCurrentIndex(prev => {
+        const next = (prev + 1) % count;
+        if (ref.current && slideWidth > 0) {
+          ref.current.scrollTo({ x: next * slideWidth, animated: true });
+        }
+        return next;
+      });
+    }, 3500);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [focused, count, slideWidth]);
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    if (slideWidth > 0) {
+      const idx = Math.round(x / slideWidth);
+      if (idx >= 0 && idx < count && idx !== currentIndex) {
+        setCurrentIndex(idx);
+      }
+    }
+  };
+
+  const handleDotPress = (idx: number) => {
+    setCurrentIndex(idx);
+    ref.current?.scrollTo({ x: idx * slideWidth, animated: true });
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={THEME.colors.maroon900} />
-
-      {/* 1. Top Bar: Compact Location Row */}
-      <View style={styles.topBar}>
-        <View style={styles.locationContainer}>
-          <MapPin size={14} color={THEME.colors.gold500} strokeWidth={1.5} />
-          <Text style={styles.locationText} numberOfLines={1}>
-            Bamitha, Madhya Pradesh
-          </Text>
-          <ChevronDown size={13} color={THEME.colors.cream50} strokeWidth={1.5} />
-        </View>
-
-        <View style={styles.deliveryContainer}>
-          <Truck size={14} color={THEME.colors.gold500} strokeWidth={1.5} />
-          <Text style={styles.deliveryText} numberOfLines={1}>
-            Free delivery above ₹399
-          </Text>
-        </View>
-      </View>
-
-      {/* 2. Header: Logo + Search + Cart */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          {/* Logo & Brand */}
-          <View style={styles.logoRow}>
-            <Image
-              source={require('../../assets/icon.png')}
-              style={styles.logoImage}
-              resizeMode="cover"
-            />
-            <View style={styles.brandContainer}>
-              <Text style={styles.brandTitle}>SHAGUN</Text>
-              <Text style={styles.brandSubtitle}>GENERAL STORE</Text>
-            </View>
-          </View>
-
-          {/* Header Action Icons (Bell & Cart) */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <TouchableOpacity
-              style={styles.cartButton}
-              onPress={() => setShowNotifications(true)}
-              activeOpacity={0.7}
-            >
-              <Bell size={22} color={THEME.colors.ink900} strokeWidth={1.5} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.cartButton}
-              onPress={() => router.push('/(tabs)/cart')}
-              activeOpacity={0.7}
-            >
-              <ShoppingBag size={22} color={THEME.colors.ink900} strokeWidth={1.5} />
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>2</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Pill Search Input */}
-        <View style={styles.searchRow}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search personal care, beauty, bangles..."
-            placeholderTextColor={THEME.colors.ink500}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <View style={styles.searchIconContainer}>
-            <Search size={18} color={THEME.colors.ink500} strokeWidth={1.5} />
-          </View>
-        </View>
-      </View>
-
-      {/* Main Scrollable Content */}
+    <View
+      style={ps.wrap}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && Math.abs(w - slideWidth) > 2) {
+          setSlideWidth(w);
+        }
+      }}
+    >
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        ref={ref}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={32}
+        style={{ width: slideWidth }}
+        contentContainerStyle={{ width: slideWidth * count }}
+        onScrollBeginDrag={() => { isDragging.current = true; }}
+        onScrollEndDrag={() => {
+          setTimeout(() => { isDragging.current = false; }, 1500);
+        }}
+      >
+        {BANNERS.map((b) => (
+          <TouchableOpacity
+            key={b.id}
+            style={[ps.slide, { width: slideWidth }]}
+            activeOpacity={0.9}
+            onPress={() => router.push(b.route as any)}
+          >
+            <View style={ps.left}>
+              <Text style={ps.title}>{b.title}</Text>
+              <Text style={ps.sub} numberOfLines={2}>{b.sub}</Text>
+              <View style={ps.btn}>
+                <Text style={ps.btnTxt}>{b.buttonText}</Text>
+                <ArrowRight size={12} color={THEME.colors.white} strokeWidth={2} />
+              </View>
+            </View>
+            <View style={ps.right}>
+              <Image source={b.image} style={ps.img} resizeMode="cover" />
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Dots Indicator */}
+      <View style={ps.dots}>
+        {BANNERS.map((_, i) => (
+          <TouchableOpacity
+            key={i}
+            onPress={() => handleDotPress(i)}
+            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+          >
+            <View style={[ps.dot, currentIndex === i && ps.dotOn]} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/* ═══════════════════ HOME SCREEN ═══════════════════ */
+export default function HomeScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [notif, setNotif] = useState(false);
+  const [focused, setFocused] = useState(true);
+  const [deliveryConfig, setDeliveryConfig] = useState<{ enabled: boolean; eta_min: number | null; eta_max: number | null } | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  const loadProducts = useCallback(async () => {
+    try {
+      const data = await api.getProducts();
+      setProducts(data);
+    } catch (e) {
+      console.error('Failed to load products for home:', e);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  useDoubleBackToExit();
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    // Fetch live delivery config, unread notifications count, and products
+    api.getDeliveryConfig().then(cfg => setDeliveryConfig(cfg));
+    api.getUnreadNotificationCount().then(cnt => setUnreadCount(cnt));
+    loadProducts();
+    return () => setFocused(false);
+  }, [loadProducts]));
+
+  const addr = user?.addresses?.find(a => a.isDefault) || user?.addresses?.[0];
+
+  // Group products category-wise
+  const categorySections = useMemo(() => {
+    const priority = ['Skin Care', 'Personal Care', 'General Use', 'Beauty', 'Makeup', 'Hair care', 'Fragrances'];
+    const present = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+    const sorted = present.sort((a, b) => {
+      const ia = priority.indexOf(a);
+      const ib = priority.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    return sorted.map(cat => ({
+      category: cat,
+      items: products.filter(p => p.category === cat),
+    }));
+  }, [products]);
+
+  return (
+    <SafeAreaView style={s.safe}>
+      <StatusBar barStyle="dark-content" backgroundColor={THEME.colors.blush50} />
+
+      {/* ── Top Bar ── */}
+      <View style={s.topBar}>
+        <View style={s.brandRow}>
+          <Image source={require('../../assets/icon.png')} style={s.brandLogo} resizeMode="cover" />
+          <View style={s.brandTextGroup}>
+            <Text style={s.brandTitle}>Shagun Mart</Text>
+            <Text style={s.brandSubtitle}>Beauty • Personal Care • Daily Essentials</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={s.iconBtn}
+          activeOpacity={0.7}
+          onPress={async () => {
+            setNotif(true);
+            if (unreadCount > 0) {
+              setUnreadCount(0);
+              await api.markAllNotificationsRead();
+            }
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Bell size={22} color={THEME.colors.ink900} strokeWidth={1.8} />
+          {unreadCount > 0 && <View style={s.unreadDot} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Delivery Row ── */}
+      <View style={s.deliveryRow}>
+        <MapPin size={16} color={THEME.colors.maroon700} strokeWidth={2} />
+        <View style={s.deliveryTextContainer}>
+          <Text style={s.deliveryTitle}>Deliver to Home</Text>
+          {addr ? (
+            <Text style={s.deliverySubtitle} numberOfLines={1}>
+              {addr.city}, {addr.state} – {addr.pinCode}
+            </Text>
+          ) : null}
+        </View>
+        <ChevronDown size={16} color={THEME.colors.ink500} strokeWidth={1.5} />
+      </View>
+
+      {/* ── Search Bar Pill ── */}
+      <View style={s.searchContainer}>
+        <TouchableOpacity
+          style={s.searchBar}
+          activeOpacity={0.7}
+          onPress={() => router.push('/search')}
+        >
+          <Search size={18} color={THEME.colors.ink500} strokeWidth={1.8} />
+          <Text style={s.searchPlaceholder}>Search for beauty, personal care, daily item...</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Main Scroll Area ── */}
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollInner}
         showsVerticalScrollIndicator={false}
       >
-        {/* 3. Hero: Stacked Card (Image on top, Text below) */}
-        <View style={styles.heroCard}>
-          {/* Hero Image on Top */}
-          <View style={styles.heroImageContainer}>
-            <Image
-              source={ASSETS.heroVanity}
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
-          </View>
+        {/* Auto-scroll Hero Poster */}
+        <AutoScrollPoster router={router} focused={focused} />
 
-          {/* Hero Content Below */}
-          <View style={styles.heroContent}>
-            <Text style={styles.eyebrow}>EVERYTHING UNDER ONE ROOF</Text>
-            <Text style={styles.heroHeading}>
-              Everything You Need,{'\n'}Beautifully Sorted
-            </Text>
-
-            {/* Gold Flourish Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <View style={styles.dividerDiamond} />
-              <View style={styles.dividerLine} />
-            </View>
-
-            <Text style={styles.heroParagraph}>
-              Personal care, beauty &amp; makeup, bangles, toys, household essentials, bridal lehenga rental and beauty parlour bookings — all in one place.
-            </Text>
-
-            {/* Action Buttons */}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() => router.push('/(tabs)/shop')}
-                activeOpacity={0.8}
-              >
-                <ShoppingBag size={16} color={THEME.colors.white} strokeWidth={1.5} />
-                <Text style={styles.primaryButtonText}>Shop Now</Text>
-                <ArrowRight size={15} color={THEME.colors.white} strokeWidth={1.5} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => router.push('/beauty-parlor')}
-                activeOpacity={0.8}
-              >
-                <Calendar size={16} color={THEME.colors.maroon900} strokeWidth={1.5} />
-                <Text style={styles.secondaryButtonText}>Book Beauty</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Trust Row */}
-            <View style={styles.trustRow}>
-              <View style={styles.trustItem}>
-                <Truck size={18} color={THEME.colors.maroon900} strokeWidth={1.5} />
-                <Text style={styles.trustTitle}>Free Delivery</Text>
-                <Text style={styles.trustSub}>above ₹499</Text>
-              </View>
-
-              <View style={styles.trustItem}>
-                <ShieldCheck size={18} color={THEME.colors.maroon900} strokeWidth={1.5} />
-                <Text style={styles.trustTitle}>Quality</Text>
-                <Text style={styles.trustSub}>Trusted</Text>
-              </View>
-
-              <View style={styles.trustItem}>
-                <Users size={18} color={THEME.colors.maroon900} strokeWidth={1.5} />
-                <Text style={styles.trustTitle}>Bamitha, MP</Text>
-                <Text style={styles.trustSub}>Local Store</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* 4. Category Strip: Horizontal Scroll */}
-        <View style={styles.categoryCard}>
-          <Text style={styles.sectionHeaderTitle}>Shop By Category</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryScrollTrack}
-          >
-            {CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={styles.categoryItem}
-                activeOpacity={0.7}
-                onPress={() => {
-                  if (category.id === 'lehenga') {
-                    router.push('/bridal-lehenga');
-                  } else if (category.id === 'parlour') {
-                    router.push('/beauty-parlor');
-                  } else {
-                    router.push('/(tabs)/shop');
-                  }
-                }}
-              >
-                <View style={styles.categoryImageContainer}>
-                  <Image source={category.image} style={styles.categoryImage} resizeMode="cover" />
-                </View>
-                <Text style={styles.categoryName} numberOfLines={2}>
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* 5. Promo Cards: Vertical List */}
-        <View style={styles.promoListContainer}>
-          {PROMO_CARDS.map((card) => (
+        {/* 4×2 Category Grid with Existing Images */}
+        <View style={s.catGrid}>
+          {HOME_CATEGORIES.map(cat => (
             <TouchableOpacity
-              key={card.id}
-              style={styles.promoCard}
-              activeOpacity={0.85}
-              onPress={() => router.push(card.route as any)}
+              key={cat.id}
+              style={s.catItem}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (cat.route) {
+                  router.push(cat.route as any);
+                } else {
+                  router.push({ pathname: '/(tabs)/shop', params: { category: cat.filter } } as any);
+                }
+              }}
             >
-              {/* Left Content */}
-              <View style={styles.promoLeft}>
-                <Text style={styles.promoTitle}>{card.title}</Text>
-                <Text style={styles.promoText} numberOfLines={2}>
-                  {card.text}
-                </Text>
-                <View style={styles.promoButton}>
-                  <Text style={styles.promoButtonText}>{card.buttonText}</Text>
-                </View>
+              <View style={s.catTile}>
+                <Image source={cat.image} style={s.catTileImg} resizeMode="cover" />
               </View>
-
-              {/* Right Image */}
-              <View style={styles.promoRight}>
-                <Image source={card.image} style={styles.promoImage} resizeMode="cover" />
-              </View>
+              <Text style={s.catLabel} numberOfLines={2}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* ── Delivery Promise Strip (Phase A: Un-hidden when config present) ── */}
+        {deliveryConfig?.enabled && deliveryConfig?.eta_min && deliveryConfig?.eta_max ? (
+          <View style={s.deliveryStrip}>
+            <View style={s.deliveryStripLeft}>
+              <View style={s.zapIconCircle}>
+                <Zap size={16} color={THEME.colors.gold500} fill={THEME.colors.gold500} />
+              </View>
+              <View>
+                <Text style={s.deliveryStripTitle}>
+                  Fast Delivery in {deliveryConfig.eta_min}–{deliveryConfig.eta_max} mins
+                </Text>
+                <Text style={s.deliveryStripSubtitle}>On all orders</Text>
+              </View>
+            </View>
+            <View style={s.deliveryStripRight}>
+              <Bike size={26} color={THEME.colors.maroon700} strokeWidth={1.8} />
+            </View>
+          </View>
+        ) : null}
+
+        {/* ── Category-wise Product Sections ── */}
+        {loadingProducts ? (
+          <ActivityIndicator
+            size="small"
+            color={THEME.colors.maroon700}
+            style={{ marginVertical: 32 }}
+          />
+        ) : (
+          categorySections.map(sec => (
+            <View key={sec.category} style={s.categorySection}>
+              {/* Section Header */}
+              <View style={s.sectionHeader}>
+                <View style={s.sectionTitleGroup}>
+                  <Text style={s.sectionTitle}>{sec.category}</Text>
+                  {user?.role === 'admin' && (
+                    <View style={s.countBadge}>
+                      <Text style={s.countBadgeText}>{sec.items.length}</Text>
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={s.seeAllBtn}
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/shop',
+                      params: { category: sec.category },
+                    } as any)
+                  }
+                >
+                  <Text style={s.seeAllText}>See All</Text>
+                  <ArrowRight size={13} color={THEME.colors.maroon700} strokeWidth={2} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Products Horizontal Carousel */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.horizontalProductsTrack}
+              >
+                {sec.items.map(product => (
+                  <View key={product._id} style={s.horizontalCardWrapper}>
+                    <ProductCard product={product} horizontal />
+                  </View>
+                ))}
+
+                {/* "View All" card at end of horizontal row */}
+                <TouchableOpacity
+                  style={s.viewMoreCard}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/shop',
+                      params: { category: sec.category },
+                    } as any)
+                  }
+                >
+                  <View style={s.viewMoreCircle}>
+                    <ArrowRight size={18} color={THEME.colors.maroon700} strokeWidth={2} />
+                  </View>
+                  <Text style={s.viewMoreText}>View All{'\n'}{sec.category}</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          ))
+        )}
       </ScrollView>
 
-      {/* In-App Customer Notification Center */}
-      <NotificationModal
-        visible={showNotifications}
-        onClose={() => setShowNotifications(false)}
-      />
+      {/* Notification Modal */}
+      <NotificationModal visible={notif} onClose={() => setNotif(false)} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: THEME.colors.maroon900,
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: THEME.colors.cream50,
-  },
-  scrollContent: {
-    paddingBottom: 32,
-  },
-
-  // 1. Top Bar
-  topBar: {
-    height: 38,
-    backgroundColor: THEME.colors.maroon900,
-    flexDirection: 'row',
+/* ═══════════════════ POSTER STYLES ═══════════════════ */
+const ps = StyleSheet.create({
+  wrap: {
+    marginTop: 14,
+    marginHorizontal: 16,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flex: 1,
-  },
-  locationText: {
-    color: THEME.colors.cream50,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  deliveryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  deliveryText: {
-    color: THEME.colors.cream50,
-    fontSize: 11,
-    fontWeight: '400',
-  },
-
-  // 2. Header
-  header: {
-    backgroundColor: THEME.colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.colors.line,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  logoImage: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(217, 119, 6, 0.2)',
-  },
-  brandContainer: {
-    justifyContent: 'center',
-  },
-  brandTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: THEME.colors.maroon900,
-    letterSpacing: 1,
-    fontFamily: 'serif',
-  },
-  brandSubtitle: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: THEME.colors.ink500,
-    letterSpacing: 2,
-  },
-  cartButton: {
-    padding: 6,
-    position: 'relative',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: THEME.colors.maroon900,
-    width: 17,
-    height: 17,
-    borderRadius: 8.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBadgeText: {
-    color: THEME.colors.white,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.colors.cream50,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: THEME.colors.line,
-    paddingHorizontal: 14,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: THEME.colors.ink900,
-    paddingVertical: 0,
-  },
-  searchIconContainer: {
-    paddingLeft: 6,
-  },
-
-  // 3. Hero Stacked Card
-  heroCard: {
-    margin: 16,
-    backgroundColor: THEME.colors.peach100,
-    borderRadius: 16,
     overflow: 'hidden',
+  },
+  slide: {
+    height: 180,
+    borderRadius: THEME.radius.card,
+    overflow: 'hidden',
+    backgroundColor: THEME.colors.blushCard,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: THEME.colors.line,
-    ...THEME.shadow,
+    borderColor: THEME.colors.blush200,
   },
-  heroImageContainer: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#FAF5EE',
+  left: {
+    flex: 1.1,
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingVertical: 14,
+    justifyContent: 'center',
   },
-  heroImage: {
+  title: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: THEME.colors.maroon900,
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  sub: { fontSize: 10.5, color: THEME.colors.ink500, marginTop: 4, lineHeight: 14 },
+  btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: THEME.colors.maroon700,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: THEME.radius.pill,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  btnTxt: { color: THEME.colors.white, fontSize: 11, fontWeight: '700' },
+  right: {
+    width: '42%' as any,
+    height: '100%',
+    overflow: 'hidden',
+    backgroundColor: THEME.colors.cream50,
+  },
+  img: {
     width: '100%',
     height: '100%',
   },
-  heroContent: {
-    padding: 16,
+  dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: THEME.colors.blush200 },
+  dotOn: { width: 22, borderRadius: 3, backgroundColor: THEME.colors.maroon700 },
+});
+
+/* ═══════════════════ MAIN STYLES ═══════════════════ */
+const GRID_ITEM_W = (SCREEN_WIDTH - 32 - (3 * 10)) / 4;
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: THEME.colors.blush50 },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 6,
+    backgroundColor: THEME.colors.blush50,
   },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: THEME.colors.ink500,
-    letterSpacing: 2,
-    marginBottom: 4,
+  iconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  heroHeading: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: THEME.colors.maroon900,
-    lineHeight: 28,
-    fontFamily: 'serif',
+  unreadDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: THEME.colors.error,
   },
-  dividerRow: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginVertical: 10,
-    width: 160,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: THEME.colors.gold500,
-    opacity: 0.6,
+  brandTextGroup: {
+    justifyContent: 'center',
   },
-  dividerDiamond: {
-    width: 5,
-    height: 5,
-    backgroundColor: THEME.colors.gold500,
-    transform: [{ rotate: '45deg' }],
+  brandLogo: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
   },
-  heroParagraph: {
-    fontSize: 13,
-    lineHeight: 18,
+  brandTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: THEME.colors.maroon700,
+    letterSpacing: 0.2,
+  },
+  brandSubtitle: {
+    fontSize: 9.5,
     color: THEME.colors.ink500,
-    marginBottom: 14,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    marginTop: 1,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
-  primaryButton: {
+  deliveryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: THEME.colors.maroon900,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingVertical: 6,
+    gap: 8,
   },
-  primaryButtonText: {
-    color: THEME.colors.white,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: THEME.colors.white,
-    borderWidth: 1,
-    borderColor: THEME.colors.maroon900,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 24,
-  },
-  secondaryButtonText: {
-    color: THEME.colors.maroon900,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  trustRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(90, 15, 30, 0.1)',
-  },
-  trustItem: {
-    alignItems: 'center',
+  deliveryTextContainer: {
     flex: 1,
   },
-  trustTitle: {
-    fontSize: 11,
+  deliveryTitle: {
+    fontSize: 12.5,
     fontWeight: '700',
     color: THEME.colors.ink900,
-    marginTop: 2,
-    textAlign: 'center',
   },
-  trustSub: {
-    fontSize: 10,
+  deliverySubtitle: {
+    fontSize: 11,
     color: THEME.colors.ink500,
-    textAlign: 'center',
+    marginTop: 1,
   },
-
-  // 4. Category Strip
-  categoryCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: THEME.colors.white,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: THEME.colors.line,
-    ...THEME.shadow,
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
-  sectionHeaderTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: THEME.colors.maroon900,
-    marginBottom: 12,
-    paddingHorizontal: 6,
-  },
-  categoryScrollTrack: {
-    gap: 14,
-    paddingHorizontal: 4,
-  },
-  categoryItem: {
+  searchBar: {
+    flexDirection: 'row',
     alignItems: 'center',
-    width: 80,
-  },
-  categoryImageContainer: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    overflow: 'hidden',
-    backgroundColor: THEME.colors.cream50,
+    gap: 8,
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.pill,
     borderWidth: 1,
     borderColor: THEME.colors.line,
+    paddingHorizontal: 14,
+    height: 42,
     ...THEME.shadow,
   },
-  categoryImage: {
+  searchPlaceholder: {
+    flex: 1,
+    fontSize: 12.5,
+    color: THEME.colors.ink500,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: THEME.colors.blush50,
+  },
+  scrollInner: {
+    paddingBottom: 28,
+  },
+  catGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    marginTop: 18,
+    justifyContent: 'space-between',
+    rowGap: 14,
+  },
+  catItem: {
+    width: '22%',
+    alignItems: 'center',
+  },
+  catTile: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: THEME.radius.card,
+    overflow: 'hidden',
+    backgroundColor: THEME.colors.blushCard,
+    borderWidth: 1,
+    borderColor: THEME.colors.blush200,
+    ...THEME.shadow,
+  },
+  catTileImg: {
     width: '100%',
     height: '100%',
   },
-  categoryName: {
+  catLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
     color: THEME.colors.ink900,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 14,
   },
-
-  // 5. Promo Cards
-  promoListContainer: {
+  deliveryStrip: {
     marginHorizontal: 16,
-    gap: 12,
-  },
-  promoCard: {
+    marginTop: 14,
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.card,
+    padding: 14,
     flexDirection: 'row',
-    height: 135,
-    borderRadius: 12,
-    backgroundColor: THEME.colors.blush200,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: THEME.colors.line,
-    overflow: 'hidden',
+    borderColor: THEME.colors.blushCard,
     ...THEME.shadow,
   },
-  promoLeft: {
+  deliveryStripLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     flex: 1,
-    padding: 12,
-    justifyContent: 'space-between',
   },
-  promoTitle: {
-    fontSize: 15,
+  zapIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: THEME.colors.blush50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deliveryStripTitle: {
+    fontSize: 13,
     fontWeight: '700',
     color: THEME.colors.maroon900,
-    fontFamily: 'serif',
   },
-  promoText: {
+  deliveryStripSubtitle: {
     fontSize: 11,
     color: THEME.colors.ink500,
-    lineHeight: 15,
-    marginTop: 2,
+    marginTop: 1,
   },
-  promoButton: {
-    backgroundColor: THEME.colors.maroon900,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    alignSelf: 'flex-start',
-    marginTop: 4,
+  deliveryStripRight: {
+    paddingLeft: 8,
   },
-  promoButtonText: {
-    color: THEME.colors.white,
+  categorySection: {
+    marginTop: 22,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sectionTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: THEME.colors.ink900,
+  },
+  countBadge: {
+    backgroundColor: THEME.colors.blushCard,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 2,
+  },
+  countBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: THEME.colors.maroon900,
   },
-  promoRight: {
-    width: 115,
-    height: '100%',
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
-  promoImage: {
-    width: '100%',
-    height: '100%',
+  seeAllText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME.colors.maroon700,
+  },
+  horizontalProductsTrack: {
+    paddingHorizontal: 16,
+    gap: 12,
+    paddingBottom: 6,
+  },
+  horizontalCardWrapper: {
+    width: 160,
+  },
+  viewMoreCard: {
+    width: 120,
+    height: 220,
+    borderRadius: THEME.radius.card,
+    backgroundColor: THEME.colors.blushCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: THEME.colors.blush200,
+    borderStyle: 'dashed',
+    padding: 12,
+  },
+  viewMoreCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: THEME.colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    ...THEME.shadow,
+  },
+  viewMoreText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: THEME.colors.maroon900,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

@@ -1,0 +1,906 @@
+{
+  "allEndpoints": [
+    {
+      "file": "appointmentRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "optionalAuth",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "appointmentRoutes.js",
+      "method": "GET",
+      "subpath": "/myappointments",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n    try {\n        const appointments = await Appointment.find({ user: req.user._id }).sort({ date: 1",
+        "slot: 1 }"
+      ]
+    },
+    {
+      "file": "appointmentRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\n    try {\n        const appointments = await Appointment.find({}).sort({ date: 1",
+        "slot: 1 }).populate('user'",
+        "'name email'"
+      ]
+    },
+    {
+      "file": "appointmentRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id/status",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "appointmentRoutes.js",
+      "method": "DELETE",
+      "subpath": "/:id",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "optionalAuth",
+        "async (req",
+        "res) => {\n    try {\n        const appointment = await Appointment.findById(req.params.id"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "POST",
+      "subpath": "/check-phone",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "POST",
+      "subpath": "/send-otp",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "POST",
+      "subpath": "/verify-otp",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "POST",
+      "subpath": "/register",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "POST",
+      "subpath": "/google",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "POST",
+      "subpath": "/login",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "GET",
+      "subpath": "/me",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\r\n    res.json(req.user"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "PUT",
+      "subpath": "/profile",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\r\n    try {\r\n        const user = await User.findById(req.user._id"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "DELETE",
+      "subpath": "/profile",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\r\n    try {\r\n        const user = await User.findById(req.user._id"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "POST",
+      "subpath": "/address",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "PUT",
+      "subpath": "/address/:addressId",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\r\n    try {\r\n        const user = await User.findById(req.user._id"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "DELETE",
+      "subpath": "/address/:addressId",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\r\n    try {\r\n        const user = await User.findById(req.user._id"
+      ]
+    },
+    {
+      "file": "authRoutes.js",
+      "method": "GET",
+      "subpath": "/users",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\r\n    try {\r\n        const users = await User.find({}).select('-password'"
+      ]
+    },
+    {
+      "file": "brandRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n  try {\n    const brands = await Brand.find({ isActive: true }).sort({ name: 1 }).lean("
+      ]
+    },
+    {
+      "file": "brandRoutes.js",
+      "method": "GET",
+      "subpath": "/:slug",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n  try {\n    const brand = await Brand.findOne({ slug: req.params.slug",
+        "isActive: true }).lean("
+      ]
+    },
+    {
+      "file": "categoryRoutes.js",
+      "method": "GET",
+      "subpath": "/sections",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n    try {\n        let sections = await CategorySection.find().sort({ order: 1 }"
+      ]
+    },
+    {
+      "file": "categoryRoutes.js",
+      "method": "POST",
+      "subpath": "/sync",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n    try {\n        const defaultData = getDefaultSections("
+      ]
+    },
+    {
+      "file": "categoryRoutes.js",
+      "method": "PUT",
+      "subpath": "/sections/:id",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\n    try {\n        const updated = await CategorySection.findByIdAndUpdate(req.params.id",
+        "req.body",
+        "{ new: true }"
+      ]
+    },
+    {
+      "file": "notificationRoutes.js",
+      "method": "POST",
+      "subpath": "/register-token",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "notificationRoutes.js",
+      "method": "GET",
+      "subpath": "/unread-count",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n  try {\n    const count = await Notification.countDocuments({\n      user_id: req.user._id",
+        "read: false",
+        "}"
+      ]
+    },
+    {
+      "file": "notificationRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n  try {\n    const notifications = await Notification.find({ user_id: req.user._id })\n      .sort({ created_at: -1 })\n      .limit(50)\n      .lean("
+      ]
+    },
+    {
+      "file": "notificationRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id/mark-read",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n  try {\n    const updated = await Notification.findOneAndUpdate(\n      { _id: req.params.id",
+        "user_id: req.user._id }",
+        "{ $set: { read: true",
+        "read_at: new Date() } }",
+        "{ new: true }"
+      ]
+    },
+    {
+      "file": "notificationRoutes.js",
+      "method": "POST",
+      "subpath": "/broadcast",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n    try {\n        // Automatically mark COD payment as Completed in background without blocking GET request\n        Order.updateMany(\n            { status: 'Delivered'",
+        "paymentStatus: 'Pending' }",
+        "{ $set: { paymentStatus: 'Completed' } }\n        ).catch(err => console.warn('COD status sync error:'",
+        "err.message)"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "GET",
+      "subpath": "/myorders",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n    try {\n        // Automatically mark COD payment as Completed if order is already delivered\n        await Order.updateMany(\n            { status: 'Delivered'",
+        "paymentStatus: 'Pending' }",
+        "{ $set: { paymentStatus: 'Completed' } }"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "GET",
+      "subpath": "/user/:userId",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "POST",
+      "subpath": "/track",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "GET",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n    try {\n        const order = await Order.findById(req.params.id)\n            .populate('user'",
+        "'name email phone role')\n            .populate('items.product'",
+        "'name price image images category'"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id/status",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id/cancel",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n    try {\n        const order = await Order.findById(req.params.id"
+      ]
+    },
+    {
+      "file": "orderRoutes.js",
+      "method": "DELETE",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\n    try {\n        const order = await Order.findByIdAndDelete(req.params.id"
+      ]
+    },
+    {
+      "file": "parlorServiceRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n    try {\n        const services = await ParlorService.find({}"
+      ]
+    },
+    {
+      "file": "parlorServiceRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "parlorServiceRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "parlorServiceRoutes.js",
+      "method": "DELETE",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\n    try {\n        const service = await ParlorService.findById(req.params.id"
+      ]
+    },
+    {
+      "file": "paymentPreferenceRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n  try {\n    const pref = await PaymentPreference.findOne({ user_id: req.user._id }).lean("
+      ]
+    },
+    {
+      "file": "paymentPreferenceRoutes.js",
+      "method": "PUT",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "productRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "productRoutes.js",
+      "method": "GET",
+      "subpath": "/:id",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n    try {\n        const product = await Product.findById(req.params.id"
+      ]
+    },
+    {
+      "file": "productRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "productRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\n    try {\n        const product = await Product.findById(req.params.id"
+      ]
+    },
+    {
+      "file": "productRoutes.js",
+      "method": "DELETE",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\n    try {\n        const product = await Product.findById(req.params.id"
+      ]
+    },
+    {
+      "file": "productRoutes.js",
+      "method": "POST",
+      "subpath": "/:id/rate",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "optionalAuth",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "rentalRoutes.js",
+      "method": "GET",
+      "subpath": "/active",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n    try {\n        const todayStart = new Date("
+      ]
+    },
+    {
+      "file": "rentalRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "rentalRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n    try {\n        if (!req.user || !req.user._id) {\n            return res.status(401).json({ message: 'Authentication required. Please log in to book a rental.' }"
+      ]
+    },
+    {
+      "file": "rentalRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id/status",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "rentalRoutes.js",
+      "method": "DELETE",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res) => {\n    try {\n        const rental = await Rental.findById(req.params.id"
+      ]
+    },
+    {
+      "file": "reviewRoutes.js",
+      "method": "GET",
+      "subpath": "/product/:productId",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "reviewRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "reviewWriteLimiter",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "reviewRoutes.js",
+      "method": "GET",
+      "subpath": "/mine",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n  try {\n    const reviews = await Review.find({ user_id: req.user._id })\n      .populate('product_id'",
+        "'name image price')\n      .sort({ created_at: -1 })\n      .lean("
+      ]
+    },
+    {
+      "file": "reviewRoutes.js",
+      "method": "GET",
+      "subpath": "/eligible",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n  try {\n    const deliveredOrders = await Order.find({\n      $or: [\n        { user: req.user._id }",
+        "{ legacyUserId: req.user._id.toString() }",
+        "]",
+        "status: { $regex: /^delivered$/i }",
+        "}).lean("
+      ]
+    },
+    {
+      "file": "reviewRoutes.js",
+      "method": "PUT",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "reviewWriteLimiter",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "reviewRoutes.js",
+      "method": "DELETE",
+      "subpath": "/:id",
+      "hasAuth": true,
+      "hasAdmin": false,
+      "handlers": [
+        "protect",
+        "async (req",
+        "res) => {\n  try {\n    const deleted = await Review.findOneAndDelete({\n      _id: req.params.id",
+        "user_id: req.user._id",
+        "}"
+      ]
+    },
+    {
+      "file": "settingRoutes.js",
+      "method": "GET",
+      "subpath": "/delivery-strip",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n  try {\n    const config = await StoreSetting.findOne({ key: 'delivery_config' }).lean("
+      ]
+    },
+    {
+      "file": "uploadRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "upload.single('image')",
+        "(req",
+        "res) => {\n  if (!req.file) {\n    return res.status(400).json({ message: 'No image uploaded' }"
+      ]
+    },
+    {
+      "file": "uploadRoutes.js",
+      "method": "POST",
+      "subpath": "/base64",
+      "hasAuth": true,
+      "hasAdmin": true,
+      "handlers": [
+        "protect",
+        "adminOnly",
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "wishlistRoutes.js",
+      "method": "GET",
+      "subpath": "/",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res) => {\n  try {\n    const items = await WishlistItem.find({ user_id: req.user._id })\n      .sort({ created_at: -1 })\n      .populate('product_id')\n      .lean("
+      ]
+    },
+    {
+      "file": "wishlistRoutes.js",
+      "method": "POST",
+      "subpath": "/",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    },
+    {
+      "file": "wishlistRoutes.js",
+      "method": "DELETE",
+      "subpath": "/:productId",
+      "hasAuth": false,
+      "hasAdmin": false,
+      "handlers": [
+        "async (req",
+        "res"
+      ]
+    }
+  ],
+  "modelInfo": [
+    {
+      "file": "Appointment.js",
+      "indexes": [],
+      "uniques": []
+    },
+    {
+      "file": "Brand.js",
+      "indexes": [],
+      "uniques": [
+        "slug: { type: String, required: true, unique: true"
+      ]
+    },
+    {
+      "file": "CategorySection.js",
+      "indexes": [],
+      "uniques": [
+        "sectionTitle: { type: String, required: true, unique: true"
+      ]
+    },
+    {
+      "file": "Notification.js",
+      "indexes": [],
+      "uniques": []
+    },
+    {
+      "file": "Order.js",
+      "indexes": [
+        ".index({ user: 1, createdAt: -1 })",
+        ".index({ legacyUserId: 1, createdAt: -1 })",
+        ".index({ createdAt: -1 })"
+      ],
+      "uniques": []
+    },
+    {
+      "file": "ParlorService.js",
+      "indexes": [],
+      "uniques": []
+    },
+    {
+      "file": "PaymentPreference.js",
+      "indexes": [],
+      "uniques": [
+        "user_id: {\n    type: mongoose.Schema.Types.ObjectId,\n    ref: 'User',\n    required: true,\n    unique: true"
+      ]
+    },
+    {
+      "file": "Product.js",
+      "indexes": [],
+      "uniques": []
+    },
+    {
+      "file": "Rental.js",
+      "indexes": [
+        ".index({ lehenga: 1, status: 1, startDate: 1, returnDate: 1 })"
+      ],
+      "uniques": []
+    },
+    {
+      "file": "Review.js",
+      "indexes": [],
+      "uniques": []
+    },
+    {
+      "file": "StoreSetting.js",
+      "indexes": [],
+      "uniques": [
+        "key: { type: String, required: true, unique: true"
+      ]
+    },
+    {
+      "file": "User.js",
+      "indexes": [
+        ".index({ phone: 1 })"
+      ],
+      "uniques": [
+        "email: { type: String, required: true, unique: true"
+      ]
+    },
+    {
+      "file": "WishlistItem.js",
+      "indexes": [],
+      "uniques": []
+    }
+  ]
+}

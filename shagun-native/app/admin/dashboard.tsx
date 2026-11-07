@@ -139,6 +139,19 @@ export default function AdminDashboard() {
 
   return (
     <View style={styles.container}>
+      {/* Top Bar with Back Button */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.topBarTitle}>Admin Dashboard</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
       {/* Stats Row */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll} contentContainerStyle={{ paddingHorizontal: 12, gap: 10 }}>
         {[
@@ -353,6 +366,23 @@ export default function AdminDashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5ede8' },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#7c1f3e',
+  },
+  backBtn: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  topBarTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
   statsScroll: { maxHeight: 90, paddingVertical: 12 },
   statCard: {
     backgroundColor: '#fff', borderRadius: 12, padding: 14, minWidth: 120,

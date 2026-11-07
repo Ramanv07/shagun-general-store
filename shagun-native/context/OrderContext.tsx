@@ -38,7 +38,14 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const addOrder = async (orderData: Partial<Order>): Promise<Order> => {
     const newOrder = await api.createOrder(orderData);
-    await loadOrders();
+    if (newOrder) {
+      setOrders(prev => {
+        const exists = prev.some(o => o._id === newOrder._id);
+        return exists ? prev : [newOrder, ...prev];
+      });
+    }
+    // Refresh full list in background without delaying the return
+    loadOrders().catch(() => {});
     return newOrder;
   };
 

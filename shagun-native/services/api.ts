@@ -1,12 +1,11 @@
 import { API_BASE_URL, STORAGE_KEYS } from '../constants';
-import { Product, User, Order, OrderStatus, RentalBooking, RentalStatus, ActiveRentalInfo } from '../types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { Product, User, Order, OrderStatus, RentalBooking, RentalStatus, ActiveRentalInfo, Brand, PaymentPreference } from '../types';
+import { appStorage } from './storage';
 
 // ─── Auth Headers ────────────────────────────────────────────────────────────
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
   try {
-    const userStr = await SecureStore.getItemAsync(STORAGE_KEYS.CURRENT_USER);
+    const userStr = await appStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (userStr) {
       const u = JSON.parse(userStr);
       if (u?.token) {
@@ -36,7 +35,7 @@ export const api = {
     });
     if (res.ok) {
       const user: User = await res.json();
-      await SecureStore.setItemAsync(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      await appStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
       return user;
     }
     const err = await res.json().catch(() => ({}));
@@ -51,25 +50,58 @@ export const api = {
     });
     if (res.ok) {
       const user: User = await res.json();
-      await SecureStore.setItemAsync(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      await appStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
       return user;
     }
     const err = await res.json().catch(() => ({}));
     throw new Error((err as any).message || 'Registration failed');
   },
 
+  loginWithGoogle: async (data: { name: string; email: string; googleId?: string; photoUrl?: string }): Promise<User> => {
+    const res = await fetch(`${BASE}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      const user: User = await res.json();
+      await appStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      return user;
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || 'Google authentication failed');
+  },
+
   logout: async (): Promise<void> => {
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.CURRENT_USER);
+    await appStorage.deleteItem(STORAGE_KEYS.CURRENT_USER);
   },
 
   // ── Products ──────────────────────────────────────────────────────────────
-  getProducts: async (category?: string): Promise<Product[]> => {
-    const url = category && category !== 'All'
-      ? `${BASE}/api/products?category=${encodeURIComponent(category)}`
-      : `${BASE}/api/products`;
+  getProducts: async (category?: string, brand?: string): Promise<Product[]> => {
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.append('category', category);
+    if (brand && brand !== 'All') params.append('brand', brand);
+    const qs = params.toString();
+    const url = qs ? `${BASE}/api/products?${qs}` : `${BASE}/api/products`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch products');
     return res.json();
+  },
+
+  getProductById: async (id: string): Promise<Product> => {
+    const res = await fetch(`${BASE}/api/products/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch product');
+    return res.json();
+  },
+
+  getBrands: async (): Promise<Brand[]> => {
+    try {
+      const res = await fetch(`${BASE}/api/brands`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch brands', e);
+    }
+    return [];
   },
 
   saveProduct: async (product: Partial<Product>): Promise<Product> => {
@@ -170,7 +202,7 @@ export const api = {
     });
     if (!res.ok) throw new Error('Failed to update profile');
     const updated: User = await res.json();
-    await SecureStore.setItemAsync(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
+    await appStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
     return updated;
   },
 
@@ -181,7 +213,7 @@ export const api = {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as any).message || 'Failed to delete account');
     }
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.CURRENT_USER);
+    await appStorage.deleteItem(STORAGE_KEYS.CURRENT_USER);
   },
 
   addAddress: async (address: any): Promise<any[]> => {
@@ -192,6 +224,17 @@ export const api = {
       body: JSON.stringify(address),
     });
     if (!res.ok) throw new Error('Failed to add address');
+    return res.json();
+  },
+
+  updateAddress: async (addressId: string, address: any): Promise<any[]> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/auth/address/${addressId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(address),
+    });
+    if (!res.ok) throw new Error('Failed to update address');
     return res.json();
   },
 
@@ -269,6 +312,163 @@ export const api = {
     const data = await res.json();
     if (!res.ok) {
       throw new Error(data.message || 'Failed to update rental status');
+    }
+    return data;
+  },
+
+  // ── Settings & Notifications (Phase A & B) ─────────────────────────────────
+  getDeliveryConfig: async (): Promise<{ enabled: boolean; eta_min: number | null; eta_max: number | null }> => {
+    if (BASE.includes('vercel.app')) {
+      return { enabled: false, eta_min: null, eta_max: null };
+    }
+    try {
+      const res = await fetch(`${BASE}/api/settings/delivery-strip`);
+      if (res.ok) return await res.json();
+    } catch {}
+    return { enabled: false, eta_min: null, eta_max: null };
+  },
+
+  getUnreadNotificationCount: async (): Promise<number> => {
+    if (BASE.includes('vercel.app')) {
+      return 0;
+    }
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/notifications/unread-count`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        return typeof data.count === 'number' ? data.count : 0;
+      }
+    } catch {}
+    return 0;
+  },
+
+  markAllNotificationsRead: async (): Promise<boolean> => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/notifications/mark-all-read`, {
+        method: 'PUT',
+        headers,
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // ── Wishlist (Phase D) ─────────────────────────────────────────────────────
+  getWishlist: async (): Promise<Product[]> => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/wishlist`, { headers });
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch wishlist', e);
+    }
+    return [];
+  },
+
+  addToWishlist: async (productId: string): Promise<boolean> => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/wishlist`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ productId }),
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn('Failed to add to wishlist', e);
+      return false;
+    }
+  },
+
+  removeFromWishlist: async (productId: string): Promise<boolean> => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/wishlist/${productId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn('Failed to remove from wishlist', e);
+      return false;
+    }
+  },
+
+  // ── Reviews & Ratings (Phase E) ────────────────────────────────────────────
+  getProductReviews: async (productId: string) => {
+    if (BASE.includes('vercel.app')) return { reviews: [], averageRating: null, reviewCount: 0 };
+    try {
+      const res = await fetch(`${BASE}/api/reviews/product/${productId}`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch product reviews', e);
+    }
+    return { reviews: [], averageRating: null, reviewCount: 0 };
+  },
+
+  getMyReviews: async () => {
+    if (BASE.includes('vercel.app')) return [];
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/reviews/mine`, { headers });
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch my reviews', e);
+    }
+    return [];
+  },
+
+  getEligibleReviewProducts: async () => {
+    if (BASE.includes('vercel.app')) return [];
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/reviews/eligible`, { headers });
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch eligible products', e);
+    }
+    return [];
+  },
+
+  createReview: async (productId: string, rating: number, comment: string) => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/reviews`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ productId, rating, comment }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to submit review');
+    }
+    return data;
+  },
+
+  getPaymentPreferences: async (): Promise<PaymentPreference> => {
+    if (BASE.includes('vercel.app')) return { preferred_method: 'COD', upi_id: '' };
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${BASE}/api/payment-preferences`, { headers });
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch payment preferences', e);
+    }
+    return { preferred_method: 'COD', upi_id: '' };
+  },
+
+  updatePaymentPreferences: async (preferred_method: 'COD' | 'UPI', upi_id?: string): Promise<PaymentPreference> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/payment-preferences`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ preferred_method, upi_id }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to update payment preferences');
     }
     return data;
   },
