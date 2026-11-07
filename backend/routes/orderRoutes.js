@@ -6,6 +6,7 @@ import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { sendAdminOrderNotification, sendCustomerOrderNotification } from '../services/notificationService.js';
+import { logAuditEvent } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -220,10 +221,16 @@ router.post('/', protect, async (req, res) => {
         let freeDeliveryThreshold = 399;
         let standardDeliveryFee = 30;
         try {
-            const settings = await StoreSetting.find({ key: { $in: ['freeDeliveryThreshold', 'deliveryFee'] } });
-            for (const s of settings) {
-                if (s.key === 'freeDeliveryThreshold') freeDeliveryThreshold = Number(s.value) || 399;
-                if (s.key === 'deliveryFee') standardDeliveryFee = Number(s.value) || 30;
+            const config = await StoreSetting.findOne({ key: 'delivery_config' }).lean();
+            if (config) {
+                if (typeof config.freeDeliveryThreshold === 'number') freeDeliveryThreshold = config.freeDeliveryThreshold;
+                if (typeof config.deliveryFee === 'number') standardDeliveryFee = config.deliveryFee;
+            } else {
+                const settings = await StoreSetting.find({ key: { $in: ['freeDeliveryThreshold', 'deliveryFee'] } }).lean();
+                for (const s of settings) {
+                    if (s.key === 'freeDeliveryThreshold') freeDeliveryThreshold = Number(s.value) || 399;
+                    if (s.key === 'deliveryFee') standardDeliveryFee = Number(s.value) || 30;
+                }
             }
         } catch (sErr) {}
 
@@ -331,6 +338,7 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
         if (!existingOrder) {
             return res.status(404).json({ message: 'Order not found' });
         }
+        const beforeSnapshot = existingOrder.toObject ? existingOrder.toObject() : existingOrder;
 
         // If transitioning to Cancelled and was not cancelled before, restore stock
         if (status === 'Cancelled' && existingOrder.status !== 'Cancelled') {
@@ -363,6 +371,8 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
 
         existingOrder.status = status;
         const updatedOrder = await existingOrder.save();
+
+        await logAuditEvent(req.user._id, 'ORDER_STATUS_UPDATE', 'Order', existingOrder._id, beforeSnapshot);
 
         // Dispatch status update notification to customer (Lockscreen push + in-app)
         sendCustomerOrderNotification(existingOrder, status).catch(err =>

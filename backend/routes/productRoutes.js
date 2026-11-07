@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Brand from '../models/Brand.js';
 import { protect, adminOnly, optionalAuth } from '../middleware/authMiddleware.js';
+import { logAuditEvent } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -40,7 +41,26 @@ router.get('/', async (req, res) => {
             query.name = { $regex: escaped, $options: 'i' };
         }
 
-        let products = await Product.find(query).populate('brand_id', 'name slug logo').sort({ createdAt: -1 }).lean();
+        // Filter out soft-deleted products for public lists & search (W2-10)
+        query.isDeleted = { $ne: true };
+
+        const hasPaging = req.query.page !== undefined || req.query.limit !== undefined;
+        let page = parseInt(req.query.page, 10) || 1;
+        let limit = parseInt(req.query.limit, 10) || 20;
+        if (limit > 50) limit = 50;
+        if (limit < 1) limit = 20;
+        if (page < 1) page = 1;
+
+        const totalCount = await Product.countDocuments(query);
+        res.setHeader('X-Total-Count', totalCount.toString());
+
+        let productQuery = Product.find(query).populate('brand_id', 'name slug logo').sort({ createdAt: -1 });
+
+        if (hasPaging) {
+            productQuery = productQuery.skip((page - 1) * limit).limit(limit);
+        }
+
+        let products = await productQuery.lean();
 
         if (products.length === 0 && (!category || category === 'All') && !search) {
             const count = await Product.countDocuments();
@@ -140,7 +160,7 @@ router.get('/', async (req, res) => {
 // @desc    Get single product by ID
 router.get('/:id', async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const product = await Product.findOne({ _id: req.params.id, isDeleted: { $ne: true } });
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
@@ -235,8 +255,12 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        await Product.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Product removed successfully' });
+        const beforeSnapshot = product.toObject ? product.toObject() : product;
+        product.isDeleted = true;
+        await product.save();
+
+        await logAuditEvent(req.user._id, 'PRODUCT_SOFT_DELETE', 'Product', product._id, beforeSnapshot);
+        res.json({ message: 'Product removed successfully', product });
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).json({ message: 'Failed to delete product' });

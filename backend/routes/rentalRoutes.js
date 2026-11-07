@@ -4,6 +4,7 @@ import Rental from '../models/Rental.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { logAuditEvent } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -209,12 +210,14 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
             return res.status(404).json({ message: 'Rental booking not found.' });
         }
 
+        const beforeSnapshot = rental.toObject ? rental.toObject() : rental;
         rental.status = status;
         if (status === 'Returned') {
             rental.actualReturnDate = new Date();
         }
 
         const updated = await rental.save();
+        await logAuditEvent(req.user._id, 'RENTAL_STATUS_UPDATE', 'Rental', rental._id, beforeSnapshot);
         res.json(updated);
     } catch (error) {
         console.error('Error updating rental status:', error);

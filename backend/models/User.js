@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
     googleId: { type: String, default: '' },
     avatar: { type: String, default: '' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    tokenVersion: { type: Number, default: 0 },
     addresses: [addressSchema],
     pushTokens: [{ type: String }],
     notifications: [{

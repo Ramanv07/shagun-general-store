@@ -15,7 +15,7 @@ export const Login: React.FC = () => {
 
   // Redirect destination after login/signup
   const searchParams = new URLSearchParams(location.search);
-  const redirectUrl = searchParams.get('redirect') || '/';
+  const redirectUrl = searchParams.get('redirect') || (location.state as any)?.from?.pathname || (location.state as any)?.from || '/';
   const customMessage = searchParams.get('msg');
 
   // Sign In form state

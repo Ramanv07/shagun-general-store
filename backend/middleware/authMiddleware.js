@@ -11,9 +11,17 @@ export const protect = async (req, res, next) => {
             if (!req.user) {
                 return res.status(401).json({ message: 'User not found' });
             }
+
+            // Tokens without a tokenVersion claim count as version 0
+            const tokenVersion = decoded.tokenVersion !== undefined ? decoded.tokenVersion : 0;
+            const userTokenVersion = req.user.tokenVersion !== undefined ? req.user.tokenVersion : 0;
+            if (tokenVersion !== userTokenVersion) {
+                return res.status(401).json({ message: 'Session expired or invalidated. Please log in again.' });
+            }
+
             return next();
         } catch (error) {
-            console.error('Auth middleware error:', error);
+            console.error('Auth middleware error:', error.message || error);
             return res.status(401).json({ message: 'Not authorized, token failed' });
         }
     }

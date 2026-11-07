@@ -77,10 +77,13 @@ export const api = {
   },
 
   // ── Products ──────────────────────────────────────────────────────────────
-  getProducts: async (category?: string, brand?: string): Promise<Product[]> => {
+  getProducts: async (category?: string, brand?: string, search?: string, page?: number, limit?: number): Promise<Product[]> => {
     const params = new URLSearchParams();
     if (category && category !== 'All') params.append('category', category);
     if (brand && brand !== 'All') params.append('brand', brand);
+    if (search && search.trim()) params.append('search', search.trim());
+    if (page) params.append('page', String(page));
+    if (limit) params.append('limit', String(limit));
     const qs = params.toString();
     const url = qs ? `${BASE}/api/products?${qs}` : `${BASE}/api/products`;
     const res = await fetch(url);
@@ -471,5 +474,44 @@ export const api = {
       throw new Error(data.message || 'Failed to update payment preferences');
     }
     return data;
+  },
+
+  getParlorServices: async (): Promise<any[]> => {
+    try {
+      const res = await fetch(`${BASE}/api/parlor-services`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch parlor services', e);
+    }
+    return [];
+  },
+
+  getAppointmentSlots: async (serviceId: string, date: string): Promise<{ allSlots: string[]; bookedSlots: string[]; availableSlots: string[] }> => {
+    try {
+      const res = await fetch(`${BASE}/api/appointments/slots?serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch appointment slots', e);
+    }
+    return { allSlots: [], bookedSlots: [], availableSlots: [] };
+  },
+
+  bookAppointment: async (appointmentData: any): Promise<any> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/appointments`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(appointmentData),
+    });
+    if (res.status === 409) {
+      const err: any = new Error('This slot was just taken by another customer. Please choose another slot.');
+      err.code = 409;
+      throw err;
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to book appointment');
+    }
+    return res.json();
   },
 };

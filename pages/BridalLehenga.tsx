@@ -25,8 +25,24 @@ export const BridalLehenga: React.FC = () => {
       } catch (err) { console.error('Fetch failed', err); }
     };
     fetchProducts(true);
-    const iv = setInterval(() => fetchProducts(), 2500);
-    return () => clearInterval(iv);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchProducts();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const iv = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchProducts();
+      }
+    }, 60000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(iv);
+    };
   }, []);
 
   const sortedProducts = [...products].sort((a, b) => {

@@ -43,7 +43,10 @@ const rentalStatusColors: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews'>('overview');
+    const [adminReviews, setAdminReviews] = useState<any[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
+    const [reviewFilter, setReviewFilter] = useState<'all' | 'approved' | 'hidden'>('all');
     const [broadcastTitle, setBroadcastTitle] = useState('');
     const [broadcastBody, setBroadcastBody] = useState('');
     const [broadcastTarget, setBroadcastTarget] = useState('home');
@@ -211,6 +214,49 @@ export const AdminDashboard: React.FC = () => {
             }
         } catch (error) {
             console.error('Error saving service:', error);
+        }
+    };
+
+    const fetchAdminReviews = async () => {
+        setLoadingReviews(true);
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/reviews/admin?status=' + reviewFilter, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAdminReviews(data);
+            }
+        } catch (err) {
+            console.error('Failed to load reviews', err);
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'reviews') {
+            fetchAdminReviews();
+        }
+    }, [activeTab, reviewFilter]);
+
+    const handleUpdateReviewStatus = async (reviewId: string, status: string) => {
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/reviews/admin/' + reviewId + '/status', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) {
+                fetchAdminReviews();
+            }
+        } catch (err) {
+            console.error('Failed to update review status', err);
         }
     };
 
@@ -536,6 +582,7 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'lehengas', label: 'Lehenga Catalog' },
                         { id: 'parlor', label: 'Parlor Bookings' },
                         { id: 'parlorServices', label: 'Parlor Services' },
+                        { id: 'reviews', label: '⭐ Reviews' },
                         { id: 'users', label: 'Users' }
                     ].map(tab => (
                         <button
@@ -2014,6 +2061,111 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {/* REVIEWS MODERATION */}
+                    {activeTab === 'reviews' && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 className="text-xl text-white font-bold">Product Reviews Moderation</h2>
+                                    <p className="text-xs text-gray-400">Moderate customer reviews. Hidden reviews are omitted from public product ratings.</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setReviewFilter('all')}
+                                        className={'px-3 py-1.5 rounded-lg text-xs font-semibold ' + (reviewFilter === 'all' ? 'bg-maroon-600 text-white' : 'bg-gray-700 text-gray-300')}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        onClick={() => setReviewFilter('approved')}
+                                        className={'px-3 py-1.5 rounded-lg text-xs font-semibold ' + (reviewFilter === 'approved' ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300')}
+                                    >
+                                        Approved
+                                    </button>
+                                    <button
+                                        onClick={() => setReviewFilter('hidden')}
+                                        className={'px-3 py-1.5 rounded-lg text-xs font-semibold ' + (reviewFilter === 'hidden' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300')}
+                                    >
+                                        Hidden
+                                    </button>
+                                </div>
+                            </div>
+
+                            {loadingReviews ? (
+                                <div className="text-center py-12 text-gray-400">
+                                    <i className="fas fa-spinner fa-spin mr-2"></i> Loading reviews...
+                                </div>
+                            ) : adminReviews.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500 bg-white/5 rounded-xl border border-white/10">
+                                    <i className="fas fa-star text-3xl mb-2 text-gray-600 block"></i>
+                                    No reviews found for this filter.
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-gray-300 text-sm">
+                                        <thead className="bg-white/5 text-xs uppercase text-gray-400">
+                                            <tr>
+                                                <th className="p-3">Product</th>
+                                                <th className="p-3">Customer</th>
+                                                <th className="p-3">Rating</th>
+                                                <th className="p-3">Comment</th>
+                                                <th className="p-3">Status</th>
+                                                <th className="p-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {adminReviews.map(r => (
+                                                <tr key={r._id} className="hover:bg-white/5 transition-colors">
+                                                    <td className="p-3">
+                                                        <div className="font-semibold text-white">{r.product_id?.name || 'Product'}</div>
+                                                        <div className="text-xs text-gray-500">{r.product_id?.category}</div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className="text-white">{r.user_id?.name || 'Customer'}</div>
+                                                        <div className="text-xs text-gray-500">{r.user_id?.phone || r.user_id?.email}</div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span className="text-amber-400 font-bold">★ {r.rating}</span>
+                                                    </td>
+                                                    <td className="p-3 max-w-xs truncate" title={r.comment}>
+                                                        {r.comment}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span className={'px-2.5 py-1 rounded-full text-xs font-semibold ' + (
+                                                            r.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                                            r.status === 'hidden' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                                            'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                                                        )}>
+                                                            {r.status || 'approved'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 text-right space-x-2">
+                                                        {r.status !== 'approved' && (
+                                                            <button
+                                                                onClick={() => handleUpdateReviewStatus(r._id, 'approved')}
+                                                                className="px-2.5 py-1 rounded bg-emerald-600/80 hover:bg-emerald-600 text-white text-xs font-semibold"
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                        )}
+                                                        {r.status !== 'hidden' && (
+                                                            <button
+                                                                onClick={() => handleUpdateReviewStatus(r._id, 'hidden')}
+                                                                className="px-2.5 py-1 rounded bg-amber-600/80 hover:bg-amber-600 text-white text-xs font-semibold"
+                                                            >
+                                                                Hide
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                 {/* ORDER DETAILS MODAL */}
                 {selectedOrder && (

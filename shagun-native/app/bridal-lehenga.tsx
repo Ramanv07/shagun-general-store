@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, Image, TouchableOpacity, StyleSheet,
   Linking, ActivityIndicator, Dimensions, Modal, TextInput,
   ScrollView, Alert, RefreshControl, Platform, SafeAreaView, StatusBar,
+  AppState, AppStateStatus,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,6 +51,25 @@ export default function BridalLehengaScreen() {
 
   useEffect(() => {
     loadData();
+
+    let appState = AppState.currentState;
+    const sub = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.match(/inactive|background/) && nextAppState === 'active') {
+        loadData();
+      }
+      appState = nextAppState;
+    });
+
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') {
+        loadData();
+      }
+    }, 60000);
+
+    return () => {
+      sub.remove();
+      clearInterval(interval);
+    };
   }, [loadData]);
 
   const onRefresh = () => {

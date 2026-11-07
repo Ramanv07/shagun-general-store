@@ -26,8 +26,11 @@ import { UserRole } from './types';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement; adminOnly?: boolean }> = ({ children, adminOnly }) => {
   const { user, isAuthenticated } = useAuth();
+  const location = useLocation();
 
-  if (!isAuthenticated || !user?.token) return <Navigate to="/login" replace />;
+  if (!isAuthenticated || !user?.token) {
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} state={{ from: location }} replace />;
+  }
   if (adminOnly && user?.role !== UserRole.ADMIN) return <Navigate to="/" replace />;
 
   return children;
@@ -47,6 +50,20 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin': 'Admin Dashboard | Shagun Mart',
 };
 
+const PAGE_DESCRIPTIONS: Record<string, string> = {
+  '/': 'Shagun Mart — Bamitha, Madhya Pradesh. Everything you need, beautifully sorted. Bridal lehenga on rent, makeup, daily essentials and cosmetics.',
+  '/shop': 'Browse cosmetics, personal care, household essentials, and gifts available for quick delivery at Shagun Mart.',
+  '/beauty-parlor': 'Book salon and bridal makeup appointments with professional beauty experts at Shagun Beauty Parlor.',
+  '/bridal-lehenga': 'Rent premium designer bridal lehengas, bridal jewelry, and accessories for weddings and receptions.',
+  '/cart': 'Review selected items in your Shagun Mart shopping cart before checking out.',
+  '/checkout': 'Safe and fast checkout with cash on delivery and UPI payment options at Shagun Mart.',
+  '/orders': 'Track your order status and view recent purchases from Shagun Mart.',
+  '/account': 'Manage your personal profile, saved delivery addresses, and preferences.',
+  '/login': 'Sign in or register for an account at Shagun Mart Bamitha.',
+  '/privacy': 'Learn how Shagun Mart collects, uses, and protects your personal information and privacy.',
+  '/admin': 'Secure store administration panel for inventory, orders, and customer management.',
+};
+
 const AppRoutes: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,15 +72,12 @@ const AppRoutes: React.FC = () => {
   useEffect(() => {
     const title = PAGE_TITLES[location.pathname] || 'Shagun Mart | Bamitha';
     document.title = title;
-  }, [location.pathname]);
-
-  // Welcome Gate: Prompt unauthenticated guest to login/signup on first open (with skip option)
-  useEffect(() => {
-    const hasSkipped = sessionStorage.getItem('shagun_guest_browse');
-    if (!isAuthenticated && !hasSkipped && location.pathname === '/') {
-      navigate('/login', { replace: true });
+    const desc = PAGE_DESCRIPTIONS[location.pathname] || PAGE_DESCRIPTIONS['/'];
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', desc);
     }
-  }, [isAuthenticated, location.pathname, navigate]);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-cream-50 text-ink-900 font-sans flex flex-col selection:bg-maroon-900 selection:text-cream-50 pb-16 xl:pb-0">
@@ -84,8 +98,22 @@ const AppRoutes: React.FC = () => {
           <Route path="/bridal-lehenga" element={<BridalLehenga />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/account" element={<Account />} />
+          <Route
+            path="/orders"
+            element={
+              <ProtectedRoute>
+                <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <Account />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/privacy" element={<PrivacyPolicy />} />
 
           <Route

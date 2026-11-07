@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ProductCard } from '../components/ProductCard';
 import { mockApi } from '../services/mockService';
 import { useAuth } from '../context/AuthContext';
@@ -44,6 +45,7 @@ interface Appointment {
 
 export const BeautyParlor: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState('newest');
@@ -56,7 +58,9 @@ export const BeautyParlor: React.FC = () => {
     tmrw.setDate(tmrw.getDate() + 1);
     return tmrw.toISOString().split('T')[0];
   });
-  const [selectedSlot, setSelectedSlot] = useState(TIME_SLOTS[0]);
+  const [allSlots, setAllSlots] = useState<string[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
@@ -70,6 +74,28 @@ export const BeautyParlor: React.FC = () => {
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   })();
+
+  const fetchSlots = async () => {
+    if (!selectedService?.id || !bookingDate) return;
+    try {
+      const res = await fetch(`/api/appointments/slots?serviceId=${encodeURIComponent(selectedService.id)}&date=${encodeURIComponent(bookingDate)}`);
+      if (res.ok) {
+        const data = await res.json();
+        const available = data.availableSlots || [];
+        setAllSlots(data.allSlots || []);
+        setBookedSlots(data.bookedSlots || []);
+        if (available.length > 0 && (!selectedSlot || !available.includes(selectedSlot))) {
+          setSelectedSlot(available[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch appointment slots', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSlots();
+  }, [selectedService?.id, bookingDate]);
 
   const loadAppointments = async () => {
     if (!isAuthenticated) {
@@ -141,6 +167,10 @@ export const BeautyParlor: React.FC = () => {
   }, []);
 
   const handleOpenBooking = (srv: ParlorService) => {
+    if (!isAuthenticated) {
+      navigate('/login?redirect=' + encodeURIComponent('/beauty-parlor'));
+      return;
+    }
     setSelectedService(srv);
     setBookingError(null);
     setBookingModalOpen(true);
@@ -148,12 +178,20 @@ export const BeautyParlor: React.FC = () => {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      navigate('/login?redirect=' + encodeURIComponent('/beauty-parlor'));
+      return;
+    }
     if (!customerName.trim() || !customerPhone.trim()) {
       setBookingError('Please enter your Name and Mobile Number.');
       return;
     }
     if (!bookingDate || bookingDate < tomorrowStr) {
       setBookingError('Appointments must be booked at least 1 day in advance.');
+      return;
+    }
+    if (!selectedSlot) {
+      setBookingError('Please select an available time slot.');
       return;
     }
 
@@ -178,6 +216,12 @@ export const BeautyParlor: React.FC = () => {
           notes: notes.trim(),
         })
       });
+
+      if (res.status === 409) {
+        setBookingError('This slot was just taken by another customer. Please choose another slot.');
+        fetchSlots();
+        return;
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to book appointment');
@@ -451,21 +495,28 @@ export const BeautyParlor: React.FC = () => {
 
               <div>
                 <label className="text-xs font-semibold text-maroon-700 block mb-1">Available Time Slot</label>
-                <div className="grid grid-cols-3 gap-2" role="group" aria-label="Available appointment time slots">
-                  {TIME_SLOTS.map(slot => (
-                    <button
-                      key={slot}
-                      type="button"
-                      aria-pressed={selectedSlot === slot}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`py-2 px-2 rounded-lg text-xs font-semibold border transition-all ${selectedSlot === slot
-                          ? 'bg-maroon-900 text-white border-maroon-900'
-                          : 'bg-white text-cream-800 border-cream-300 hover:border-gold-400'
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" role="group" aria-label="Available appointment time slots">
+                  {(allSlots.length > 0 ? allSlots : TIME_SLOTS).map(slot => {
+                    const isBooked = bookedSlots.includes(slot);
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        disabled={isBooked}
+                        aria-pressed={selectedSlot === slot}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`py-2 px-2 rounded-lg text-xs font-semibold border transition-all ${
+                          isBooked
+                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
+                            : selectedSlot === slot
+                            ? 'bg-maroon-900 text-white border-maroon-900 shadow-sm'
+                            : 'bg-white text-cream-800 border-cream-300 hover:border-gold-400'
                         }`}
-                    >
-                      {slot}
-                    </button>
-                  ))}
+                      >
+                        {slot} {isBooked ? '(Booked)' : ''}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

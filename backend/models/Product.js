@@ -12,6 +12,7 @@ const productSchema = new mongoose.Schema({
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },
     isBestseller: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false },
     brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', required: false }
 }, { timestamps: true });
 

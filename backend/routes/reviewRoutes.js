@@ -3,7 +3,8 @@ import rateLimit from 'express-rate-limit';
 import Review from '../models/Review.js';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { logAuditEvent } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -203,6 +204,55 @@ router.delete('/:id', protect, async (req, res) => {
   } catch (err) {
     console.error('Error deleting review:', err);
     res.status(500).json({ message: 'Failed to delete review' });
+  }
+});
+
+// @route   GET /api/reviews/admin
+// @desc    Get all reviews for moderation (Admin only)
+router.get('/admin', protect, adminOnly, async (req, res) => {
+  try {
+    const { status, productId } = req.query;
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+    if (productId) query.product_id = productId;
+
+    const reviews = await Review.find(query)
+      .populate('user_id', 'name email phone')
+      .populate('product_id', 'name image category price')
+      .sort({ created_at: -1 })
+      .lean();
+
+    res.json(reviews);
+  } catch (err) {
+    console.error('Error fetching admin reviews:', err);
+    res.status(500).json({ message: 'Failed to fetch reviews' });
+  }
+});
+
+// @route   PUT /api/reviews/admin/:id/status
+// @desc    Update review status (Admin only: approved | hidden | pending)
+router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['approved', 'hidden', 'pending'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be approved, hidden, or pending' });
+    }
+
+    const review = await Review.findById(req.params.id);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    const beforeSnapshot = review.toObject ? review.toObject() : review;
+    review.status = status;
+    await review.save();
+
+    await logAuditEvent(req.user._id, 'REVIEW_STATUS_UPDATE', 'Review', review._id, beforeSnapshot);
+
+    res.json(review);
+  } catch (err) {
+    console.error('Error updating review status:', err);
+    res.status(500).json({ message: 'Failed to update review status' });
   }
 });
 

@@ -4,9 +4,45 @@ import { protect, adminOnly, optionalAuth } from '../middleware/authMiddleware.j
 
 const router = express.Router();
 
+export const ALLOWED_TIME_SLOTS = [
+    '10:00 AM - 11:00 AM',
+    '11:00 AM - 12:00 PM',
+    '12:00 PM - 01:00 PM',
+    '02:00 PM - 03:00 PM',
+    '03:00 PM - 04:00 PM',
+    '04:00 PM - 05:00 PM',
+    '05:00 PM - 06:00 PM',
+    '06:00 PM - 07:00 PM'
+];
+
+// @route   GET /api/appointments/slots
+// @desc    Get standard time slots and check booked status
+router.get('/slots', async (req, res) => {
+    try {
+        const { serviceId, date } = req.query;
+        let bookedSlots = [];
+        if (serviceId && date) {
+            const booked = await Appointment.find({
+                serviceId,
+                date,
+                status: { $ne: 'Cancelled' }
+            }).select('slot');
+            bookedSlots = booked.map(b => b.slot);
+        }
+        res.json({
+            allSlots: ALLOWED_TIME_SLOTS,
+            bookedSlots,
+            availableSlots: ALLOWED_TIME_SLOTS.filter(s => !bookedSlots.includes(s))
+        });
+    } catch (error) {
+        console.error('Error fetching slots:', error);
+        res.status(500).json({ message: 'Failed to fetch slots' });
+    }
+});
+
 // @route   POST /api/appointments
-// @desc    Create a new appointment
-router.post('/', optionalAuth, async (req, res) => {
+// @desc    Create a new appointment (Login required)
+router.post('/', protect, async (req, res) => {
     try {
         const { serviceId, serviceName, price, date, slot, customerName, customerPhone, notes } = req.body;
 

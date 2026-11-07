@@ -10,9 +10,9 @@ import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '90d' // Long-lasting session so user never gets logged out
+const generateToken = (id, tokenVersion = 0) => {
+    return jwt.sign({ id, tokenVersion: tokenVersion || 0 }, process.env.JWT_SECRET, {
+        expiresIn: '7d'
     });
 };
 
@@ -208,7 +208,7 @@ router.post('/register', async (req, res) => {
             phone: user.phone,
             role: user.role,
             addresses: user.addresses,
-            token: generateToken(user._id)
+            token: generateToken(user._id, user.tokenVersion || 0)
         });
     } catch (error) {
         console.error('Register error:', error);
@@ -300,7 +300,7 @@ router.post('/google', async (req, res) => {
             avatar: user.avatar || photoUrl || '',
             role: user.role,
             addresses: user.addresses || [],
-            token: generateToken(user._id)
+            token: generateToken(user._id, user.tokenVersion || 0)
         });
     } catch (error) {
         console.error('Google auth error:', error);
@@ -354,7 +354,7 @@ router.post('/login', async (req, res) => {
             phone: user.phone || '',
             role: user.role,
             addresses: user.addresses || [],
-            token: generateToken(user._id)
+            token: generateToken(user._id, user.tokenVersion || 0)
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -393,6 +393,7 @@ router.put('/profile', protect, async (req, res) => {
         if (password) {
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(password, salt);
+            user.tokenVersion = (user.tokenVersion || 0) + 1;
         }
 
         const updatedUser = await user.save();
@@ -404,11 +405,23 @@ router.put('/profile', protect, async (req, res) => {
             phone: updatedUser.phone,
             role: updatedUser.role,
             addresses: updatedUser.addresses,
-            token: generateToken(updatedUser._id)
+            token: generateToken(updatedUser._id, updatedUser.tokenVersion || 0)
         });
     } catch (error) {
         console.error('Profile update error:', error);
         res.status(500).json({ message: 'Error updating profile' });
+    }
+});
+
+// @route   POST /api/auth/logout
+// @desc    Invalidate current user sessions by incrementing tokenVersion
+router.post('/logout', protect, async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(req.user._id, { $inc: { tokenVersion: 1 } });
+        res.json({ success: true, message: 'Logged out successfully' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ message: 'Error logging out' });
     }
 });
 

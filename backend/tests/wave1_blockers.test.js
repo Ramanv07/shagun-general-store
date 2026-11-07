@@ -209,8 +209,18 @@ describe('W1-07: Rental Price Tampering & Date Conflict Guards', () => {
 describe('W1-08: Parlour Appointment Past Date & Slot Collision Guards', () => {
   let apptApp;
   let apptRequest;
+  let apptToken;
 
   beforeAll(async () => {
+    const user = await User.create({
+      name: 'Appt User',
+      email: 'appt_wave1@shagun.com',
+      password: 'password_hash',
+      phone: '9876543210',
+      tokenVersion: 0
+    });
+    apptToken = jwt.sign({ id: user._id, tokenVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
     apptApp = express();
     apptApp.use(express.json());
     const { default: appointmentRoutes } = await import('../routes/appointmentRoutes.js');
@@ -221,6 +231,7 @@ describe('W1-08: Parlour Appointment Past Date & Slot Collision Guards', () => {
   test('FAILS: Rejects appointment booking for past dates (400)', async () => {
     const res = await apptRequest
       .post('/api/appointments')
+      .set('Authorization', `Bearer ${apptToken}`)
       .send({
         serviceId: 'srv_facial',
         serviceName: 'Hydra Facial',
@@ -243,6 +254,7 @@ describe('W1-08: Parlour Appointment Past Date & Slot Collision Guards', () => {
     // First booking succeeds
     const first = await apptRequest
       .post('/api/appointments')
+      .set('Authorization', `Bearer ${apptToken}`)
       .send({
         serviceId: 'srv_facial',
         serviceName: 'Hydra Facial',
@@ -257,6 +269,7 @@ describe('W1-08: Parlour Appointment Past Date & Slot Collision Guards', () => {
     // Second booking on same slot must be rejected with 409
     const second = await apptRequest
       .post('/api/appointments')
+      .set('Authorization', `Bearer ${apptToken}`)
       .send({
         serviceId: 'srv_facial',
         serviceName: 'Hydra Facial',

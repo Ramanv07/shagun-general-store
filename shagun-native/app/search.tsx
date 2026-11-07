@@ -110,6 +110,20 @@ export default function SearchScreen() {
     loadProducts();
   }, [loadProducts]);
 
+  // Debounced server search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (query.trim()) {
+        api.getProducts(selectedCategory !== 'All' ? selectedCategory : undefined, undefined, query.trim())
+          .then(data => setProducts(data))
+          .catch(err => console.warn('Search query error', err));
+      } else {
+        loadProducts();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, selectedCategory, loadProducts]);
+
   // Sync if query param changes
   useEffect(() => {
     if (params.q !== undefined && params.q !== query) {
