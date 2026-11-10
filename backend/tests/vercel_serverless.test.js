@@ -130,6 +130,34 @@ describe('Vercel Serverless Architecture & Hardening Tests (All Points)', () => 
         await connectDB();
     }, 15000);
 
+    test('Point 2 (Dev Guard): In non-production, connectDB refuses Atlas host unless ALLOW_LIVE_DB_LOCALLY=true', async () => {
+        const savedUri = process.env.MONGODB_URI;
+        const savedStagingUri = process.env.STAGING_MONGODB_URI;
+        const savedVercel = process.env.VERCEL;
+        const savedNodeEnv = process.env.NODE_ENV;
+        const savedAllow = process.env.ALLOW_LIVE_DB_LOCALLY;
+
+        delete process.env.STAGING_MONGODB_URI;
+        delete process.env.VERCEL;
+        delete process.env.ALLOW_LIVE_DB_LOCALLY;
+        process.env.NODE_ENV = 'test';
+        process.env.MONGODB_URI = 'mongodb://fake-cluster.mongodb.net/test';
+
+        await mongoose.disconnect();
+        global.mongoose = { conn: null, promise: null };
+
+        await expect(connectDB()).rejects.toThrow(/Atlas connection refused in non-production/);
+
+        // Restore
+        process.env.MONGODB_URI = savedUri;
+        if (savedStagingUri) process.env.STAGING_MONGODB_URI = savedStagingUri;
+        if (savedVercel) process.env.VERCEL = savedVercel;
+        process.env.NODE_ENV = savedNodeEnv;
+        if (savedAllow) process.env.ALLOW_LIVE_DB_LOCALLY = savedAllow;
+        global.mongoose = { conn: null, promise: null };
+        await connectDB();
+    });
+
     test('Point 3: Fire-and-forget alert timeout (withTimeout resolves safely after 5s limit)', async () => {
         const hangingPromise = new Promise((resolve) => {
             // Intentionally hangs for 10 seconds

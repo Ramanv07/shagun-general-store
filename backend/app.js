@@ -222,6 +222,30 @@ export async function connectDB() {
             return null;
         }
 
+        // Local development safety guard: refuse Atlas connections unless explicitly permitted
+        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+            if (uri.includes('mongodb.net') && process.env.ALLOW_LIVE_DB_LOCALLY !== 'true') {
+                console.error('FATAL SAFETY TRIGGER: Local non-production environment cannot connect to Atlas (mongodb.net) unless ALLOW_LIVE_DB_LOCALLY=true is explicitly set. Aborting.');
+                if (process.env.NODE_ENV === 'test') {
+                    throw new Error('Atlas connection refused in non-production environment');
+                }
+                process.exit(1);
+            }
+        }
+
+        // Masked host and database logging
+        let maskedHost = 'unknown';
+        let targetDb = 'unknown';
+        try {
+            const raw = uri.replace(/^mongodb(?:\+srv)?:\/\//i, 'http://');
+            const parsed = new URL(raw);
+            maskedHost = parsed.host.replace(/^([^@]+@)/, '***@');
+            targetDb = parsed.pathname.replace(/^\//, '').split('?')[0] || 'default';
+        } catch {
+            maskedHost = 'masked-host';
+        }
+        console.log(`[DB CONNECT] Target Host: ${maskedHost}, Database: ${targetDb}`);
+
         const opts = {
             bufferCommands: false,
             maxPoolSize: 5,
