@@ -39,6 +39,7 @@ export const Shop: React.FC = () => {
   const [error, setError]                     = useState<string | null>(null);
   const [search, setSearch]                   = useState(params.get('search') || '');
   const [category, setCategory]               = useState(defaultCat);
+  const [brand, setBrand]                     = useState(params.get('brand') || '');
   const [sort, setSort]                       = useState('newest');
   const [showFilters, setShowFilters]         = useState(false);
 
@@ -49,6 +50,8 @@ export const Shop: React.FC = () => {
     if (newCat) setCategory(newCat);
     const newSearch = p.get('search');
     if (newSearch !== null) setSearch(newSearch);
+    const newBrand = p.get('brand');
+    if (newBrand !== null) setBrand(newBrand);
   }, [location.search, location.state]);
 
   const fetchProducts = async (force = false) => {
@@ -113,11 +116,22 @@ export const Shop: React.FC = () => {
     } else if (category !== 'All') {
       result = result.filter(p => p.category === category);
     }
+    if (brand.trim()) {
+      const bLower = brand.trim().toLowerCase();
+      result = result.filter(p => {
+        const pb: any = (p as any).brand;
+        if (!pb) return false;
+        if (typeof pb === 'string') {
+          return pb.toLowerCase() === bLower || pb === brand;
+        }
+        return pb._id === brand || pb.slug === brand || (pb.name && pb.name.toLowerCase() === bLower);
+      });
+    }
     if (sort === 'low-high') result.sort((a, b) => a.price - b.price);
     else if (sort === 'high-low') result.sort((a, b) => b.price - a.price);
     else if (sort === 'rating') result.sort((a, b) => b.rating - a.rating);
     setFiltered(result);
-  }, [search, category, sort, products]);
+  }, [search, category, brand, sort, products]);
 
   return (
     <div className="min-h-screen pt-16" style={{ backgroundColor: 'var(--clr-cream)' }}>

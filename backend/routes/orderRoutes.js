@@ -4,6 +4,9 @@ import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
+import Coupon from '../models/Coupon.js';
+import CouponRedemption from '../models/CouponRedemption.js';
+import { validateCouponHelper } from './couponRoutes.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { sendAdminOrderNotification, sendCustomerOrderNotification } from '../services/notificationService.js';
 import { logAuditEvent } from '../services/auditService.js';
@@ -234,8 +237,37 @@ router.post('/', protect, async (req, res) => {
             }
         } catch (sErr) {}
 
+        // Free delivery threshold checked on items total BEFORE discount
         const serverDeliveryFee = serverSubtotal >= freeDeliveryThreshold ? 0 : standardDeliveryFee;
-        const serverGrandTotal = serverSubtotal + serverDeliveryFee;
+
+        // Authoritative coupon re-validation inside order flow
+        let appliedCouponCode = null;
+        let appliedDiscountAmount = 0;
+        let couponDoc = null;
+
+        if (req.body.couponCode) {
+            const couponResult = await validateCouponHelper(req.body.couponCode, items, req.user._id);
+            if (!couponResult.valid) {
+                return res.status(400).json({ message: couponResult.message });
+            }
+            const updateFilter = { _id: couponResult.coupon._id };
+            if (couponResult.coupon.usageLimitTotal) {
+                updateFilter.usedCount = { $lt: couponResult.coupon.usageLimitTotal };
+            }
+            const updatedCoupon = await Coupon.findOneAndUpdate(
+                updateFilter,
+                { $inc: { usedCount: 1 } },
+                { new: true }
+            );
+            if (!updatedCoupon) {
+                return res.status(400).json({ message: 'Coupon usage limit was reached just now. Please remove it.' });
+            }
+            appliedCouponCode = updatedCoupon.code;
+            appliedDiscountAmount = couponResult.discount;
+            couponDoc = updatedCoupon;
+        }
+
+        const serverGrandTotal = Math.max(0, serverSubtotal - appliedDiscountAmount) + serverDeliveryFee;
 
         // 2. Decrement stock atomically with rollback on collision (W1-06)
         const decrementedList = [];
@@ -276,10 +308,25 @@ router.post('/', protect, async (req, res) => {
             shippingAddress,
             paymentMethod: normalizedPayment,
             paymentStatus: normalizedPayment === 'COD' ? 'Pending' : 'Completed',
+            couponCode: appliedCouponCode,
+            discountAmount: appliedDiscountAmount,
             status: 'Processing'
         });
 
         const savedOrder = await newOrder.save();
+
+        if (appliedCouponCode && couponDoc) {
+            try {
+                await CouponRedemption.create({
+                    coupon: couponDoc._id,
+                    user: req.user._id,
+                    order: savedOrder._id,
+                    amount: appliedDiscountAmount
+                });
+            } catch (rErr) {
+                console.error('[CouponRedemption] Record error:', rErr.message);
+            }
+        }
 
         if (saveAddressToProfile && req.user._id) {
             try {
@@ -347,6 +394,14 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
                     await Product.findByIdAndUpdate(item.product, {
                         $inc: { stock: item.quantity }
                     });
+                }
+            }
+            if (existingOrder.couponCode) {
+                try {
+                    await CouponRedemption.deleteOne({ order: existingOrder._id });
+                    await Coupon.updateOne({ code: existingOrder.couponCode }, { $inc: { usedCount: -1 } });
+                } catch (cErr) {
+                    console.error('[CouponRedemption] Release error:', cErr.message);
                 }
             }
         }

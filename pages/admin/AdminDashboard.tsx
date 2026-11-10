@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { mockApi } from '../../services/mockService';
 import { Order, Product, OrderStatus, User, RentalBooking, RentalStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
+import { AdminBanners } from './AdminBanners';
+import { AdminCoupons } from './AdminCoupons';
+import { AdminBrands } from './AdminBrands';
 
 const getAuthToken = () => {
     try {
@@ -43,7 +46,7 @@ const rentalStatusColors: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews' | 'banners' | 'coupons' | 'brands'>('overview');
     const [adminReviews, setAdminReviews] = useState<any[]>([]);
     const [loadingReviews, setLoadingReviews] = useState(false);
     const [reviewFilter, setReviewFilter] = useState<'all' | 'approved' | 'hidden'>('all');
@@ -577,6 +580,9 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'overview', label: 'Overview' },
                         { id: 'products', label: 'Products' },
                         { id: 'orders', label: 'Orders' },
+                        { id: 'banners', label: '🖼️ Banners' },
+                        { id: 'coupons', label: '🏷️ Coupons' },
+                        { id: 'brands', label: '✨ Brands' },
                         { id: 'notifications', label: '📢 Customer Alerts' },
                         { id: 'rentals', label: 'Lehenga Rentals' },
                         { id: 'lehengas', label: 'Lehenga Catalog' },
@@ -2060,6 +2066,15 @@ export const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* BANNERS */}
+                    {activeTab === 'banners' && <AdminBanners token={getAuthToken()} />}
+
+                    {/* COUPONS */}
+                    {activeTab === 'coupons' && <AdminCoupons token={getAuthToken()} />}
+
+                    {/* BRANDS */}
+                    {activeTab === 'brands' && <AdminBrands token={getAuthToken()} />}
                 </div>
 
                 {/* REVIEWS MODERATION */}

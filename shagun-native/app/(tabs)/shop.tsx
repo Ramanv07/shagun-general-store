@@ -100,8 +100,10 @@ export default function ShopScreen() {
     const matchCat = selectedCategory === 'All' || p.category === selectedCategory;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchBrand = !selectedBrand || selectedBrand === 'All' ||
-      (typeof p.brand_id === 'object' && p.brand_id ? p.brand_id.slug === selectedBrand : false) ||
+      (typeof p.brand_id === 'object' && p.brand_id ? (p.brand_id.slug === selectedBrand || p.brand_id._id === selectedBrand) : false) ||
       (typeof p.brand_id === 'string' && p.brand_id === selectedBrand) ||
+      (typeof (p as any).brand === 'object' && (p as any).brand ? ((p as any).brand.slug === selectedBrand || (p as any).brand._id === selectedBrand) : false) ||
+      (typeof (p as any).brand === 'string' && ((p as any).brand === selectedBrand || (p as any).brand.toLowerCase() === selectedBrand.toLowerCase())) ||
       p.name.toLowerCase().includes(selectedBrand.toLowerCase().replace(/-/g, ' '));
     return matchCat && matchSearch && matchBrand;
   });

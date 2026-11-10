@@ -22,6 +22,8 @@ const orderSchema = new mongoose.Schema({
     },
     paymentMethod: { type: String, enum: ['COD', 'Online', 'UPI'], default: 'COD' },
     paymentStatus: { type: String, enum: ['Pending', 'Completed', 'Failed'], default: 'Pending' },
+    couponCode: { type: String, default: null },
+    discountAmount: { type: Number, default: 0 },
     status: { 
         type: String, 
         enum: ['Processing', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'], 

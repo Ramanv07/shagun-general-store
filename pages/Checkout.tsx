@@ -115,8 +115,10 @@ export const Checkout: React.FC = () => {
         shippingAddress: formData,
         status: 'Processing' as any,
         paymentMethod: 'COD',
-        paymentStatus: 'Pending'
-      });
+        paymentStatus: 'Pending',
+        couponCode: appliedCoupon?.code || undefined,
+        discountAmount: discountAmount || 0
+      } as any);
 
       // If user checked save to profile and it's a new address
       if (saveToProfile && user && updateUser) {

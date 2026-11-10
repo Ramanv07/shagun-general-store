@@ -23,6 +23,8 @@ import wishlistRoutes from './routes/wishlistRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import brandRoutes from './routes/brandRoutes.js';
 import paymentPreferenceRoutes from './routes/paymentPreferenceRoutes.js';
+import bannerRoutes from './routes/bannerRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -92,6 +94,8 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/payment-preferences', paymentPreferenceRoutes);
+app.use('/api/banners', bannerRoutes);
+app.use('/api/coupons', couponRoutes);
 
 // --- P2: Production Static File Serving & Cache-Control Headers ---
 const distPath = path.resolve(__dirname, '../dist');

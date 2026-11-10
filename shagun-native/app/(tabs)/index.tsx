@@ -111,18 +111,39 @@ const HOME_CATEGORIES = [
 
 /* ═══════════════════ AUTO-SCROLL POSTER ═══════════════════ */
 function AutoScrollPoster({ router, focused }: { router: ReturnType<typeof useRouter>; focused: boolean }) {
-  const count = BANNERS.length;
-  if (count === 0) return null;
-
+  const [banners, setBanners] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const ref = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [slideWidth, setSlideWidth] = useState(SCREEN_WIDTH - 32);
   const isDragging = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-slide every 3.5 seconds
   useEffect(() => {
-    if (!focused) return;
+    let isMounted = true;
+    api.getBanners('app_home').then((data) => {
+      if (isMounted) {
+        if (Array.isArray(data) && data.length > 0) {
+          setBanners(data);
+        } else {
+          setBanners(BANNERS);
+        }
+        setLoaded(true);
+      }
+    }).catch(() => {
+      if (isMounted) {
+        setBanners(BANNERS);
+        setLoaded(true);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  const count = banners.length;
+
+  // Auto-slide every 3.5 seconds (only when 2 or more banners)
+  useEffect(() => {
+    if (!focused || count <= 1) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
 
@@ -142,6 +163,8 @@ function AutoScrollPoster({ router, focused }: { router: ReturnType<typeof useRo
     };
   }, [focused, count, slideWidth]);
 
+  if (!loaded || count === 0) return null;
+
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
     if (slideWidth > 0) {
@@ -157,6 +180,23 @@ function AutoScrollPoster({ router, focused }: { router: ReturnType<typeof useRo
     ref.current?.scrollTo({ x: idx * slideWidth, animated: true });
   };
 
+  const handleBannerPress = (b: any) => {
+    const target = b.target;
+    if (!target || target.type === 'none') {
+      if (b.route) router.push(b.route as any);
+      return;
+    }
+    if (target.type === 'category' && target.value) {
+      router.push({ pathname: '/(tabs)/shop', params: { category: target.value } } as any);
+    } else if (target.type === 'product' && target.value) {
+      router.push({ pathname: '/product-details', params: { id: target.value } } as any);
+    } else if (target.type === 'offers') {
+      router.push('/(tabs)/offers' as any);
+    } else if (b.route) {
+      router.push(b.route as any);
+    }
+  };
+
   return (
     <View
       style={ps.wrap}
@@ -170,7 +210,8 @@ function AutoScrollPoster({ router, focused }: { router: ReturnType<typeof useRo
       <ScrollView
         ref={ref}
         horizontal
-        pagingEnabled
+        pagingEnabled={count > 1}
+        scrollEnabled={count > 1}
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={32}
@@ -181,40 +222,49 @@ function AutoScrollPoster({ router, focused }: { router: ReturnType<typeof useRo
           setTimeout(() => { isDragging.current = false; }, 1500);
         }}
       >
-        {BANNERS.map((b) => (
-          <TouchableOpacity
-            key={b.id}
-            style={[ps.slide, { width: slideWidth }]}
-            activeOpacity={0.9}
-            onPress={() => router.push(b.route as any)}
-          >
-            <View style={ps.left}>
-              <Text style={ps.title}>{b.title}</Text>
-              <Text style={ps.sub} numberOfLines={2}>{b.sub}</Text>
-              <View style={ps.btn}>
-                <Text style={ps.btnTxt}>{b.buttonText}</Text>
-                <ArrowRight size={12} color={THEME.colors.white} strokeWidth={2} />
+        {banners.map((b, idx) => {
+          const imgSource = typeof b.image === 'number' ? b.image : { uri: b.imageUrl || b.image };
+          const isTappable = Boolean(b.route || (b.target && b.target.type !== 'none'));
+
+          return (
+            <TouchableOpacity
+              key={b._id || b.id || idx}
+              style={[ps.slide, { width: slideWidth }]}
+              activeOpacity={isTappable ? 0.9 : 1}
+              disabled={!isTappable}
+              onPress={() => handleBannerPress(b)}
+            >
+              <View style={ps.left}>
+                <Text style={ps.title}>{b.title}</Text>
+                <Text style={ps.sub} numberOfLines={2}>{b.sub || ''}</Text>
+                {isTappable && (
+                  <View style={ps.btn}>
+                    <Text style={ps.btnTxt}>{b.buttonText || 'Explore'}</Text>
+                    <ArrowRight size={12} color={THEME.colors.white} strokeWidth={2} />
+                  </View>
+                )}
               </View>
-            </View>
-            <View style={ps.right}>
-              <Image source={b.image} style={ps.img} resizeMode="cover" />
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={ps.right}>
+                <Image source={imgSource} style={ps.img} resizeMode="cover" />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {/* Dots Indicator */}
-      <View style={ps.dots}>
-        {BANNERS.map((_, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => handleDotPress(i)}
-            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-          >
-            <View style={[ps.dot, currentIndex === i && ps.dotOn]} />
-          </TouchableOpacity>
-        ))}
-      </View>
+      {count > 1 && (
+        <View style={ps.dots}>
+          {banners.map((_, i) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => handleDotPress(i)}
+              style={[ps.dot, i === currentIndex && ps.dotOn]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -229,6 +279,7 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [brands, setBrands] = useState<any[]>([]);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -244,9 +295,10 @@ export default function HomeScreen() {
   useDoubleBackToExit();
   useFocusEffect(useCallback(() => {
     setFocused(true);
-    // Fetch live delivery config, unread notifications count, and products
+    // Fetch live delivery config, unread notifications count, products, and active brands
     api.getDeliveryConfig().then(cfg => setDeliveryConfig(cfg));
     api.getUnreadNotificationCount().then(cnt => setUnreadCount(cnt));
+    api.getActiveBrands().then(b => setBrands(Array.isArray(b) ? b : [])).catch(() => setBrands([]));
     loadProducts();
     return () => setFocused(false);
   }, [loadProducts]));
@@ -380,6 +432,54 @@ export default function HomeScreen() {
             </View>
           </View>
         ) : null}
+
+        {/* ── Brands You Love (Phase B3: Un-hidden when active brands with products exist) ── */}
+        {brands.length > 0 && (
+          <View style={s.brandsSection}>
+            <View style={s.sectionHeader}>
+              <View style={s.sectionTitleGroup}>
+                <Text style={s.sectionTitle}>Brands You Love</Text>
+              </View>
+              <TouchableOpacity
+                style={s.seeAllBtn}
+                activeOpacity={0.7}
+                onPress={() => router.push({ pathname: '/(tabs)/shop' } as any)}
+              >
+                <Text style={s.seeAllText}>All Brands</Text>
+                <ArrowRight size={13} color={THEME.colors.maroon700} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.brandsTrack}
+            >
+              {brands.map((b: any) => (
+                <TouchableOpacity
+                  key={b._id}
+                  style={s.brandCard}
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(tabs)/shop',
+                      params: { brand: b.slug || b.name || b._id },
+                    } as any)
+                  }
+                >
+                  <View style={s.brandLogoWrapper}>
+                    {b.logo ? (
+                      <Image source={{ uri: b.logo }} style={s.brandLogoImg} resizeMode="contain" />
+                    ) : (
+                      <Text style={s.brandInitial}>{b.name?.[0] || 'B'}</Text>
+                    )}
+                  </View>
+                  <Text style={s.brandName} numberOfLines={1}>{b.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── Category-wise Product Sections ── */}
         {loadingProducts ? (
@@ -775,5 +875,45 @@ const s = StyleSheet.create({
     color: THEME.colors.maroon900,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  brandsSection: {
+    marginVertical: 12,
+  },
+  brandsTrack: {
+    paddingHorizontal: 16,
+    gap: 12,
+    paddingBottom: 6,
+  },
+  brandCard: {
+    width: 96,
+    alignItems: 'center',
+  },
+  brandLogoWrapper: {
+    width: 68,
+    height: 68,
+    borderRadius: 16,
+    backgroundColor: THEME.colors.white,
+    borderWidth: 1,
+    borderColor: THEME.colors.blush200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+    ...THEME.shadow,
+    marginBottom: 6,
+  },
+  brandLogoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  brandInitial: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: THEME.colors.maroon700,
+  },
+  brandName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.colors.ink900,
+    textAlign: 'center',
   },
 });

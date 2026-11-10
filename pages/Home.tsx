@@ -8,6 +8,8 @@ import { Hero } from '../components/Hero';
 import { CategoryStrip } from '../components/CategoryStrip';
 import { PromoCards } from '../components/PromoCards';
 import { QuickCategoryGrid } from '../components/QuickCategoryGrid';
+import { WebBannerCarousel } from '../components/WebBannerCarousel';
+import { BrandsYouLove } from '../components/BrandsYouLove';
 import { mockApi } from '../services/mockService';
 
 /* ── Typewriter component ──────────────────────────────── */
@@ -173,10 +175,18 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Promotional Banners Feed */}
+      <WebBannerCarousel />
+
       {/* ════════════════════════════════════════════
           QUICK CATEGORY GRID (Zepto / Quick Commerce Style)
       ════════════════════════════════════════════ */}
       <QuickCategoryGrid />
+
+      {/* ════════════════════════════════════════════
+          BRANDS YOU LOVE
+      ════════════════════════════════════════════ */}
+      <BrandsYouLove />
 
       {/* ════════════════════════════════════════════
           TRENDING SECTION

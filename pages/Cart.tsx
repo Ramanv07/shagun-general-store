@@ -18,8 +18,9 @@ export const Cart: React.FC = () => {
     } catch { return null; }
   });
   const [couponMessage, setCouponMessage] = React.useState<{ text: string; isError: boolean } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = React.useState(false);
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = couponCode.trim().toUpperCase();
     if (!code) return;
@@ -29,22 +30,34 @@ export const Cart: React.FC = () => {
       return;
     }
 
-    if (code === 'SHAGUN10') {
-      const discount = Math.round(totalPrice * 0.1);
-      const couponObj = { code, discount };
+    try {
+      setValidatingCoupon(true);
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          code,
+          items: items.map(i => ({ product: i.product._id, quantity: i.quantity }))
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponMessage({ text: data.message || 'Invalid coupon code.', isError: true });
+        return;
+      }
+
+      const couponObj = { code: data.code, discount: data.discount };
       setAppliedCoupon(couponObj);
       sessionStorage.setItem('shagun_applied_coupon', JSON.stringify(couponObj));
-      setCouponMessage({ text: `Code SHAGUN10 applied: ₹${discount} off!`, isError: false });
-    } else if (code === 'Bamitha50') {
-      const discount = Math.min(50, totalPrice);
-      const couponObj = { code, discount };
-      setAppliedCoupon(couponObj);
-      sessionStorage.setItem('shagun_applied_coupon', JSON.stringify(couponObj));
-      setCouponMessage({ text: `Code Bamitha50 applied: ₹${discount} off!`, isError: false });
-    } else if (code === 'EXPIRED2025' || code === 'SAVE2024') {
-      setCouponMessage({ text: 'This coupon code has expired.', isError: true });
-    } else {
-      setCouponMessage({ text: 'Invalid coupon code. Try SHAGUN10 or Bamitha50.', isError: true });
+      setCouponMessage({ text: data.message || `Code ${data.code} applied: ₹${data.discount} off!`, isError: false });
+    } catch {
+      setCouponMessage({ text: 'Unable to validate coupon right now.', isError: true });
+    } finally {
+      setValidatingCoupon(false);
     }
   };
 

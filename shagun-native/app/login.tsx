@@ -539,14 +539,14 @@ export default function LoginScreen() {
 
             {forgotError ? (
               <View style={[styles.alertBox, styles.alertError, { marginBottom: 12 }]}>
-                <AlertCircle size={15} color={THEME.colors.red700} />
+                <AlertCircle size={15} color={THEME.colors.error} />
                 <Text style={styles.alertText}>{forgotError}</Text>
               </View>
             ) : null}
 
             {forgotSuccess ? (
               <View style={[styles.alertBox, styles.alertSuccess, { marginBottom: 12 }]}>
-                <CheckCircle size={15} color={THEME.colors.forest700} />
+                <CheckCircle size={15} color={THEME.colors.success} />
                 <Text style={styles.alertText}>{forgotSuccess}</Text>
               </View>
             ) : null}
@@ -559,7 +559,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={[styles.textInput, { marginBottom: 14 }]}
                   placeholder="Enter 10-digit mobile number"
-                  placeholderTextColor={THEME.colors.ink300}
+                  placeholderTextColor={THEME.colors.ink500}
                   keyboardType="phone-pad"
                   maxLength={10}
                   value={forgotPhone}
@@ -586,7 +586,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={[styles.textInput, { marginBottom: 10 }]}
                   placeholder="6-digit OTP"
-                  placeholderTextColor={THEME.colors.ink300}
+                  placeholderTextColor={THEME.colors.ink500}
                   keyboardType="number-pad"
                   maxLength={6}
                   value={forgotOtp}
@@ -595,7 +595,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={[styles.textInput, { marginBottom: 14 }]}
                   placeholder="New password (min 6 characters)"
-                  placeholderTextColor={THEME.colors.ink300}
+                  placeholderTextColor={THEME.colors.ink500}
                   secureTextEntry
                   value={forgotNewPassword}
                   onChangeText={setForgotNewPassword}
@@ -635,8 +635,8 @@ export default function LoginScreen() {
                 }}
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
               >
-                <Phone size={13} color={THEME.colors.forest700} />
-                <Text style={{ fontSize: 11.5, color: THEME.colors.forest700, fontWeight: '600' }}>
+                <Phone size={13} color={THEME.colors.success} />
+                <Text style={{ fontSize: 11.5, color: THEME.colors.success, fontWeight: '600' }}>
                   Need help? Contact WhatsApp Support
                 </Text>
               </TouchableOpacity>
@@ -951,6 +951,41 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   whatsappBtnText: {
+    color: THEME.colors.white,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  alertBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  alertError: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  alertSuccess: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  alertText: {
+    flex: 1,
+    fontSize: 12,
+    color: THEME.colors.ink900,
+    fontWeight: '500',
+  },
+  primaryBtn: {
+    backgroundColor: THEME.colors.maroon700,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnText: {
     color: THEME.colors.white,
     fontSize: 13,
     fontWeight: '700',

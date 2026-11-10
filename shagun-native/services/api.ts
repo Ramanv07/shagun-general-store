@@ -484,6 +484,60 @@ export const api = {
     return { preferred_method: 'COD', upi_id: '' };
   },
 
+  getBanners: async (placement: string = 'app_home') => {
+    try {
+      const res = await fetch(`${BASE}/api/banners?placement=${encodeURIComponent(placement)}`);
+      if (res.ok) {
+        const banners = await res.json();
+        await appStorage.setItem(`cached_banners_${placement}`, JSON.stringify(banners));
+        return banners;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch banners, checking cache', e);
+    }
+    const cached = await appStorage.getItem(`cached_banners_${placement}`);
+    return cached ? JSON.parse(cached) : [];
+  },
+
+  validateCoupon: async (code: string, items: Array<{ product: string; quantity: number }>): Promise<{ valid: boolean; code: string; discount: number; itemsTotal: number; message: string }> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/coupons/validate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ code, items }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Invalid coupon code');
+    }
+    return data;
+  },
+
+  getPublicCoupons: async (): Promise<any[]> => {
+    try {
+      const res = await fetch(`${BASE}/api/coupons/public`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch public coupons', e);
+    }
+    return [];
+  },
+
+  getActiveBrands: async (): Promise<any[]> => {
+    try {
+      const res = await fetch(`${BASE}/api/brands/active-with-products`);
+      if (res.ok) {
+        const brands = await res.json();
+        await appStorage.setItem('cached_brands_active', JSON.stringify(brands));
+        return brands;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch active brands', e);
+    }
+    const cached = await appStorage.getItem('cached_brands_active');
+    return cached ? JSON.parse(cached) : [];
+  },
+
   updatePaymentPreferences: async (preferred_method: 'COD' | 'UPI', upi_id?: string): Promise<PaymentPreference> => {
     const headers = await getAuthHeaders();
     const res = await fetch(`${BASE}/api/payment-preferences`, {
