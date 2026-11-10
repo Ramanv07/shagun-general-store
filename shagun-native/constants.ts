@@ -29,8 +29,15 @@ export const CATEGORIES = [
 
 export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800";
 
-// Read API base URL from EXPO_PUBLIC_API_URL with default http://localhost:5000/api for dev builds
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (typeof __DEV__ !== 'undefined' && __DEV__ ? 'http://localhost:5000/api' : 'http://localhost:5000/api');
+// Read API base URL from EXPO_PUBLIC_API_URL; fails in production build if missing
+const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+if (!isDev && !envApiUrl) {
+  throw new Error('FATAL: EXPO_PUBLIC_API_URL is required for production builds. Configure in eas.json or build environment.');
+}
+
+export const API_BASE_URL = envApiUrl || 'http://localhost:5000/api';
 
 export const PRIVACY_POLICY_URL = `${API_BASE_URL.replace(/\/api\/?$/, '')}/privacy`;
 

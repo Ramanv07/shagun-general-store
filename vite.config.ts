@@ -2,8 +2,12 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, '.', '');
+    const apiUrl = env.VITE_API_URL || process.env.VITE_API_URL;
+    if (command === 'build' && !apiUrl) {
+        throw new Error('FATAL BUILD ERROR: VITE_API_URL is required for production builds. Configure VITE_API_URL=/api on Vercel or in environment.');
+    }
     return {
       server: {
         port: 3000,
