@@ -3,9 +3,14 @@ import React from 'react';
 export const PrivacyPolicy: React.FC = () => {
   return (
     <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Draft Disclaimer Banner (Plain text, no emojis) */}
+      <div className="max-w-3xl mx-auto mb-6 bg-amber-50 border border-amber-300 rounded-xl p-4 text-xs text-amber-900 font-medium">
+        [Draft Policy — Pending Store Owner Review &amp; Legal Validation before production launch]
+      </div>
+
       <div className="max-w-3xl mx-auto bg-white p-8 sm:p-12 rounded-2xl shadow-sm border border-stone-200">
         <h1 className="text-3xl font-bold text-stone-900 mb-2">Privacy Policy</h1>
-        <p className="text-sm text-stone-500 mb-8">Last updated: October 5, 2026</p>
+        <p className="text-sm text-stone-500 mb-8">Last updated: [FILL: effective date, e.g. October 5, 2026]</p>
 
         <section className="space-y-6 text-stone-700 leading-relaxed">
           <div>
@@ -51,7 +56,7 @@ export const PrivacyPolicy: React.FC = () => {
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>In-App Deletion:</strong> You can permanently delete your account and all associated personal data directly from the mobile app by navigating to <em>Account → Delete Account</em>.</li>
-              <li><strong>Online Request:</strong> You can also request account and data deletion by emailing us at <a href="mailto:support@shagun.com" className="text-rose-700 underline">support@shagun.com</a> or messaging our store support on WhatsApp. Upon verification, your account and profile data will be permanently removed within 48 hours.</li>
+              <li><strong>Online Request:</strong> You can also request account and data deletion by emailing us at <a href="mailto:support@shagunmart.com" className="text-rose-700 underline">[FILL: support email, e.g. support@shagunmart.com]</a> or messaging our store support on WhatsApp. Upon verification, your account and profile data will be permanently removed within [FILL: 48 hours / turnaround period].</li>
             </ul>
           </div>
 
@@ -63,7 +68,7 @@ export const PrivacyPolicy: React.FC = () => {
             <div className="mt-2 p-4 bg-stone-100 rounded-lg text-sm text-stone-800 space-y-1">
               <p><strong>Shagun Mart</strong></p>
               <p>Support WhatsApp: +91 88272 59023</p>
-              <p>Email: support@shagun.com</p>
+              <p>Email: [FILL: support email, e.g. support@shagunmart.com]</p>
             </div>
           </div>
         </section>

@@ -48,11 +48,13 @@ const Typewriter = ({ texts, delay = 110 }: { texts: string[]; delay?: number })
 };
 
 /* ── Feature data ──────────────────────────────────────── */
+// STORE LOCATION & DELIVERY COVERAGE SOURCE: Delivery area and radius defaults.
+// Configured default: Bamitha local radius; marked [FILL: delivery area / coverage radius] until connected to dynamic store settings.
 const FEATURES = [
-  { icon: 'fa-truck-fast', title: 'Fast Delivery', desc: 'Same-day delivery within city limits on orders above ₹399.' },
+  { icon: 'fa-truck-fast', title: 'Fast Delivery', desc: 'Same-day delivery within [FILL: delivery area, e.g. Bamitha & surrounding 10 km] on orders above ₹399.' },
   { icon: 'fa-shield-check', title: 'Secure Payments', desc: 'Pay via UPI, cards or Netbanking — fully encrypted & safe.' },
   { icon: 'fa-gem', title: 'Premium Quality', desc: 'Carefully sourced products from trusted suppliers only.' },
-  { icon: 'fa-arrows-rotate', title: 'Easy Returns', desc: '7-day hassle-free return policy on all eligible items.' },
+  { icon: 'fa-arrows-rotate', title: 'Easy Returns', desc: '[FILL: return policy period, e.g. 7-day] return policy on eligible items.' },
 ];
 
 /* ── Category icons ────────────────────────────────────── */
@@ -432,11 +434,12 @@ export const Home: React.FC = () => {
             {/* Contact */}
             <div>
               <h4 className="text-gold-400 text-xs font-bold tracking-widest uppercase mb-4">Contact Us</h4>
+              {/* STORE LOCATION SOURCE: Physical address and operating hours. Mark unverified details as [FILL]. */}
               <ul className="space-y-3">
                 {[
                   { icon: 'fa-whatsapp fab', text: '+91 88272 59023' },
-                  { icon: 'fa-map-marker-alt', text: 'Bamitha, Madhya Pradesh' },
-                  { icon: 'fa-clock', text: 'Mon–Sat: 9am – 9pm' },
+                  { icon: 'fa-map-marker-alt', text: 'Bamitha, Madhya Pradesh [FILL: complete store address / landmark]' },
+                  { icon: 'fa-clock', text: 'Mon–Sat: 9am – 9pm [FILL: store operating hours]' },
                 ].map(c => (
                   <li key={c.text} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(251,243,231,0.65)' }}>
                     <i className={`fas ${c.icon} text-gold-500 w-4 text-center`} />

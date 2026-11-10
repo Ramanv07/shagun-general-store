@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { mockApi } from '../services/mockService';
 import { auth, googleProvider, signInWithPopup } from '../services/firebase';
+import { sanitizeRedirectUrl } from '../utils/urlSanitizer';
 
 export const Login: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,9 +14,10 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect destination after login/signup
+  // Redirect destination after login/signup (sanitized against open redirects)
   const searchParams = new URLSearchParams(location.search);
-  const redirectUrl = searchParams.get('redirect') || (location.state as any)?.from?.pathname || (location.state as any)?.from || '/';
+  const rawTarget = searchParams.get('redirect') || (location.state as any)?.from?.pathname || (location.state as any)?.from || '/';
+  const redirectUrl = sanitizeRedirectUrl(rawTarget, '/');
   const customMessage = searchParams.get('msg');
 
   // Sign In form state

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resizeImage } from '../../utils/imageResizer';
 
 interface Brand {
     _id: string;
@@ -72,8 +73,13 @@ export const AdminBrands: React.FC<AdminBrandsProps> = ({ token }) => {
 
         try {
             setUploading(true);
+            const processedFile = await resizeImage(file, 1600, 0.8);
+            if (processedFile.size > 4 * 1024 * 1024) {
+                alert('Image must be under 4 MB');
+                return;
+            }
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('image', processedFile);
 
             const res = await fetch('/api/upload', {
                 method: 'POST',
@@ -83,7 +89,7 @@ export const AdminBrands: React.FC<AdminBrandsProps> = ({ token }) => {
 
             if (!res.ok) throw new Error('Upload failed');
             const data = await res.json();
-            const uploadedUrl = data.url || (data.urls && data.urls[0]);
+            const uploadedUrl = data.imageUrl || data.url || (data.urls && data.urls[0]);
             if (uploadedUrl) {
                 setEditingBrand(prev => (prev ? { ...prev, logo: uploadedUrl } : null));
             }

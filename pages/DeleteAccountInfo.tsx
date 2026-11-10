@@ -62,7 +62,7 @@ export const DeleteAccountInfo: React.FC = () => {
                 3. What Data Is Retained (Statutory Accounting & Tax Compliance)
               </h2>
               <p className="text-cream-700 leading-relaxed">
-                In compliance with Section 128 of the Companies Act, GST laws, and Indian financial regulations, completed order records (purchased item names, quantities, unit prices, total invoice amounts, and transaction timestamps) are retained for a statutory period of <strong>7 years</strong>. All customer-identifying information (full name, phone number, street, house number) is completely redacted from these order records, leaving only non-identifying aggregate geographic data (city, state, PIN code) for tax reporting.
+                In compliance with applicable accounting and tax laws, completed order records (purchased item names, quantities, unit prices, total invoice amounts, and transaction timestamps) are retained as required by applicable law [FILL: retention period, confirm with accountant]. All customer-identifying information (full name, phone number, street, house number) is completely redacted from these order records, leaving only non-identifying aggregate geographic data (city, state, PIN code) for tax reporting.
               </p>
             </section>
 

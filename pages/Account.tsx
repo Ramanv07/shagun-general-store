@@ -25,6 +25,8 @@ export const Account: React.FC = () => {
     });
 
     // Address Management State
+    // STORE LOCATION & COVERAGE SOURCE: Default state & PIN set for local store service area (Bamitha 471105).
+    // Mark as [FILL: store address / delivery area] until configurable via store profile settings.
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [addressForm, setAddressForm] = useState<Address>({
         fullName: user?.name || '',
@@ -33,7 +35,7 @@ export const Account: React.FC = () => {
         street: '',
         city: '',
         state: 'Madhya Pradesh',
-        pinCode: '471105',
+        pinCode: '471105', // [FILL: store service delivery area PIN code]
         isDefault: false
     });
 

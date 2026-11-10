@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { resizeImage } from '../../utils/imageResizer';
 
 interface BannerItem {
   _id: string;
@@ -109,8 +110,13 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({ token }) => {
 
     try {
       setUploading(true);
+      const processedFile = await resizeImage(file, 1600, 0.8);
+      if (processedFile.size > 4 * 1024 * 1024) {
+        alert('Processed image size exceeds 4MB limit.');
+        return;
+      }
       const data = new FormData();
-      data.append('image', file);
+      data.append('image', processedFile);
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -118,7 +124,7 @@ export const AdminBanners: React.FC<AdminBannersProps> = ({ token }) => {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Upload failed');
-      setFormData(prev => ({ ...prev, imageUrl: result.url }));
+      setFormData(prev => ({ ...prev, imageUrl: result.url || result.imageUrl }));
     } catch (err: any) {
       alert(err.message || 'Failed to upload image');
     } finally {
