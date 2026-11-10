@@ -29,13 +29,10 @@ export const CATEGORIES = [
 
 export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800";
 
-// Production backend API URL (Vercel + MongoDB Atlas):
-export const API_BASE_URL = "https://shagun-general-store.vercel.app";
+// Read API base URL from EXPO_PUBLIC_API_URL with default http://localhost:5000/api for dev builds
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (typeof __DEV__ !== 'undefined' && __DEV__ ? 'http://localhost:5000/api' : 'http://localhost:5000/api');
 
-// In local dev with custom backend port, uncomment:
-// export const API_BASE_URL = "http://172.20.10.9:5000";
-
-export const PRIVACY_POLICY_URL = "https://shagun-general-store.vercel.app/privacy";
+export const PRIVACY_POLICY_URL = `${API_BASE_URL.replace(/\/api\/?$/, '')}/privacy`;
 
 export const STORAGE_KEYS = {
   CURRENT_USER: 'shagun_current_user',

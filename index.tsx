@@ -3,14 +3,16 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Patch fetch for Capacitor/production to point to Vercel API only when not running on localhost
-const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-if (!isLocalhost) {
+// Web API base URL configuration: read from VITE_API_URL, defaulting to http://localhost:5000/api in dev
+const rawWebUrl = (import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.DEV ? 'http://localhost:5000/api' : '');
+const normalizedWebBase = rawWebUrl ? rawWebUrl.replace(/\/api\/?$/, '') : '';
+
+if (normalizedWebBase) {
   const originalFetch = window.fetch;
   window.fetch = async function(...args) {
     let [resource, config] = args;
     if (typeof resource === 'string' && resource.startsWith('/api/')) {
-      resource = 'https://shagun-general-store.vercel.app' + resource;
+      resource = `${normalizedWebBase}${resource}`;
     }
     return originalFetch(resource, config);
   };

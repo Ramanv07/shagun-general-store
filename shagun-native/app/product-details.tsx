@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
-import { FALLBACK_IMAGE } from '../constants';
+import { FALLBACK_IMAGE, API_BASE_URL } from '../constants';
 import { THEME } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -106,7 +106,7 @@ export default function ProductDetailsScreen() {
     if (!product) return;
     try {
       await Share.share({
-        message: `Check out ${product.name} on Shagun Mart for just ₹${product.price}! https://shagun-general-store.vercel.app`,
+        message: `Check out ${product.name} on Shagun Mart for just ₹${product.price}! ${API_BASE_URL.replace(/\/api\/?$/, '')}`,
       });
     } catch {}
   };

@@ -206,6 +206,8 @@ export async function sendAdminOrderNotification(order) {
       `💳 Payment: ${payment}\n\n` +
       `Items:\n${itemsSummary}`;
 
+    const adminPortalUrl = (process.env.ADMIN_PORTAL_URL || process.env.PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
     try {
       await fetch(`https://ntfy.sh/${ntfyTopic}`, {
         method: 'POST',
@@ -213,7 +215,7 @@ export async function sendAdminOrderNotification(order) {
           'Title': ntfyTitle,
           'Priority': 'urgent',
           'Tags': 'shopping_bags,moneybag,package',
-          'Click': 'https://shagun-general-store.vercel.app/admin'
+          'Click': `${adminPortalUrl}/admin`
         },
         body: ntfyBody,
         signal: AbortSignal.timeout(5000)
@@ -233,7 +235,7 @@ export async function sendAdminOrderNotification(order) {
           `*City:* ${city}\n` +
           `*Total:* ₹${total} (${payment})\n\n` +
           `*Items:*\n${itemsSummary}\n\n` +
-          `👉 *Admin Portal:* https://shagun-general-store.vercel.app/admin`;
+          `👉 *Admin Portal:* ${adminPortalUrl}/admin`;
 
         const waUrl = `https://api.callmebot.com/whatsapp.php?phone=${adminPhone}&text=${encodeURIComponent(waText)}&apikey=${callMeBotKey}`;
         await fetch(waUrl, { signal: AbortSignal.timeout(5000) });

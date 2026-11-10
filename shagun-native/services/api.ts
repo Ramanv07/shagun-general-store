@@ -21,7 +21,8 @@ const getAuthHeaders = async (): Promise<Record<string, string>> => {
   return { 'Content-Type': 'application/json' };
 };
 
-const BASE = API_BASE_URL;
+// Read from API_BASE_URL (which reads EXPO_PUBLIC_API_URL or defaults to http://localhost:5000/api)
+const BASE = (API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 export const api = {
@@ -207,13 +208,11 @@ export const api = {
   },
 
   getUpiSettings: async (): Promise<{ enabled: boolean; upi_vpa: string | null; upi_name: string | null; timeout_minutes: number }> => {
-    try {
-      const res = await fetch(`${BASE}/api/settings/upi`);
-      if (!res.ok) return { enabled: false, upi_vpa: null, upi_name: null, timeout_minutes: 30 };
-      return await res.json();
-    } catch {
-      return { enabled: false, upi_vpa: null, upi_name: null, timeout_minutes: 30 };
+    const res = await fetch(`${BASE}/api/settings/upi`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch UPI settings: HTTP ${res.status}`);
     }
+    return await res.json();
   },
 
   deleteOrder: async (id: string): Promise<void> => {
@@ -382,9 +381,6 @@ export const api = {
 
   // ── Settings & Notifications (Phase A & B) ─────────────────────────────────
   getDeliveryConfig: async (): Promise<{ enabled: boolean; eta_min: number | null; eta_max: number | null }> => {
-    if (BASE.includes('vercel.app')) {
-      return { enabled: false, eta_min: null, eta_max: null };
-    }
     try {
       const res = await fetch(`${BASE}/api/settings/delivery-strip`);
       if (res.ok) return await res.json();
@@ -393,9 +389,6 @@ export const api = {
   },
 
   getUnreadNotificationCount: async (): Promise<number> => {
-    if (BASE.includes('vercel.app')) {
-      return 0;
-    }
     try {
       const headers = await getAuthHeaders();
       const res = await fetch(`${BASE}/api/notifications/unread-count`, { headers });
@@ -463,7 +456,6 @@ export const api = {
 
   // ── Reviews & Ratings (Phase E) ────────────────────────────────────────────
   getProductReviews: async (productId: string) => {
-    if (BASE.includes('vercel.app')) return { reviews: [], averageRating: null, reviewCount: 0 };
     try {
       const res = await fetch(`${BASE}/api/reviews/product/${productId}`);
       if (res.ok) return await res.json();
@@ -474,7 +466,6 @@ export const api = {
   },
 
   getMyReviews: async () => {
-    if (BASE.includes('vercel.app')) return [];
     try {
       const headers = await getAuthHeaders();
       const res = await fetch(`${BASE}/api/reviews/mine`, { headers });
@@ -486,7 +477,6 @@ export const api = {
   },
 
   getEligibleReviewProducts: async () => {
-    if (BASE.includes('vercel.app')) return [];
     try {
       const headers = await getAuthHeaders();
       const res = await fetch(`${BASE}/api/reviews/eligible`, { headers });
@@ -512,7 +502,6 @@ export const api = {
   },
 
   getPaymentPreferences: async (): Promise<PaymentPreference> => {
-    if (BASE.includes('vercel.app')) return { preferred_method: 'COD' };
     try {
       const headers = await getAuthHeaders();
       const res = await fetch(`${BASE}/api/payment-preferences`, { headers });

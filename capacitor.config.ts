@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Shagun Mart',
   webDir: 'dist',
   server: {
-    url: 'https://shagun-general-store.vercel.app',
+    url: process.env.VITE_API_URL || 'http://localhost:5000/api',
     cleartext: true
   }
 };
