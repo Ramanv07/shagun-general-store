@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
-export async function up() {
-    console.log('Running migration: 004_sync_delivered_cod_status...');
+export async function up(options = {}) {
+    const isDryRun = options.confirm !== true;
+    console.log(`Running migration: 004_sync_delivered_cod_status (${isDryRun ? 'DRY-RUN' : 'LIVE RUN'})...`);
     const db = mongoose.connection.db;
     const ordersCol = db.collection('orders');
 
@@ -16,13 +17,19 @@ export async function up() {
     console.log(`Found ${countBefore} delivered COD/legacy order(s) with pending payment status.`);
 
     if (countBefore > 0) {
+        if (isDryRun) {
+            console.log(`[DRY-RUN] Found ${countBefore} order(s) to update to paymentStatus: 'Completed'. Pass --confirm to apply changes.`);
+            return { countBefore, modifiedCount: 0, isDryRun: true };
+        }
         const result = await ordersCol.updateMany(filter, {
             $set: { paymentStatus: 'Completed' }
         });
         console.log(`Successfully updated ${result.modifiedCount} order(s) to paymentStatus: 'Completed'.`);
+        return result;
     }
 
     console.log('Migration 004_sync_delivered_cod_status complete.');
+    return { countBefore: 0, modifiedCount: 0 };
 }
 
 export async function down() {
@@ -40,7 +47,8 @@ if (import.meta.url === `file://${process.argv[1]}`.replace(/\\/g, '/')) {
         console.error('FATAL SAFETY TRIGGER: Target is Atlas (mongodb.net). Set APPROVE_LIVE_MIGRATION=true to proceed.');
         process.exit(1);
     }
+    const hasConfirm = process.argv.includes('--confirm');
     await mongoose.connect(uri);
-    await up();
+    await up({ confirm: hasConfirm });
     await mongoose.disconnect();
 }

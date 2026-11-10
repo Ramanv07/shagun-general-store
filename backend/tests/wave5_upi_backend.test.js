@@ -757,7 +757,14 @@ describe('Wave 5: UPI Intent Payments (Option B) Backend & Security', () => {
             shippingAddress: { fullName: 'Mig 2', mobile: '9999999999', houseNo: '1', street: 'S', city: 'C', state: 'MP', pinCode: '471105' }
         });
 
-        await runMigration004();
+        // Dry-run default does not modify documents
+        const dryRunResult = await runMigration004();
+        expect(dryRunResult.isDryRun).toBe(true);
+        const unmutated = await Order.findById(o1._id);
+        expect(unmutated.paymentStatus).toBe('Pending');
+
+        // Confirmed run modifies documents
+        await runMigration004({ confirm: true });
 
         const refreshed1 = await Order.findById(o1._id);
         const refreshed2 = await Order.findById(o2._id);
