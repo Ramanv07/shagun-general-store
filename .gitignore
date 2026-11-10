@@ -44,5 +44,11 @@ tsc_output.txt
 backend/test_*.js
 test_*.js
 
+# Backups & Dumps
+*.dump
+*.tar.gz
+*.bak
+dump/
+backups/
 backend/backups/
 backend/staging-data/
