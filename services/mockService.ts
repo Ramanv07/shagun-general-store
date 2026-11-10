@@ -355,7 +355,9 @@ export const mockApi = {
 
   getUpiSettings: async (): Promise<{ enabled: boolean; upi_vpa: string | null; upi_name: string | null; timeout_minutes: number }> => {
     const res = await fetch('/api/settings/upi');
-    if (!res.ok) return { enabled: false, upi_vpa: null, upi_name: null, timeout_minutes: 30 };
+    if (!res.ok) {
+      throw new Error(`Failed to fetch UPI settings: HTTP ${res.status}`);
+    }
     return await res.json();
   },
 

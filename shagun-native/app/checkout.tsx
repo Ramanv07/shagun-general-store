@@ -9,8 +9,9 @@ import { useCart } from '../context/CartContext';
 import { useOrders } from '../context/OrderContext';
 import { useAuth } from '../context/AuthContext';
 import { Address, Order } from '../types';
-import { ADMIN_WHATSAPP } from '../constants';
+import { ADMIN_WHATSAPP, API_BASE_URL } from '../constants';
 import { api } from '../services/api';
+import { isLiveHost } from '../components/DevApiBanner';
 
 const PAYMENT_METHODS = ['COD', 'UPI', 'Online'] as const;
 
@@ -60,16 +61,29 @@ export default function CheckoutScreen() {
   // Payment & Order states
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI' | 'Online'>('COD');
   const [upiEnabled, setUpiEnabled] = useState(true);
+  const [upiMessage, setUpiMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const isDevLiveBlocked = Boolean(typeof __DEV__ !== 'undefined' && __DEV__ && isLiveHost(API_BASE_URL));
 
   useEffect(() => {
     api.getUpiSettings().then(res => {
-      setUpiEnabled(Boolean(res.enabled));
-      if (!res.enabled && paymentMethod === 'UPI') {
-        setPaymentMethod('COD');
+      const enabled = Boolean(res.enabled);
+      setUpiEnabled(enabled);
+      if (!enabled) {
+        setUpiMessage('UPI is not set up');
+        if (paymentMethod === 'UPI') {
+          setPaymentMethod('COD');
+        }
+      } else {
+        setUpiMessage(null);
       }
     }).catch(() => {
       setUpiEnabled(false);
+      setUpiMessage('Could not reach the server');
+      if (paymentMethod === 'UPI') {
+        setPaymentMethod('COD');
+      }
     });
   }, []);
 
@@ -209,6 +223,11 @@ export default function CheckoutScreen() {
   const finalTotal = cart.length === 0 ? 0 : (totalPrice + deliveryFee);
 
   const placeOrder = async () => {
+    if (isDevLiveBlocked) {
+      Alert.alert('Dev Guard', 'Dev build is pointed at the live server');
+      return;
+    }
+
     if (!isAuthenticated || !user || !user.token) {
       Alert.alert(
         'Login Required',
@@ -553,11 +572,19 @@ export default function CheckoutScreen() {
             })}
           </View>
           {!upiEnabled && (
-            <Text style={{ fontSize: 11, color: '#991b1b', marginTop: 6 }}>
-              UPI payments are temporarily unavailable. Please choose Cash on Delivery.
+            <Text style={{ fontSize: 11, color: '#991b1b', marginTop: 6, fontWeight: '600' }}>
+              {upiMessage || 'UPI payments are temporarily unavailable. Please choose Cash on Delivery.'}
             </Text>
           )}
         </View>
+
+        {isDevLiveBlocked && (
+          <View style={{ backgroundColor: '#dc2626', padding: 12, borderRadius: 10, marginHorizontal: 12, marginBottom: 12 }}>
+            <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 12, textAlign: 'center' }}>
+              ⚠️ Dev build is pointed at the live server. Placing orders is blocked.
+            </Text>
+          </View>
+        )}
 
         {/* ── Order Summary ── */}
         <View style={styles.section}>
@@ -587,11 +614,19 @@ export default function CheckoutScreen() {
         </View>
 
         {/* ── Place Order Button ── */}
-        <TouchableOpacity style={styles.orderBtn} onPress={placeOrder} disabled={loading} activeOpacity={0.85}>
-          {loading
-            ? <ActivityIndicator color="#1a0a12" />
-            : <Text style={styles.orderBtnText}>Place Order (₹{finalTotal.toLocaleString('en-IN')}) →</Text>
-          }
+        <TouchableOpacity
+          style={[styles.orderBtn, isDevLiveBlocked && { backgroundColor: '#dc2626' }]}
+          onPress={placeOrder}
+          disabled={loading || isDevLiveBlocked}
+          activeOpacity={0.85}
+        >
+          {isDevLiveBlocked ? (
+            <Text style={[styles.orderBtnText, { color: '#ffffff' }]}>Dev build is pointed at the live server</Text>
+          ) : loading ? (
+            <ActivityIndicator color="#1a0a12" />
+          ) : (
+            <Text style={styles.orderBtnText}>Place Order (₹{finalTotal.toLocaleString('en-IN')}) →</Text>
+          )}
         </TouchableOpacity>
         <View style={{ height: 40 }} />
 

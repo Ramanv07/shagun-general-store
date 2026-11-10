@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrders } from '../context/OrderContext';
 import { ADMIN_WHATSAPP } from '../constants';
 import { useNavigate } from 'react-router-dom';
+import { mockApi } from '../services/mockService';
+import { isLiveHost } from '../components/DevApiBanner';
 
 export const Checkout: React.FC = () => {
   const { cart, totalPrice, clearCart } = useCart();
@@ -28,19 +30,32 @@ export const Checkout: React.FC = () => {
   const [saveToProfile, setSaveToProfile] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI'>('COD');
   const [upiSettings, setUpiSettings] = useState<{ enabled: boolean; upi_vpa: string | null } | null>(null);
+  const [upiMessage, setUpiMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [orderId, setOrderId] = useState('');
+
+  const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.DEV ? 'http://localhost:5000/api' : '');
+  const isDevLiveBlocked = Boolean(import.meta.env.DEV && isLiveHost(apiUrl));
 
   // Check store UPI availability on mount
   useEffect(() => {
     mockApi.getUpiSettings().then(res => {
       setUpiSettings(res);
-      if (!res.enabled && paymentMethod === 'UPI') {
-        setPaymentMethod('COD');
+      if (!res.enabled) {
+        setUpiMessage('UPI is not set up');
+        if (paymentMethod === 'UPI') {
+          setPaymentMethod('COD');
+        }
+      } else {
+        setUpiMessage(null);
       }
     }).catch(() => {
       setUpiSettings({ enabled: false, upi_vpa: null });
+      setUpiMessage('Could not reach the server');
+      if (paymentMethod === 'UPI') {
+        setPaymentMethod('COD');
+      }
     });
   }, []);
 
@@ -90,6 +105,11 @@ export const Checkout: React.FC = () => {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isDevLiveBlocked) {
+      alert('Dev build is pointed at the live server');
+      return;
+    }
 
     // 0. Validate 6-digit PIN code
     const pinRegex = /^[1-9][0-9]{5}$/;
@@ -394,14 +414,20 @@ export const Checkout: React.FC = () => {
                     <span className="font-semibold text-sm block text-maroon-800">UPI Instant Payment</span>
                     <span className="text-xs text-cream-700 block mt-0.5">GPay, PhonePe, Paytm, BHIM or QR</span>
                     {!upiSettings?.enabled && (
-                      <span className="text-[11px] text-rose-700 block mt-1">
-                        Temporarily unavailable. Please choose COD.
+                      <span className="text-[11px] text-rose-700 block mt-1 font-medium">
+                        {upiMessage || 'Temporarily unavailable. Please choose COD.'}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {isDevLiveBlocked && (
+              <div className="bg-rose-700 text-white p-3 rounded-xl text-center text-xs font-bold shadow">
+                ⚠️ Dev build is pointed at the live server. Placing orders and payments are blocked.
+              </div>
+            )}
 
             <div className="flex justify-between items-center pt-3 border-t border-cream-200">
               <div>
@@ -418,10 +444,16 @@ export const Checkout: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4"
+              disabled={loading || isDevLiveBlocked}
+              className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4 ${
+                isDevLiveBlocked
+                  ? 'bg-rose-700 text-white cursor-not-allowed opacity-90'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
             >
-              {loading ? 'Processing...' : (
+              {isDevLiveBlocked ? (
+                <span>Dev build is pointed at the live server</span>
+              ) : loading ? 'Processing...' : (
                 <>
                   <span>Place Order</span>
                   <i className="fas fa-check-circle text-xl"></i>

@@ -10,6 +10,7 @@ import StoreSetting from '../models/StoreSetting.js';
 import PaymentPreference from '../models/PaymentPreference.js';
 import bcrypt from 'bcryptjs';
 import { sanitizeRedirectUrl } from '../utils/urlSanitizer.js';
+import { isLiveHost, getDisplayHost, getCheckoutUpiStatusMessage } from '../utils/hostSafety.js';
 import { jest } from '@jest/globals';
 import { v2 as cloudinary } from 'cloudinary';
 import { up as runMigration001 } from '../migrations/001_unique_indexes.js';
@@ -509,5 +510,72 @@ describe('Wave 5 Group 2: UPI Checkout & Confirming Screen Integration', () => {
 
         expect(res.status).toBe(200);
         expect(res.body.imageUrl).toBe('https://res.cloudinary.com/demo/image/upload/sample_mocked.webp');
+    });
+
+    test('10. Host safety check: isLiveHost accurately identifies live/production hosts vs local dev', () => {
+        // Live production hosts
+        expect(isLiveHost('https://shagun-general-store.vercel.app')).toBe(true);
+        expect(isLiveHost('https://shagun-general-store.vercel.app/api')).toBe(true);
+        expect(isLiveHost('https://shagunmart.com/api')).toBe(true);
+        expect(isLiveHost('https://preview-deploy.vercel.app')).toBe(true);
+        expect(isLiveHost('cluster0.abcde.mongodb.net')).toBe(true);
+        expect(isLiveHost('https://api.external-domain.com')).toBe(true);
+
+        // Local dev and private LAN hosts
+        expect(isLiveHost('http://localhost:5000/api')).toBe(false);
+        expect(isLiveHost('http://127.0.0.1:5000')).toBe(false);
+        expect(isLiveHost('http://0.0.0.0:5000/api')).toBe(false);
+        expect(isLiveHost('http://192.168.1.100:5000/api')).toBe(false);
+        expect(isLiveHost('http://10.0.2.2:5000/api')).toBe(false);
+        expect(isLiveHost('http://172.20.10.5:5000')).toBe(false);
+        expect(isLiveHost('')).toBe(false);
+    });
+
+    test('11. Display host formatter: getDisplayHost returns clean host:port for dev badge', () => {
+        expect(getDisplayHost('http://localhost:5000/api')).toBe('localhost:5000');
+        expect(getDisplayHost('http://192.168.1.45:5000/api')).toBe('192.168.1.45:5000');
+        expect(getDisplayHost('https://shagun-general-store.vercel.app/api')).toBe('shagun-general-store.vercel.app');
+        expect(getDisplayHost('localhost:5000')).toBe('localhost:5000');
+    });
+
+    test('12. Checkout UPI messages: distinct "UPI is not set up" vs "Could not reach the server", preserving COD', async () => {
+        // Case A: Fetch succeeds, but StoreSetting has no UPI configured
+        await StoreSetting.findOneAndUpdate(
+            { key: 'upi_config' },
+            { $set: { value: { upi_vpa: '', upi_name: '' } } }
+        );
+        const unconfiguredRes = await request.get('/api/settings/upi');
+        expect(unconfiguredRes.status).toBe(200);
+        expect(unconfiguredRes.body.enabled).toBe(false);
+
+        const msgUnconfigured = getCheckoutUpiStatusMessage(unconfiguredRes.body, null);
+        expect(msgUnconfigured).toBe('UPI is not set up');
+
+        // Case B: Network failure or 404/500 status (simulated fetch error / null response)
+        const msgNetworkError = getCheckoutUpiStatusMessage(null, new Error('Network request failed'));
+        expect(msgNetworkError).toBe('Could not reach the server');
+
+        // Case C: COD remains functional and can place order in both cases
+        const codOrderRes = await request
+            .post('/api/orders')
+            .set('Authorization', `Bearer ${customerToken}`)
+            .send({
+                items: [{ product: sampleProduct._id, quantity: 1 }],
+                totalAmount: 450,
+                paymentMethod: 'COD',
+                shippingAddress: {
+                    fullName: 'COD Tester',
+                    mobile: '9876543210',
+                    houseNo: '1',
+                    street: 'Road',
+                    city: 'Bamitha',
+                    state: 'MP',
+                    pinCode: '471105'
+                }
+            });
+
+        expect(codOrderRes.status).toBe(201);
+        expect(codOrderRes.body.paymentMethod).toBe('COD');
+        expect(codOrderRes.body.paymentStatus).toBe('Pending');
     });
 });
