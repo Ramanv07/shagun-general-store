@@ -57,15 +57,9 @@ const router = express.Router();
 
 // @route   GET /api/orders
 // @desc    Get all orders (admin) or user's own orders (customer)
+// Note: Read operations are strictly side-effect free. COD payment completion is handled on delivery in PUT /:id/status or migration 004.
 router.get('/', protect, async (req, res) => {
     try {
-        // Automatically mark COD payment as Completed in background without blocking GET request
-        Order.updateMany(
-            { status: 'Delivered', paymentStatus: 'Pending' },
-            { $set: { paymentStatus: 'Completed' } },
-            { runValidators: true }
-        ).catch(err => console.warn('COD status sync error:', err.message));
-
         let query = {};
         if (req.user.role !== 'admin') {
             query = {
@@ -88,16 +82,9 @@ router.get('/', protect, async (req, res) => {
 });
 
 // @route   GET /api/orders/myorders
-// @desc    Get orders of logged-in user
+// @desc    Get orders of logged-in user (side-effect free read)
 router.get('/myorders', protect, async (req, res) => {
     try {
-        // Automatically mark COD payment as Completed if order is already delivered
-        await Order.updateMany(
-            { status: 'Delivered', paymentStatus: 'Pending' },
-            { $set: { paymentStatus: 'Completed' } },
-            { runValidators: true }
-        );
-
         const orders = await Order.find({
             $or: [
                 { user: req.user._id },
@@ -954,8 +941,8 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
 
         // If transitioning to Delivered and was not Delivered before:
         if (status === 'Delivered' && existingOrder.status !== 'Delivered') {
-            // Fix COD pending payment to Completed
-            if (existingOrder.paymentMethod === 'COD' || existingOrder.paymentStatus === 'Pending') {
+            // Fix COD / pending payment to Completed on delivery
+            if (existingOrder.paymentMethod === 'COD' || existingOrder.paymentStatus === 'Pending' || existingOrder.paymentStatus === 'pending') {
                 existingOrder.paymentStatus = 'Completed';
             }
 

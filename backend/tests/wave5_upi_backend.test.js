@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import supertest from 'supertest';
 import jwt from 'jsonwebtoken';
+import { jest } from '@jest/globals';
 import app, { connectDB } from '../app.js';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
@@ -13,6 +14,7 @@ import StoreSetting from '../models/StoreSetting.js';
 import { up as runMigration001 } from '../migrations/001_unique_indexes.js';
 import { up as runMigration002 } from '../migrations/002_rate_limit_indexes.js';
 import { up as runMigration003 } from '../migrations/003_upi_order_indexes.js';
+import { up as runMigration004 } from '../migrations/004_sync_delivered_cod_status.js';
 
 let mongod;
 let request;
@@ -27,6 +29,7 @@ let sampleCoupon;
 
 process.env.JWT_SECRET = 'test_jwt_secret_wave5_upi_2026';
 process.env.NODE_ENV = 'development';
+jest.setTimeout(30000);
 
 beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
@@ -678,5 +681,87 @@ describe('Wave 5: UPI Intent Payments (Option B) Backend & Security', () => {
 
         expect(refundRes.status).toBe(200);
         expect(refundRes.body.order.paymentStatus).toBe('refund_needed');
+    });
+
+    test('13. Read routes (GET /api/orders and GET /api/orders/myorders) are side-effect free', async () => {
+        // Create an order delivered with pending payment
+        const order = await Order.create({
+            user: customerUser._id,
+            items: [{ product: sampleProduct._id, name: sampleProduct.name, price: 100, quantity: 1 }],
+            totalAmount: 100,
+            paymentMethod: 'COD',
+            paymentStatus: 'Pending',
+            status: 'Delivered',
+            shippingAddress: { fullName: 'Side Effect Test', mobile: '9999999999', houseNo: '1', street: 'S', city: 'C', state: 'MP', pinCode: '471105' }
+        });
+
+        // Customer read
+        const myRes = await request
+            .get('/api/orders/myorders')
+            .set('Authorization', `Bearer ${customerToken}`);
+        expect(myRes.status).toBe(200);
+
+        // Admin read
+        const adminRes = await request
+            .get('/api/orders')
+            .set('Authorization', `Bearer ${adminToken}`);
+        expect(adminRes.status).toBe(200);
+
+        // Verify database document was NOT mutated by GET requests
+        const fresh = await Order.findById(order._id);
+        expect(fresh.paymentStatus).toBe('Pending');
+    });
+
+    test('14. PUT /api/orders/:id/status transitions COD order paymentStatus to Completed on delivery', async () => {
+        const order = await Order.create({
+            user: customerUser._id,
+            items: [{ product: sampleProduct._id, name: sampleProduct.name, price: 100, quantity: 1 }],
+            totalAmount: 100,
+            paymentMethod: 'COD',
+            paymentStatus: 'pending',
+            status: 'Out for Delivery',
+            shippingAddress: { fullName: 'Delivery Sync Test', mobile: '9999999999', houseNo: '1', street: 'S', city: 'C', state: 'MP', pinCode: '471105' }
+        });
+
+        const updateRes = await request
+            .put(`/api/orders/${order._id}/status`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({ status: 'Delivered' });
+
+        expect(updateRes.status).toBe(200);
+        expect(updateRes.body.status).toBe('Delivered');
+        expect(updateRes.body.paymentStatus).toBe('Completed');
+
+        const inDb = await Order.findById(order._id);
+        expect(inDb.paymentStatus).toBe('Completed');
+    });
+
+    test('15. Migration 004_sync_delivered_cod_status updates delivered COD/legacy orders', async () => {
+        const o1 = await Order.create({
+            user: customerUser._id,
+            items: [{ product: sampleProduct._id, name: sampleProduct.name, price: 100, quantity: 1 }],
+            totalAmount: 100,
+            paymentMethod: 'COD',
+            paymentStatus: 'Pending',
+            status: 'Delivered',
+            shippingAddress: { fullName: 'Mig 1', mobile: '9999999999', houseNo: '1', street: 'S', city: 'C', state: 'MP', pinCode: '471105' }
+        });
+
+        const o2 = await Order.create({
+            user: customerUser._id,
+            items: [{ product: sampleProduct._id, name: sampleProduct.name, price: 100, quantity: 1 }],
+            totalAmount: 100,
+            paymentMethod: 'COD',
+            paymentStatus: 'pending',
+            status: 'Delivered',
+            shippingAddress: { fullName: 'Mig 2', mobile: '9999999999', houseNo: '1', street: 'S', city: 'C', state: 'MP', pinCode: '471105' }
+        });
+
+        await runMigration004();
+
+        const refreshed1 = await Order.findById(o1._id);
+        const refreshed2 = await Order.findById(o2._id);
+        expect(refreshed1.paymentStatus).toBe('Completed');
+        expect(refreshed2.paymentStatus).toBe('Completed');
     });
 });
