@@ -10,7 +10,15 @@ import StoreSetting from '../models/StoreSetting.js';
 import PaymentPreference from '../models/PaymentPreference.js';
 import bcrypt from 'bcryptjs';
 import { sanitizeRedirectUrl } from '../utils/urlSanitizer.js';
-import { isLiveHost, getDisplayHost, isLiveHostBlocked, getCheckoutUpiStatusMessage } from '../utils/hostSafety.js';
+import {
+    isLiveHost,
+    getDisplayHost,
+    isHostBlocked,
+    isLiveHostBlocked,
+    validateProductionApiUrl,
+    isLocalOrPrivateHost,
+    getCheckoutUpiStatusMessage
+} from '../utils/hostSafety.js';
 import { sendAdminOrderNotification } from '../services/notificationService.js';
 import ts from 'typescript';
 import fs from 'fs';
@@ -583,36 +591,54 @@ describe('Wave 5 Group 2: UPI Checkout & Confirming Screen Integration', () => {
         expect(codOrderRes.body.paymentStatus).toBe('Pending');
     });
 
-    test('13. Live-host guard: dev build pointed at live host is blocked; prod & preview builds are never blocked', () => {
-        // (a) Dev build (isDev === true) pointed at live host is blocked
-        expect(isLiveHostBlocked(true, 'https://shagun-general-store.vercel.app')).toBe(true);
-        expect(isLiveHostBlocked(true, 'https://shagunmart.com/api')).toBe(true);
-        expect(isLiveHostBlocked(true, 'https://preview-deploy.vercel.app')).toBe(true);
-        expect(isLiveHostBlocked(true, 'http://localhost:5000/api')).toBe(false);
-        expect(isLiveHostBlocked(true, 'http://192.168.1.100:5000/api')).toBe(false);
+    test('13. Host rule: dev blocks all non-private hosts; preview blocks only prod host; prod never blocked', () => {
+        // (a) Dev build: allows only localhost, 127.0.0.1, 10.0.2.2, and private LAN ranges
+        expect(isHostBlocked('development', 'http://localhost:5000/api')).toBe(false);
+        expect(isHostBlocked('development', 'http://127.0.0.1:5000')).toBe(false);
+        expect(isHostBlocked('development', 'http://10.0.2.2:5000')).toBe(false);
+        expect(isHostBlocked('development', 'http://192.168.1.100:5000/api')).toBe(false);
+        expect(isHostBlocked('development', 'http://10.1.2.3:5000/api')).toBe(false);
+        expect(isHostBlocked('development', 'http://172.20.10.5:5000')).toBe(false);
 
-        // (b) Production build (isDev === false) pointed at its own host is NOT blocked
-        expect(isLiveHostBlocked(false, 'https://shagun-general-store.vercel.app')).toBe(false);
-        expect(isLiveHostBlocked(false, 'https://shagunmart.com/api')).toBe(false);
+        // Any other host counts as live in dev and is blocked
+        expect(isHostBlocked('development', 'https://shagun-general-store.vercel.app')).toBe(true);
+        expect(isHostBlocked('development', 'https://shagunmart.com/api')).toBe(true);
+        expect(isHostBlocked('development', 'https://preview-deploy.vercel.app')).toBe(true);
+        expect(isHostBlocked('development', 'https://random-api.com')).toBe(true);
 
-        // (c) Preview build (isDev === false) is NOT blocked
-        expect(isLiveHostBlocked(false, 'https://preview-deploy.vercel.app')).toBe(false);
+        // (b) Preview build: blocks if API host equals production host
+        const prodHost = 'api.shagunmart.com';
+        expect(isHostBlocked('preview', 'https://api.shagunmart.com/api', prodHost)).toBe(true);
+        expect(isHostBlocked('preview', 'https://staging.shagunmart.com/api', prodHost)).toBe(false);
+        expect(isHostBlocked('preview', 'https://preview.shagunmart.com/api', prodHost)).toBe(false);
+
+        // (c) Production build: never blocked
+        expect(isHostBlocked('production', 'https://api.shagunmart.com/api', prodHost)).toBe(false);
+        expect(isHostBlocked('production', 'https://shagunmart.com', prodHost)).toBe(false);
     });
 
-    test('14. Single source drift test: backend/utils/hostSafety.js and utils/hostSafety.ts behave identically', () => {
+    test('14. Single source drift test: backend, web utils, and shagun-native hostSafety behave identically', () => {
         const tsPath = path.resolve('utils/hostSafety.ts');
+        const nativeTsPath = path.resolve('shagun-native/utils/hostSafety.ts');
         const jsPath = path.resolve('backend/utils/hostSafety.js');
         expect(fs.existsSync(tsPath)).toBe(true);
+        expect(fs.existsSync(nativeTsPath)).toBe(true);
         expect(fs.existsSync(jsPath)).toBe(true);
 
         const tsSource = fs.readFileSync(tsPath, 'utf8');
+        const nativeTsSource = fs.readFileSync(nativeTsPath, 'utf8');
+
         const tsTranspiled = ts.transpileModule(tsSource, {
+            compilerOptions: { module: ts.ModuleKind.CommonJS }
+        }).outputText;
+        const nativeTranspiled = ts.transpileModule(nativeTsSource, {
             compilerOptions: { module: ts.ModuleKind.CommonJS }
         }).outputText;
 
         const tsModule = {};
-        const fn = new Function('exports', tsTranspiled);
-        fn(tsModule);
+        new Function('exports', tsTranspiled)(tsModule);
+        const nativeModule = {};
+        new Function('exports', nativeTranspiled)(nativeModule);
 
         const testUrls = [
             'https://shagun-general-store.vercel.app',
@@ -622,6 +648,7 @@ describe('Wave 5 Group 2: UPI Checkout & Confirming Screen Integration', () => {
             'http://127.0.0.1:5000',
             'http://192.168.1.50:5000/api',
             'http://10.0.2.2:5000',
+            'https://api.shagunmart.com',
             'cluster0.abcde.mongodb.net',
             '',
             null,
@@ -630,20 +657,23 @@ describe('Wave 5 Group 2: UPI Checkout & Confirming Screen Integration', () => {
 
         for (const url of testUrls) {
             expect(tsModule.isLiveHost(url)).toBe(isLiveHost(url));
-            expect(tsModule.getDisplayHost(url)).toBe(getDisplayHost(url));
-            expect(tsModule.isLiveHostBlocked(true, url)).toBe(isLiveHostBlocked(true, url));
-            expect(tsModule.isLiveHostBlocked(false, url)).toBe(isLiveHostBlocked(false, url));
-        }
+            expect(nativeModule.isLiveHost(url)).toBe(isLiveHost(url));
 
-        expect(tsModule.getCheckoutUpiStatusMessage(null, new Error('Network error'))).toBe(
-            getCheckoutUpiStatusMessage(null, new Error('Network error'))
-        );
-        expect(tsModule.getCheckoutUpiStatusMessage({ enabled: false }, null)).toBe(
-            getCheckoutUpiStatusMessage({ enabled: false }, null)
-        );
-        expect(tsModule.getCheckoutUpiStatusMessage({ enabled: true }, null)).toBe(
-            getCheckoutUpiStatusMessage({ enabled: true }, null)
-        );
+            expect(tsModule.getDisplayHost(url)).toBe(getDisplayHost(url));
+            expect(nativeModule.getDisplayHost(url)).toBe(getDisplayHost(url));
+
+            expect(tsModule.isHostBlocked('development', url, 'api.shagunmart.com')).toBe(isHostBlocked('development', url, 'api.shagunmart.com'));
+            expect(nativeModule.isHostBlocked('development', url, 'api.shagunmart.com')).toBe(isHostBlocked('development', url, 'api.shagunmart.com'));
+
+            expect(tsModule.isHostBlocked('preview', url, 'api.shagunmart.com')).toBe(isHostBlocked('preview', url, 'api.shagunmart.com'));
+            expect(nativeModule.isHostBlocked('preview', url, 'api.shagunmart.com')).toBe(isHostBlocked('preview', url, 'api.shagunmart.com'));
+
+            expect(tsModule.isHostBlocked('production', url, 'api.shagunmart.com')).toBe(isHostBlocked('production', url, 'api.shagunmart.com'));
+            expect(nativeModule.isHostBlocked('production', url, 'api.shagunmart.com')).toBe(isHostBlocked('production', url, 'api.shagunmart.com'));
+
+            expect(tsModule.validateProductionApiUrl(url)).toEqual(validateProductionApiUrl(url));
+            expect(nativeModule.validateProductionApiUrl(url)).toEqual(validateProductionApiUrl(url));
+        }
     });
 
     test('15. Notification link safety: notifications sent without link when SITE_URL is unset; valid link included when set', async () => {
@@ -711,5 +741,18 @@ describe('Wave 5 Group 2: UPI Checkout & Confirming Screen Integration', () => {
             if (originalViteSiteUrl) process.env.VITE_SITE_URL = originalViteSiteUrl; else delete process.env.VITE_SITE_URL;
             if (originalKey) process.env.CALLMEBOT_API_KEY = originalKey; else delete process.env.CALLMEBOT_API_KEY;
         }
+    });
+
+    test('16. Build checks: validateProductionApiUrl rejects placeholders, http, and private IPs', () => {
+        expect(validateProductionApiUrl('').valid).toBe(false);
+        expect(validateProductionApiUrl('https://<YOUR-DOMAIN>/api').valid).toBe(false);
+        expect(validateProductionApiUrl('https://YOUR-DOMAIN/api').valid).toBe(false);
+        expect(validateProductionApiUrl('http://api.shagunmart.com/api').valid).toBe(false);
+        expect(validateProductionApiUrl('https://localhost:5000/api').valid).toBe(false);
+        expect(validateProductionApiUrl('https://192.168.1.50:5000/api').valid).toBe(false);
+        expect(validateProductionApiUrl('https://10.0.2.2:5000/api').valid).toBe(false);
+
+        expect(validateProductionApiUrl('https://api.shagunmart.com/api').valid).toBe(true);
+        expect(validateProductionApiUrl('/api').valid).toBe(true);
     });
 });

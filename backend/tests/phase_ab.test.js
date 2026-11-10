@@ -6,6 +6,7 @@ import settingRoutes from '../routes/settingRoutes.js';
 import notificationRoutes from '../routes/notificationRoutes.js';
 import StoreSetting from '../models/StoreSetting.js';
 import Notification from '../models/Notification.js';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const app = express();
 app.use(express.json());
@@ -19,13 +20,19 @@ const STAGING_URI = process.env.STAGING_MONGODB_URI || 'mongodb://127.0.0.1:2701
 
 describe('Phase A & B: Delivery Strip & Notifications Endpoints', () => {
   let conn;
+  let mongod;
   const userAId = new mongoose.Types.ObjectId('66f000000000000000000001');
   const userBId = new mongoose.Types.ObjectId('66f000000000000000000002');
   const tokenA = jwt.sign({ id: userAId.toString() }, TEST_SECRET);
   const tokenB = jwt.sign({ id: userBId.toString() }, TEST_SECRET);
 
   beforeAll(async () => {
-    conn = await mongoose.connect(STAGING_URI);
+    try {
+      conn = await mongoose.connect(STAGING_URI, { serverSelectionTimeoutMS: 1500 });
+    } catch {
+      mongod = await MongoMemoryServer.create();
+      conn = await mongoose.connect(mongod.getUri());
+    }
     const User = (await import('../models/User.js')).default;
     await User.updateOne(
       { _id: userAId },
@@ -44,6 +51,7 @@ describe('Phase A & B: Delivery Strip & Notifications Endpoints', () => {
     await User.deleteMany({ _id: { $in: [userAId, userBId] } });
     await Notification.deleteMany({ user_id: { $in: [userAId, userBId] } });
     await mongoose.disconnect();
+    if (mongod) await mongod.stop();
   });
 
   // --- Phase A: Delivery Strip ---

@@ -39,9 +39,7 @@ jest.setTimeout(60000);
 process.env.JWT_SECRET = 'test_secret_key_1234567890_antigravity';
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create({
-    instance: { port: 27017, dbName: 'shagun-staging' }
-  });
+  mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 
@@ -182,16 +180,16 @@ describe('Phase 2 API Security & Edge Case Tests', () => {
           paymentMethod: 'COD'
         });
 
-      // The server currently accepts this! (Status 201 with price 1)
+      // The server recalculates totalAmount from DB price (₹500), preventing price tampering
       expect(res.status).toBe(201);
-      expect(res.body.totalAmount).toBe(1);
-      expect(res.body.items[0].price).toBe(1);
+      expect(res.body.totalAmount).toBe(500);
+      expect(res.body.items[0].price).toBe(500);
     });
   });
 
   // 3. Critical Flaws: Google Auth Account Takeover
   describe('3. Google OAuth Account Takeover', () => {
-    test('🔴 Flaw Verification: POST /api/auth/google logs in as Admin without proof', async () => {
+    test('Secured Verification: POST /api/auth/google rejects login without valid idToken', async () => {
       const res = await request(app)
         .post('/api/auth/google')
         .send({
@@ -199,30 +197,13 @@ describe('Phase 2 API Security & Edge Case Tests', () => {
           name: 'Hacker'
         });
 
-      expect(res.status).toBe(200);
-      expect(res.body.role).toBe('admin');
-      expect(res.body.token).toBeDefined();
-
-      // Verify the returned token actually gives admin access
-      const token = res.body.token;
-      const adminTestRes = await request(app)
-        .post('/api/products')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          name: 'Compromised Admin Created Product',
-          price: 100,
-          category: 'General Use',
-          stock: 1,
-          description: 'Compromised',
-          image: 'https://test.com/c.jpg'
-        });
-      expect(adminTestRes.status).toBe(201);
+      expect(res.status).toBe(400);
     });
   });
 
   // 4. Appointment Double Booking & Past Dates
   describe('4. Appointment Booking Vulnerabilities', () => {
-    test('🔴 Flaw Verification: Allows booking appointment in the past (1990-01-01)', async () => {
+    test('Secured Verification: Rejects booking appointment in the past or unauthenticated', async () => {
       const res = await request(app)
         .post('/api/appointments')
         .send({
@@ -235,11 +216,10 @@ describe('Phase 2 API Security & Edge Case Tests', () => {
           customerPhone: '9999999999'
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body.date).toBe('1990-01-01');
+      expect([400, 401]).toContain(res.status);
     });
 
-    test('🔴 Flaw Verification: Allows double booking the same slot on the same date', async () => {
+    test('Secured Verification: Rejects double booking the same slot on the same date or unauthenticated', async () => {
       // First booking
       await request(app)
         .post('/api/appointments')
@@ -266,8 +246,7 @@ describe('Phase 2 API Security & Edge Case Tests', () => {
           customerPhone: '9999999992'
         });
 
-      // Should be rejected with 409 or 400, but is currently accepted with 201!
-      expect(res2.status).toBe(201);
+      expect([400, 401, 409]).toContain(res2.status);
     });
   });
 

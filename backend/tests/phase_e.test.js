@@ -7,6 +7,7 @@ import Review from '../models/Review.js';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const app = express();
 app.use(express.json());
@@ -24,9 +25,15 @@ describe('Phase E: Reviews & Ratings (Verified Purchase & Aggregation)', () => {
   const tokenB = jwt.sign({ id: userBId.toString() }, TEST_SECRET);
   let sampleProduct;
   let testOrder;
+  let mongod;
 
   beforeAll(async () => {
-    await mongoose.connect(STAGING_URI);
+    try {
+      await mongoose.connect(STAGING_URI, { serverSelectionTimeoutMS: 1500 });
+    } catch {
+      mongod = await MongoMemoryServer.create();
+      await mongoose.connect(mongod.getUri());
+    }
     await User.updateOne(
       { _id: userAId },
       { $set: { _id: userAId, name: 'test_user_a', email: 'test_a@example.com', password: 'hash' } },
@@ -39,6 +46,16 @@ describe('Phase E: Reviews & Ratings (Verified Purchase & Aggregation)', () => {
     );
 
     sampleProduct = await Product.findOne({});
+    if (!sampleProduct) {
+      sampleProduct = await Product.create({
+        name: 'Review Test Product',
+        price: 350,
+        category: 'Personal Care',
+        stock: 20,
+        description: 'Test product for reviews',
+        image: 'https://res.cloudinary.com/demo/image/upload/sample.jpg'
+      });
+    }
 
     // Create a delivered order for user A containing sampleProduct
     testOrder = await Order.create({
@@ -64,9 +81,10 @@ describe('Phase E: Reviews & Ratings (Verified Purchase & Aggregation)', () => {
   });
 
   afterAll(async () => {
-    await Review.deleteMany({ product_id: sampleProduct._id });
+    if (sampleProduct) await Review.deleteMany({ product_id: sampleProduct._id });
     if (testOrder) await Order.deleteOne({ _id: testOrder._id });
     await mongoose.disconnect();
+    if (mongod) await mongod.stop();
   });
 
   test('POST /api/reviews fails with 403 if user did not purchase the product', async () => {

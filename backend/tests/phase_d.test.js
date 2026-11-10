@@ -6,6 +6,7 @@ import wishlistRoutes from '../routes/wishlistRoutes.js';
 import WishlistItem from '../models/WishlistItem.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const app = express();
 app.use(express.json());
@@ -22,9 +23,15 @@ describe('Phase D: Wishlist Endpoints & User Isolation', () => {
   const tokenA = jwt.sign({ id: userAId.toString() }, TEST_SECRET);
   const tokenB = jwt.sign({ id: userBId.toString() }, TEST_SECRET);
   let sampleProduct;
+  let mongod;
 
   beforeAll(async () => {
-    await mongoose.connect(STAGING_URI);
+    try {
+      await mongoose.connect(STAGING_URI, { serverSelectionTimeoutMS: 1500 });
+    } catch {
+      mongod = await MongoMemoryServer.create();
+      await mongoose.connect(mongod.getUri());
+    }
     await User.updateOne(
       { _id: userAId },
       { $set: { _id: userAId, name: 'test_user_a', email: 'test_a@example.com', password: 'hash' } },
@@ -36,11 +43,22 @@ describe('Phase D: Wishlist Endpoints & User Isolation', () => {
       { upsert: true }
     );
     sampleProduct = await Product.findOne({});
+    if (!sampleProduct) {
+      sampleProduct = await Product.create({
+        name: 'Wishlist Test Product',
+        price: 499,
+        category: 'Personal Care',
+        stock: 20,
+        description: 'Test product for wishlist',
+        image: 'https://res.cloudinary.com/demo/image/upload/sample.jpg'
+      });
+    }
   });
 
   afterAll(async () => {
     await WishlistItem.deleteMany({ user_id: { $in: [userAId, userBId] } });
     await mongoose.disconnect();
+    if (mongod) await mongod.stop();
   });
 
   test('GET /api/wishlist without auth returns 401', async () => {
