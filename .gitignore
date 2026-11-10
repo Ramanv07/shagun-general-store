@@ -50,5 +50,7 @@ test_*.js
 *.bak
 dump/
 backups/
+**/backups/
 backend/backups/
 backend/staging-data/
+**/staging-data/
