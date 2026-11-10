@@ -20,8 +20,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 import { Order } from '../types';
-import { API_BASE_URL } from '../constants';
-import { isLiveHost } from '../components/DevApiBanner';
+import { API_BASE_URL, APP_ENV, PRODUCTION_API_HOST } from '../constants';
+import { isHostBlocked } from '../utils/hostSafety';
 
 export default function PaymentConfirmScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -95,7 +95,7 @@ export default function PaymentConfirmScreen() {
     fetchOrder(true);
   };
 
-  const isDevLiveBlocked = Boolean(typeof __DEV__ !== 'undefined' && __DEV__ && isLiveHost(API_BASE_URL));
+  const isDevLiveBlocked = isHostBlocked(APP_ENV, API_BASE_URL, PRODUCTION_API_HOST);
 
   const handleUtrSubmit = async () => {
     if (isDevLiveBlocked) {

@@ -2,29 +2,32 @@
  * Host Safety & Checkout Status Utilities
  */
 
-export function isLiveHost(urlOrHost) {
+export function isLocalOrPrivateHost(urlOrHost) {
   if (!urlOrHost) return false;
-  const normalized = String(urlOrHost).toLowerCase().trim();
-  if (/vercel\.app|shagunmart\.com|mongodb\.net/i.test(normalized)) {
-    return true;
-  }
+  const raw = String(urlOrHost).trim();
   try {
-    const parsed = normalized.includes('://') ? new URL(normalized) : new URL(`http://${normalized}`);
-    const hostname = parsed.hostname;
+    const parsed = raw.includes('://') ? new URL(raw) : new URL(`http://${raw}`);
+    const hostname = parsed.hostname.toLowerCase();
     if (
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||
       hostname === '0.0.0.0' ||
-      hostname.startsWith('192.168.') ||
+      hostname === '10.0.2.2' ||
       hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
       /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
     ) {
-      return false;
+      return true;
     }
-    return true;
+    return false;
   } catch {
-    return /vercel\.app|shagunmart\.com/i.test(normalized);
+    return false;
   }
+}
+
+export function isLiveHost(urlOrHost) {
+  if (!urlOrHost) return false;
+  return !isLocalOrPrivateHost(urlOrHost);
 }
 
 export function getDisplayHost(urlOrHost) {
@@ -36,11 +39,62 @@ export function getDisplayHost(urlOrHost) {
   }
 }
 
-export function isLiveHostBlocked(isDev, urlOrHost) {
-  if (!isDev) {
-    return false; // Production and Preview builds are NEVER blocked from communicating with their server
+export function isHostBlocked(appEnv, urlOrHost, productionApiHost) {
+  const env = (appEnv || 'development').toLowerCase();
+  if (env === 'production') {
+    return false;
+  }
+  if (env === 'preview') {
+    if (!productionApiHost || !urlOrHost) return false;
+    const currentHost = getDisplayHost(urlOrHost).toLowerCase();
+    const prodHost = getDisplayHost(productionApiHost).toLowerCase();
+    return Boolean(currentHost && prodHost && currentHost === prodHost);
   }
   return isLiveHost(urlOrHost);
+}
+
+export function isLiveHostBlocked(isDev, urlOrHost) {
+  if (!isDev) {
+    return false;
+  }
+  return isLiveHost(urlOrHost);
+}
+
+export function validateProductionApiUrl(url) {
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return { valid: false, error: 'API URL is required for production builds' };
+  }
+  const trimmed = url.trim();
+  if (trimmed.includes('<') || trimmed.includes('>')) {
+    return { valid: false, error: 'API URL cannot contain "<" or ">" placeholders' };
+  }
+  if (trimmed.includes('YOUR')) {
+    return { valid: false, error: 'API URL cannot contain "YOUR" placeholders' };
+  }
+  if (/^http:\/\//i.test(trimmed)) {
+    return { valid: false, error: 'Production API URL must use HTTPS, not HTTP' };
+  }
+  if (!/^https:\/\//i.test(trimmed) && trimmed.startsWith('/')) {
+    return { valid: true };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname === '10.0.2.2' ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+    ) {
+      return { valid: false, error: `Production API URL cannot use localhost or private IP (${hostname})` };
+    }
+  } catch {
+    return { valid: false, error: 'Invalid API URL format' };
+  }
+  return { valid: true };
 }
 
 export function getCheckoutUpiStatusMessage(res, fetchError) {
@@ -52,4 +106,3 @@ export function getCheckoutUpiStatusMessage(res, fetchError) {
   }
   return null;
 }
-

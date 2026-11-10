@@ -1,4 +1,5 @@
 import { Product, Review } from './types';
+import { validateProductionApiUrl } from './utils/hostSafety';
 
 export const ADMIN_WHATSAPP = "918827259023";
 
@@ -29,12 +30,18 @@ export const CATEGORIES = [
 
 export const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800";
 
-// Read API base URL from EXPO_PUBLIC_API_URL; fails in production build if missing
-const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+// Environment & Host Safety Configuration
+export const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+export const APP_ENV = process.env.EXPO_PUBLIC_APP_ENV || (isDev ? 'development' : 'production');
+export const PRODUCTION_API_HOST = process.env.EXPO_PUBLIC_PRODUCTION_API_HOST || 'api.shagunmart.com';
+
 const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-if (!isDev && !envApiUrl) {
-  throw new Error('FATAL: EXPO_PUBLIC_API_URL is required for production builds. Configure in eas.json or build environment.');
+if (APP_ENV === 'production' || !isDev) {
+  const check = validateProductionApiUrl(envApiUrl || '');
+  if (!check.valid) {
+    throw new Error(`FATAL BUILD ERROR: Invalid production API URL: ${check.error}. Configure in eas.json or build environment.`);
+  }
 }
 
 export const API_BASE_URL = envApiUrl || 'http://localhost:5000/api';

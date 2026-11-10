@@ -9,9 +9,9 @@ import { useCart } from '../context/CartContext';
 import { useOrders } from '../context/OrderContext';
 import { useAuth } from '../context/AuthContext';
 import { Address, Order } from '../types';
-import { ADMIN_WHATSAPP, API_BASE_URL } from '../constants';
+import { ADMIN_WHATSAPP, API_BASE_URL, APP_ENV, PRODUCTION_API_HOST } from '../constants';
 import { api } from '../services/api';
-import { isLiveHost } from '../components/DevApiBanner';
+import { isHostBlocked } from '../utils/hostSafety';
 
 const PAYMENT_METHODS = ['COD', 'UPI', 'Online'] as const;
 
@@ -64,7 +64,7 @@ export default function CheckoutScreen() {
   const [upiMessage, setUpiMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isDevLiveBlocked = Boolean(typeof __DEV__ !== 'undefined' && __DEV__ && isLiveHost(API_BASE_URL));
+  const isDevLiveBlocked = isHostBlocked(APP_ENV, API_BASE_URL, PRODUCTION_API_HOST);
 
   useEffect(() => {
     api.getUpiSettings().then(res => {

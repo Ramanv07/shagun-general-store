@@ -8,6 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "development",
         "EXPO_PUBLIC_API_URL": "http://192.168.1.X:5000/api"
       }
     },
@@ -17,7 +18,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://<YOUR-PREVIEW-DOMAIN-OR-VERCEL-URL>/api"
+        "EXPO_PUBLIC_APP_ENV": "preview",
+        "EXPO_PUBLIC_API_URL": "https://<YOUR-PREVIEW-DOMAIN-OR-VERCEL-URL>/api",
+        "EXPO_PUBLIC_PRODUCTION_API_HOST": "api.shagunmart.com"
       }
     },
     "production": {
@@ -25,6 +28,7 @@
         "buildType": "app-bundle"
       },
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://<YOUR-DOMAIN-OR-VERCEL-URL>/api"
       }
     }
