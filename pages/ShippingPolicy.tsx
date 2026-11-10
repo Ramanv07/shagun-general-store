@@ -10,7 +10,7 @@ export const ShippingPolicy: React.FC = () => {
         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-8">
           <div className="flex items-start">
             <span className="text-amber-800 font-bold text-sm">
-              ⚠️ Draft — pending final review by owner and legal counsel. Parameter check: [FILL: coverage radius in kilometers from Bamitha store, e.g., 10km radius].
+              Draft — pending final review by owner and legal counsel. Parameter check: [FILL: coverage radius in kilometers from Bamitha store, e.g., 10km radius].
             </span>
           </div>
         </div>
@@ -63,3 +63,4 @@ export const ShippingPolicy: React.FC = () => {
     </div>
   );
 };
+

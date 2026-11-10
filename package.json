@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "vite build && node scripts/check_launch_ready.js",
+    "check:launch": "node scripts/check_launch_ready.js",
     "preview": "vite preview",
     "start": "node backend/server.js",
     "backend": "node backend/server.js",

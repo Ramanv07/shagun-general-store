@@ -10,7 +10,7 @@ export const Terms: React.FC = () => {
         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-8">
           <div className="flex items-start">
             <span className="text-amber-800 font-bold text-sm">
-              ⚠️ Draft — pending final review by owner and legal counsel. Business registration: [FILL: Business Registration / GSTIN Number], Grievance Officer: [FILL: Grievance Officer Name & Email].
+              Draft — pending final review by owner and legal counsel. Business registration: [FILL: Business Registration / GSTIN Number], Grievance Officer: [FILL: Grievance Officer Name & Email].
             </span>
           </div>
         </div>
@@ -80,3 +80,4 @@ export const Terms: React.FC = () => {
     </div>
   );
 };
+

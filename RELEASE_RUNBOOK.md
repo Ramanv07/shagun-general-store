@@ -9,8 +9,11 @@
 ## Executive Summary: Exact Deployment Sequence
 Follow this strict 6-step sequence for production release:
 1. **Rotate Keys:** Rotate Atlas DB password, `JWT_SECRET`, Cloudinary secrets, and Gmail SMTP credentials.
-2. **Scrub History:** Confirm repo is set to Private; scrub any legacy `.env` or credentials from git history using `git filter-repo` or BFG.
-3. **Force Push:** Push sanitized commit tree to private remote repository (`origin/main`).
+2. **Scrub History on Fresh Mirror Clone:**
+   - Hosting builds automatically from branch `main` (Vercel / EAS default).
+   - **CRITICAL:** Do NOT merge `release-v1.0.0` into `main` until git history is scrubbed and key rotation is completed.
+   - Run history scrub on a fresh mirror clone with a saved backup, removing all `.env*` and `backend/backups/`. Re-create tags afterwards.
+3. **Force Push Sanitized History:** Push sanitized commit tree to private remote repository.
 4. **Merge to Main:** Merge verified `release-v1.0.0` into `main`.
 5. **Tag Release:** Create signed/annotated git release tag:
    ```bash
@@ -19,7 +22,7 @@ Follow this strict 6-step sequence for production release:
    ```
 6. **Deploy Services in Order:**
    - Step A: Deploy Backend service (run migrations & verify health checks).
-   - Step B: Deploy Web Frontend to hosting (Vite build with production API URL).
+   - Step B: Deploy Web Frontend to hosting (`npm run check:launch` passes, Vite build with production API URL).
    - Step C: Verify old mobile clients against backend endpoints (read-only / backward-compatible).
    - Step D: Build & submit mobile app via EAS (`eas build --platform all --profile production`).
 
@@ -27,7 +30,7 @@ Follow this strict 6-step sequence for production release:
 
 ## Phase 0: Security & Operational Pre-Flight
 
-Before touching production infrastructure, complete and verify these 6 pre-flight tasks:
+Before touching production infrastructure, complete and verify these 7 pre-flight tasks:
 
 1. **Credentials & Secrets Rotation (Atlas & Host Settings)**:
    - Rotate MongoDB Atlas database password in Atlas Console to a strong 32-character random string.
@@ -36,13 +39,33 @@ Before touching production infrastructure, complete and verify these 6 pre-fligh
      - If host uses dynamic outbound IPs (e.g. Render/Railway default container pool), keep `0.0.0.0/0` with a dedicated least-privilege Atlas database user restricted to `readWrite` on `<DB_NAME>` only.
    - Rotate `JWT_SECRET` (logs out all existing sessions).
    - Rotate Cloudinary API Secret and external service keys.
-2. **Git Repository Status & Release Tagging**:
-   - Confirm git repository is set to **Private** and history scrubbed of legacy `.env`.
-   - Create an annotated git tag before deploying:
+
+2. **Git History Scrubbing & Repository Privacy (Fresh Mirror Clone Procedure)**:
+   - Hosting builds from `main` by default. **DO NOT merge into `main` until history is scrubbed and keys rotated.**
+   - Step 2a: Save a safety backup of the working directory outside git.
+   - Step 2b: Create a fresh bare mirror clone in an external directory:
      ```bash
-     git tag -a v1.0.0-release -m "Production release after Wave 4 remediation"
-     git push origin v1.0.0-release
+     cd C:\Users\raman\backups
+     git clone --mirror https://github.com/Ramanv07/shagun-general-store.git repo-mirror.git
+     cd repo-mirror.git
      ```
+   - Step 2c: Scrub all `.env*` files and `backend/backups/` from all commits:
+     ```bash
+     # Using git-filter-repo (recommended):
+     python -m git_filter_repo --invert-paths --path-glob ".env*" --path-glob "backend/backups/*" --path-glob "*.env" --force
+     ```
+   - Step 2d: Re-create any needed release tags and push sanitized history:
+     ```bash
+     git push --force --mirror origin
+     ```
+   - Confirm repo is set to **Private** on GitHub.
+
+3. **Pre-Deployment Launch Readiness Check**:
+   - Before compiling production web assets, verify all draft placeholders are resolved:
+     ```bash
+     node scripts/check_launch_ready.js
+     ```
+   - The build script fails if any `[FILL: ...]` placeholder or `"Draft —"` banner remains in `pages/` or `dist/`. Remove draft banners and replace all placeholders with actual legal/business parameters prior to launch.
 3. **Database Identity & 28-Product Pre-Check**:
    - Extract and verify the database name from `$MONGODB_URI` before any operation:
      ```bash

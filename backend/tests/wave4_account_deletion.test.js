@@ -11,6 +11,9 @@ import Product from '../models/Product.js';
 import AuditLog from '../models/AuditLog.js';
 import OtpSession from '../models/OtpSession.js';
 import WishlistItem from '../models/WishlistItem.js';
+import Rental from '../models/Rental.js';
+import Appointment from '../models/Appointment.js';
+import Notification from '../models/Notification.js';
 import authRoutes, { _testClearOtpStores } from '../routes/authRoutes.js';
 import reviewRoutes from '../routes/reviewRoutes.js';
 import { up as runMigration001 } from '../migrations/001_unique_indexes.js';
@@ -54,6 +57,9 @@ beforeEach(async () => {
   await AuditLog.deleteMany({});
   await OtpSession.deleteMany({});
   await WishlistItem.deleteMany({});
+  await Rental.deleteMany({});
+  await Appointment.deleteMany({});
+  await Notification.deleteMany({});
 });
 
 describe('Wave 4 Account Deletion & Anonymization Compliance', () => {
@@ -294,6 +300,188 @@ describe('Wave 4 Account Deletion & Anonymization Compliance', () => {
     expect(logStr).not.toContain(originalEmail);
     expect(logStr).not.toContain(originalPhone);
     expect(logStr).not.toContain('John Doe');
+  });
+
+  test('6. DELETE /api/auth/profile parity: rejects request without password/proof, succeeds with valid password', async () => {
+    const salt = await bcrypt.genSalt(10);
+    const user = await User.create({
+      name: 'Mobile Profile User',
+      email: 'mobile.profile@test.com',
+      password: await bcrypt.hash('MobilePass123', salt),
+      role: 'user',
+      tokenVersion: 0
+    });
+
+    const token = jwt.sign({ id: user._id, tokenVersion: 0 }, process.env.JWT_SECRET);
+
+    // 1. Valid JWT alone without password/proof -> MUST be rejected (400)
+    const resNoProof = await request
+      .delete('/api/auth/profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({});
+    expect(resNoProof.status).toBe(400);
+    expect(resNoProof.body.message).toMatch(/password is required/i);
+
+    // 2. Wrong password -> 401
+    const resWrongPass = await request
+      .delete('/api/auth/profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'WrongPassword' });
+    expect(resWrongPass.status).toBe(401);
+
+    // 3. Valid password -> 200 and anonymization
+    const resSuccess = await request
+      .delete('/api/auth/profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'MobilePass123' });
+    expect(resSuccess.status).toBe(200);
+    expect(resSuccess.body.success).toBe(true);
+
+    const deletedUser = await User.findById(user._id);
+    expect(deletedUser.name).toBe('Deleted User');
+    expect(deletedUser.email).toBe(`deleted_${user._id}@deleted.invalid`);
+  });
+
+  test('7. Exhaustive DB scan: after deletion, original email, phone, name and address appear in ZERO raw documents across ALL collections', async () => {
+    const salt = await bcrypt.genSalt(10);
+    const targetName = 'Aarav Sharma';
+    const targetEmail = 'aarav.sharma@domain.in';
+    const targetPhone = '9811223344';
+    const targetHouse = 'Villa 77';
+    const targetStreet = 'Silver Oak Lane';
+
+    const user = await User.create({
+      name: targetName,
+      email: targetEmail,
+      phone: targetPhone,
+      password: await bcrypt.hash('AaravSecret123', salt),
+      role: 'user',
+      addresses: [{
+        fullName: targetName,
+        mobile: targetPhone,
+        houseNo: targetHouse,
+        street: targetStreet,
+        city: 'Bamitha',
+        state: 'MP',
+        pinCode: '471105'
+      }],
+      tokenVersion: 0
+    });
+
+    const product = await Product.create({
+      name: 'Designer Lehenga Red',
+      price: 5000,
+      category: 'Clothing',
+      image: '/images/lehenga.jpg',
+      description: 'Handcrafted wedding lehenga',
+      stock: 3
+    });
+
+    // 1. Seed Order
+    await Order.create({
+      user: user._id,
+      items: [{ product: product._id, name: 'Designer Lehenga Red', price: 5000, quantity: 1 }],
+      totalAmount: 5000,
+      shippingAddress: {
+        fullName: targetName,
+        mobile: targetPhone,
+        houseNo: targetHouse,
+        street: targetStreet,
+        city: 'Bamitha',
+        state: 'MP',
+        pinCode: '471105'
+      },
+      status: 'Delivered'
+    });
+
+    // 2. Seed Rental
+    await Rental.create({
+      lehenga: product._id,
+      lehengaName: 'Designer Lehenga Red',
+      user: user._id,
+      customerName: targetName,
+      customerPhone: targetPhone,
+      customerEmail: targetEmail,
+      startDate: new Date('2026-10-01'),
+      returnDate: new Date('2026-10-04'),
+      rentalPrice: 2000,
+      totalAmount: 2000,
+      status: 'Returned',
+      notes: `Special delivery for ${targetName} at ${targetHouse}`
+    });
+
+    // 3. Seed Appointment
+    await Appointment.create({
+      user: user._id,
+      serviceId: 'srv_bridal_makeup',
+      serviceName: 'Bridal Makeup',
+      price: 2500,
+      date: '2026-10-02',
+      slot: '10:00 AM',
+      customerName: targetName,
+      customerPhone: targetPhone,
+      notes: `Contact ${targetName} on ${targetPhone}`,
+      status: 'Completed'
+    });
+
+    // 4. Seed Review
+    await Review.create({
+      user_id: user._id,
+      product_id: product._id,
+      order_id: new mongoose.Types.ObjectId(),
+      rating: 5,
+      comment: 'Excellent bridal wear and great fit',
+      status: 'approved'
+    });
+
+    // 5. Seed Notification
+    await Notification.create({
+      user_id: user._id,
+      title: 'Order Delivered',
+      body: `Order delivered to ${targetName} at ${targetHouse}, ${targetStreet}`
+    });
+
+    // 6. Seed OtpSession
+    await OtpSession.create({
+      identifier: targetEmail,
+      hashedOtp: 'some_hashed_otp_value',
+      expiresAt: new Date(Date.now() + 600000)
+    });
+
+    // 7. Seed WishlistItem
+    await WishlistItem.create({
+      user_id: user._id,
+      product_id: product._id
+    });
+
+    const token = jwt.sign({ id: user._id, tokenVersion: 0 }, process.env.JWT_SECRET);
+
+    // Perform deletion
+    const delRes = await request
+      .post('/api/auth/delete-account')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'AaravSecret123' });
+
+    expect(delRes.status).toBe(200);
+
+    // Deep inspect ALL collections
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    expect(collections.length).toBeGreaterThan(5);
+
+    const sensitiveTerms = [targetName, targetEmail, targetPhone, targetHouse, targetStreet];
+
+    for (const col of collections) {
+      const rawDocs = await mongoose.connection.db.collection(col.name).find({}).toArray();
+      const rawJson = JSON.stringify(rawDocs);
+
+      for (const term of sensitiveTerms) {
+        const found = rawJson.includes(term);
+        if (found) {
+          console.error(`Leak detected in collection "${col.name}" for term "${term}":`, rawJson);
+        }
+        expect(found).toBe(false);
+      }
+    }
   });
 
 });

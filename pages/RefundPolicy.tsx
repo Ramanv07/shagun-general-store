@@ -10,7 +10,7 @@ export const RefundPolicy: React.FC = () => {
         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-8">
           <div className="flex items-start">
             <span className="text-amber-800 font-bold text-sm">
-              ⚠️ Draft — pending final review by owner and legal counsel. Parameter check: [FILL: return window duration, e.g., 24 hours vs 48 hours for non-perishable goods].
+              Draft — pending final review by owner and legal counsel. Parameter check: [FILL: return window duration, e.g., 24 hours vs 48 hours for non-perishable goods].
             </span>
           </div>
         </div>
@@ -58,3 +58,4 @@ export const RefundPolicy: React.FC = () => {
     </div>
   );
 };
+

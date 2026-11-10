@@ -11,6 +11,7 @@ import Appointment from '../models/Appointment.js';
 import WishlistItem from '../models/WishlistItem.js';
 import AuditLog from '../models/AuditLog.js';
 import PaymentPreference from '../models/PaymentPreference.js';
+import Notification from '../models/Notification.js';
 import { sendOtp } from '../services/otpService.js';
 
 const googleClient = new OAuth2Client();
@@ -634,24 +635,7 @@ router.post('/logout', protect, async (req, res) => {
     }
 });
 
-// @route   DELETE /api/auth/profile
-// @desc    Delete current user account and data (Google Play requirement)
-router.delete('/profile', protect, async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        if (user.role === 'admin') {
-            return res.status(400).json({ message: 'Master admin account cannot be deleted' });
-        }
-        await User.findByIdAndDelete(req.user._id);
-        res.json({ message: 'Account deleted successfully' });
-    } catch (error) {
-        console.error('Account deletion error:', error);
-        res.status(500).json({ message: 'Error deleting account' });
-    }
-});
+// Note: DELETE /api/auth/profile route is mounted below to share exact identity checks with /delete-account
 
 // @route   POST /api/auth/address
 // @desc    Add a saved address to current user
@@ -780,11 +764,11 @@ router.get('/users', protect, adminOnly, async (req, res) => {
     }
 });
 
-// @route   POST /api/auth/delete-account
+// @route   POST /api/auth/delete-account & DELETE /api/auth/profile
 // @desc    Self-service account deletion and anonymization with accounting preservation
-router.post('/delete-account', protect, async (req, res) => {
+const handleDeleteAccount = async (req, res) => {
     try {
-        const { currentPassword, googleIdToken, otp } = req.body;
+        const { currentPassword, googleIdToken, otp } = req.body || {};
         const user = await User.findById(req.user._id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -871,8 +855,9 @@ router.post('/delete-account', protect, async (req, res) => {
 
         const activeRental = await Rental.findOne({
             $or: [
-                { customerPhone: user.phone },
-                { customerEmail: user.email }
+                { user: user._id },
+                ...(user.phone ? [{ customerPhone: user.phone }] : []),
+                ...(user.email ? [{ customerEmail: user.email }] : [])
             ],
             status: { $in: ['Booked', 'Active'] }
         });
@@ -885,7 +870,7 @@ router.post('/delete-account', protect, async (req, res) => {
         const activeAppointment = await Appointment.findOne({
             $or: [
                 { user: user._id },
-                { customerPhone: user.phone }
+                ...(user.phone ? [{ customerPhone: user.phone }] : [])
             ],
             status: { $in: ['Pending', 'Confirmed'] }
         });
@@ -915,14 +900,26 @@ router.post('/delete-account', protect, async (req, res) => {
         // 5. Clean up non-financial user-specific items
         await WishlistItem.deleteMany({ user_id: user._id }).catch(() => {});
         await OtpSession.deleteMany({
-            identifier: { $in: [oldEmail.toLowerCase(), oldPhone ? oldPhone.replace(/\D/g, '').slice(-10) : ''] }
+            identifier: { $in: [oldEmail.toLowerCase(), oldPhone ? oldPhone.replace(/\D/g, '').slice(-10) : ''].filter(Boolean) }
         }).catch(() => {});
         await PaymentPreference.deleteOne({ user: user._id }).catch(() => {});
+        await Notification.deleteMany({
+            $or: [
+                { user_id: user._id },
+                { user: user._id },
+                ...(oldPhone ? [{ customerPhone: oldPhone }] : [])
+            ]
+        }).catch(() => {});
 
         // 6. Redact PII from past orders, rentals, appointments (Financial Records Retention)
-        // Retention rules for tax/financial records need accountant's confirmation.
         await Order.updateMany(
-            { user: user._id },
+            {
+                $or: [
+                    { user: user._id },
+                    ...(oldPhone ? [{ 'shippingAddress.mobile': oldPhone }] : []),
+                    { legacyUserId: String(user._id) }
+                ]
+            },
             {
                 $set: {
                     'shippingAddress.fullName': 'Deleted User',
@@ -933,28 +930,39 @@ router.post('/delete-account', protect, async (req, res) => {
             }
         ).catch(() => {});
 
-        if (oldPhone) {
-            await Rental.updateMany(
-                { customerPhone: oldPhone },
-                {
-                    $set: {
-                        customerName: 'Deleted Customer',
-                        customerPhone: '0000000000',
-                        customerEmail: anonymizedEmail
-                    }
+        await Rental.updateMany(
+            {
+                $or: [
+                    { user: user._id },
+                    ...(oldPhone ? [{ customerPhone: oldPhone }] : []),
+                    ...(oldEmail ? [{ customerEmail: oldEmail }] : [])
+                ]
+            },
+            {
+                $set: {
+                    customerName: 'Deleted Customer',
+                    customerPhone: '0000000000',
+                    customerEmail: anonymizedEmail,
+                    notes: 'Redacted'
                 }
-            ).catch(() => {});
+            }
+        ).catch(() => {});
 
-            await Appointment.updateMany(
-                { customerPhone: oldPhone },
-                {
-                    $set: {
-                        customerName: 'Deleted Customer',
-                        customerPhone: '0000000000'
-                    }
+        await Appointment.updateMany(
+            {
+                $or: [
+                    { user: user._id },
+                    ...(oldPhone ? [{ customerPhone: oldPhone }] : [])
+                ]
+            },
+            {
+                $set: {
+                    customerName: 'Deleted Customer',
+                    customerPhone: '0000000000',
+                    notes: 'Redacted'
                 }
-            ).catch(() => {});
-        }
+            }
+        ).catch(() => {});
 
         // 7. AuditLog entry (NO PII)
         await AuditLog.create({
@@ -973,7 +981,10 @@ router.post('/delete-account', protect, async (req, res) => {
         console.error('Account deletion error:', error);
         res.status(500).json({ message: 'Failed to delete account. Please contact support.' });
     }
-});
+};
+
+router.post('/delete-account', protect, handleDeleteAccount);
+router.delete('/profile', protect, handleDeleteAccount);
 
 export default router;
 

@@ -17,6 +17,11 @@ import appointmentRoutes from '../backend/routes/appointmentRoutes.js';
 import parlorServiceRoutes from '../backend/routes/parlorServiceRoutes.js';
 import categoryRoutes from '../backend/routes/categoryRoutes.js';
 import notificationRoutes from '../backend/routes/notificationRoutes.js';
+import bannerRoutes from '../backend/routes/bannerRoutes.js';
+import couponRoutes from '../backend/routes/couponRoutes.js';
+import brandRoutes from '../backend/routes/brandRoutes.js';
+import reviewRoutes from '../backend/routes/reviewRoutes.js';
+import storeSettingRoutes from '../backend/routes/storeSettingRoutes.js';
 
 // ─── App Setup ───────────────────────────────────────────────────
 const app = express();
@@ -45,6 +50,11 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/parlor-services', parlorServiceRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/banners', bannerRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/brands', brandRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/settings', storeSettingRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({

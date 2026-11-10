@@ -111,3 +111,35 @@ npx expo start
   - In Admin Dashboard (`/admin` -> Orders), update order status to `Cancelled`.
   - Product stock increments back, coupon `usedCount` decrements, and redemption record is cleared so user can re-use the coupon.
 
+### 1.10 Account Deletion Flow (Customer Web & Mobile App)
+- [ ] **Web Action:**
+  - Log into Customer Web (`/account`).
+  - Scroll down to the bottom **Danger Zone** card.
+  - Observe link to `/delete-account` (Account Deletion Info page). Click link and verify retention policies display clearly with no broken styling.
+  - Return to `/account`. Click **Delete Account** button. Modal appears prompting for current password.
+  - Enter wrong password -> error `"Incorrect password. Account deletion aborted."` appears.
+  - If user has active orders (Processing/Packed/Out for Delivery) or upcoming appointments: clean rejection message blocks deletion.
+  - Enter correct password and confirm:
+    - User is logged out immediately and redirected to `/`.
+    - Refresh `/account` -> Redirected to `/login` (session tokenVersion invalidated).
+- [ ] **App Action:**
+  - Open Mobile App -> Account tab (`/(tabs)/account`).
+  - Scroll to bottom and tap **Delete Account**.
+  - Confirmation alert dialog appears explaining permanent removal.
+  - Tap **Delete Permanently**: Account deleted, storage cleared, and returned to logged-out state.
+
+### 1.11 Policy Pages & Footer Navigation Verification (Customer Web)
+- [ ] **Action:** On Home page (`/`), scroll down to the 4-column footer.
+- [ ] **Expected Result:**
+  - Column 1: **SHAGUN MART** brand badge and mission.
+  - Column 2: **Quick Links** (Home, Shop Products, Bridal Lehenga Rentals, Beauty Parlor, My Orders).
+  - Column 3: **Policies & Legal** contains clickable links:
+    - `Terms & Conditions` -> navigates to `/terms`
+    - `Refund & Cancellation` -> navigates to `/refund-policy`
+    - `Shipping & Delivery` -> navigates to `/shipping-policy`
+    - `Rental Terms` -> navigates to `/rental-terms`
+    - `Privacy Policy` -> navigates to `/privacy`
+    - `Account Deletion Info` -> navigates to `/delete-account`
+  - Column 4: **Contact Us** displays phone `+91 88272 59023`, address `Bamitha, Madhya Pradesh`, store hours `Mon–Sat: 9am – 9pm`, and link to `/contact-us`.
+  - Each page displays the plain text draft disclaimer banner: `"Draft — pending final review by owner and legal counsel"`.
+
