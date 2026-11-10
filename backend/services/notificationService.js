@@ -206,17 +206,22 @@ export async function sendAdminOrderNotification(order) {
       `💳 Payment: ${payment}\n\n` +
       `Items:\n${itemsSummary}`;
 
-    const adminPortalUrl = (process.env.ADMIN_PORTAL_URL || process.env.PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const rawSiteUrl = process.env.SITE_URL || process.env.VITE_SITE_URL;
+    const siteUrl = rawSiteUrl ? rawSiteUrl.replace(/\/+$/, '') : null;
 
     try {
+      const ntfyHeaders = {
+        'Title': ntfyTitle,
+        'Priority': 'urgent',
+        'Tags': 'shopping_bags,moneybag,package',
+      };
+      if (siteUrl) {
+        ntfyHeaders['Click'] = `${siteUrl}/admin`;
+      }
+
       await fetch(`https://ntfy.sh/${ntfyTopic}`, {
         method: 'POST',
-        headers: {
-          'Title': ntfyTitle,
-          'Priority': 'urgent',
-          'Tags': 'shopping_bags,moneybag,package',
-          'Click': `${adminPortalUrl}/admin`
-        },
+        headers: ntfyHeaders,
         body: ntfyBody,
         signal: AbortSignal.timeout(5000)
       });
@@ -228,14 +233,16 @@ export async function sendAdminOrderNotification(order) {
     // 2. WHATSAPP MESSAGE VIA CALLMEBOT
     if (callMeBotKey) {
       try {
-        const waText = `🛍️ *New Shagun Mart Order!*\n\n` +
+        let waText = `🛍️ *New Shagun Mart Order!*\n\n` +
           `*Order ID:* #${orderId}\n` +
           `*Customer:* ${customerName}\n` +
           `*Phone:* ${customerPhone}\n` +
           `*City:* ${city}\n` +
           `*Total:* ₹${total} (${payment})\n\n` +
-          `*Items:*\n${itemsSummary}\n\n` +
-          `👉 *Admin Portal:* ${adminPortalUrl}/admin`;
+          `*Items:*\n${itemsSummary}`;
+        if (siteUrl) {
+          waText += `\n\n👉 *Admin Portal:* ${siteUrl}/admin`;
+        }
 
         const waUrl = `https://api.callmebot.com/whatsapp.php?phone=${adminPhone}&text=${encodeURIComponent(waText)}&apikey=${callMeBotKey}`;
         await fetch(waUrl, { signal: AbortSignal.timeout(5000) });

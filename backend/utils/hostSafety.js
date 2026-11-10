@@ -36,6 +36,13 @@ export function getDisplayHost(urlOrHost) {
   }
 }
 
+export function isLiveHostBlocked(isDev, urlOrHost) {
+  if (!isDev) {
+    return false; // Production and Preview builds are NEVER blocked from communicating with their server
+  }
+  return isLiveHost(urlOrHost);
+}
+
 export function getCheckoutUpiStatusMessage(res, fetchError) {
   if (fetchError || !res) {
     return 'Could not reach the server';
@@ -45,3 +52,4 @@ export function getCheckoutUpiStatusMessage(res, fetchError) {
   }
   return null;
 }
+

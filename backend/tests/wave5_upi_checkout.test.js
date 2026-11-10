@@ -10,7 +10,11 @@ import StoreSetting from '../models/StoreSetting.js';
 import PaymentPreference from '../models/PaymentPreference.js';
 import bcrypt from 'bcryptjs';
 import { sanitizeRedirectUrl } from '../utils/urlSanitizer.js';
-import { isLiveHost, getDisplayHost, getCheckoutUpiStatusMessage } from '../utils/hostSafety.js';
+import { isLiveHost, getDisplayHost, isLiveHostBlocked, getCheckoutUpiStatusMessage } from '../utils/hostSafety.js';
+import { sendAdminOrderNotification } from '../services/notificationService.js';
+import ts from 'typescript';
+import fs from 'fs';
+import path from 'path';
 import { jest } from '@jest/globals';
 import { v2 as cloudinary } from 'cloudinary';
 import { up as runMigration001 } from '../migrations/001_unique_indexes.js';
@@ -577,5 +581,135 @@ describe('Wave 5 Group 2: UPI Checkout & Confirming Screen Integration', () => {
         expect(codOrderRes.status).toBe(201);
         expect(codOrderRes.body.paymentMethod).toBe('COD');
         expect(codOrderRes.body.paymentStatus).toBe('Pending');
+    });
+
+    test('13. Live-host guard: dev build pointed at live host is blocked; prod & preview builds are never blocked', () => {
+        // (a) Dev build (isDev === true) pointed at live host is blocked
+        expect(isLiveHostBlocked(true, 'https://shagun-general-store.vercel.app')).toBe(true);
+        expect(isLiveHostBlocked(true, 'https://shagunmart.com/api')).toBe(true);
+        expect(isLiveHostBlocked(true, 'https://preview-deploy.vercel.app')).toBe(true);
+        expect(isLiveHostBlocked(true, 'http://localhost:5000/api')).toBe(false);
+        expect(isLiveHostBlocked(true, 'http://192.168.1.100:5000/api')).toBe(false);
+
+        // (b) Production build (isDev === false) pointed at its own host is NOT blocked
+        expect(isLiveHostBlocked(false, 'https://shagun-general-store.vercel.app')).toBe(false);
+        expect(isLiveHostBlocked(false, 'https://shagunmart.com/api')).toBe(false);
+
+        // (c) Preview build (isDev === false) is NOT blocked
+        expect(isLiveHostBlocked(false, 'https://preview-deploy.vercel.app')).toBe(false);
+    });
+
+    test('14. Single source drift test: backend/utils/hostSafety.js and utils/hostSafety.ts behave identically', () => {
+        const tsPath = path.resolve('utils/hostSafety.ts');
+        const jsPath = path.resolve('backend/utils/hostSafety.js');
+        expect(fs.existsSync(tsPath)).toBe(true);
+        expect(fs.existsSync(jsPath)).toBe(true);
+
+        const tsSource = fs.readFileSync(tsPath, 'utf8');
+        const tsTranspiled = ts.transpileModule(tsSource, {
+            compilerOptions: { module: ts.ModuleKind.CommonJS }
+        }).outputText;
+
+        const tsModule = {};
+        const fn = new Function('exports', tsTranspiled);
+        fn(tsModule);
+
+        const testUrls = [
+            'https://shagun-general-store.vercel.app',
+            'https://shagunmart.com/api',
+            'https://preview-deploy.vercel.app',
+            'http://localhost:5000/api',
+            'http://127.0.0.1:5000',
+            'http://192.168.1.50:5000/api',
+            'http://10.0.2.2:5000',
+            'cluster0.abcde.mongodb.net',
+            '',
+            null,
+            undefined
+        ];
+
+        for (const url of testUrls) {
+            expect(tsModule.isLiveHost(url)).toBe(isLiveHost(url));
+            expect(tsModule.getDisplayHost(url)).toBe(getDisplayHost(url));
+            expect(tsModule.isLiveHostBlocked(true, url)).toBe(isLiveHostBlocked(true, url));
+            expect(tsModule.isLiveHostBlocked(false, url)).toBe(isLiveHostBlocked(false, url));
+        }
+
+        expect(tsModule.getCheckoutUpiStatusMessage(null, new Error('Network error'))).toBe(
+            getCheckoutUpiStatusMessage(null, new Error('Network error'))
+        );
+        expect(tsModule.getCheckoutUpiStatusMessage({ enabled: false }, null)).toBe(
+            getCheckoutUpiStatusMessage({ enabled: false }, null)
+        );
+        expect(tsModule.getCheckoutUpiStatusMessage({ enabled: true }, null)).toBe(
+            getCheckoutUpiStatusMessage({ enabled: true }, null)
+        );
+    });
+
+    test('15. Notification link safety: notifications sent without link when SITE_URL is unset; valid link included when set', async () => {
+        const originalFetch = globalThis.fetch;
+        const originalSiteUrl = process.env.SITE_URL;
+        const originalViteSiteUrl = process.env.VITE_SITE_URL;
+        const originalKey = process.env.CALLMEBOT_API_KEY;
+
+        process.env.CALLMEBOT_API_KEY = 'test_callmebot_key';
+
+        const dummyOrder = {
+            _id: new mongoose.Types.ObjectId(),
+            totalAmount: 999,
+            paymentMethod: 'UPI',
+            shippingAddress: {
+                fullName: 'Alert Tester',
+                mobile: '9876543210',
+                city: 'Bamitha'
+            },
+            items: [{ name: 'Test Product', quantity: 1, price: 999 }]
+        };
+
+        const fetchCalls = [];
+        globalThis.fetch = jest.fn(async (url, options) => {
+            fetchCalls.push({ url: String(url), options });
+            return { ok: true, status: 200, text: async () => 'OK' };
+        });
+
+        try {
+            // Case A: SITE_URL & VITE_SITE_URL unset
+            delete process.env.SITE_URL;
+            delete process.env.VITE_SITE_URL;
+            fetchCalls.length = 0;
+
+            await sendAdminOrderNotification(dummyOrder);
+
+            expect(fetchCalls.length).toBe(2);
+            // Ntfy push call: Click header must NOT be set
+            const ntfyCallA = fetchCalls.find(c => c.url.includes('ntfy.sh'));
+            expect(ntfyCallA).toBeDefined();
+            expect(ntfyCallA.options.headers['Click']).toBeUndefined();
+
+            // WhatsApp call: message body must NOT contain Admin Portal link
+            const waCallA = fetchCalls.find(c => c.url.includes('callmebot.com'));
+            expect(waCallA).toBeDefined();
+            expect(decodeURIComponent(waCallA.url)).not.toContain('Admin Portal:');
+
+            // Case B: SITE_URL set
+            process.env.SITE_URL = 'https://shagunmart.com/';
+            fetchCalls.length = 0;
+
+            await sendAdminOrderNotification(dummyOrder);
+
+            expect(fetchCalls.length).toBe(2);
+            const ntfyCallB = fetchCalls.find(c => c.url.includes('ntfy.sh'));
+            expect(ntfyCallB).toBeDefined();
+            expect(ntfyCallB.options.headers['Click']).toBe('https://shagunmart.com/admin');
+
+            const waCallB = fetchCalls.find(c => c.url.includes('callmebot.com'));
+            expect(waCallB).toBeDefined();
+            expect(decodeURIComponent(waCallB.url)).toContain('👉 *Admin Portal:* https://shagunmart.com/admin');
+        } finally {
+            globalThis.fetch = originalFetch;
+            if (originalSiteUrl) process.env.SITE_URL = originalSiteUrl; else delete process.env.SITE_URL;
+            if (originalViteSiteUrl) process.env.VITE_SITE_URL = originalViteSiteUrl; else delete process.env.VITE_SITE_URL;
+            if (originalKey) process.env.CALLMEBOT_API_KEY = originalKey; else delete process.env.CALLMEBOT_API_KEY;
+        }
     });
 });

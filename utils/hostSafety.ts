@@ -36,6 +36,13 @@ export function getDisplayHost(urlOrHost: string): string {
   }
 }
 
+export function isLiveHostBlocked(isDev: boolean, urlOrHost: string): boolean {
+  if (!isDev) {
+    return false; // Production and Preview builds are NEVER blocked from communicating with their server
+  }
+  return isLiveHost(urlOrHost);
+}
+
 export function getCheckoutUpiStatusMessage(
   res: { enabled?: boolean } | null | undefined,
   fetchError?: Error | string | null
@@ -48,3 +55,4 @@ export function getCheckoutUpiStatusMessage(
   }
   return null;
 }
+
