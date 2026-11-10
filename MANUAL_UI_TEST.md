@@ -4,33 +4,67 @@ This manual verification plan tests all frontend screens and backend integration
 
 ---
 
-## 0. Exact Commands to Run Staging Locally
+## 0. Exact Commands to Run Locally
 
-### A. Run Staging Backend & Web
-Open PowerShell in the project directory:
+Follow these 5 steps in separate PowerShell terminals to run the entire staging stack locally without reaching MongoDB Atlas or external services:
+
+### Step 1: Start Local Staging Database (Port 27017)
 ```powershell
-# 1. Start Local Staging Server (Backend + Staging MongoDB + Seed Data)
+cd c:\Users\raman\Downloads\shagun-general-store
+node backend/scripts/start-local-staging.js
+```
+*Keeps local WiredTiger database `shagun-staging` running on `127.0.0.1:27017`.*
+
+### Step 2: Restore November 1 Staging Backup
+```powershell
+cd c:\Users\raman\Downloads\shagun-general-store
+node backend/scripts/staging-restore.js
+```
+*Restores all collections (28 products, 10 users, 1 order) to `shagun-staging`.*
+
+### Step 3: Configure Store UPI Settings
+```powershell
+cd c:\Users\raman\Downloads\shagun-general-store
+node backend/scripts/setup_upi_settings.js --vpa 8827259023@sbi --name "Shagun mart" --confirm
+```
+
+### Step 4: Start Backend API (Port 5000)
+```powershell
 cd c:\Users\raman\Downloads\shagun-general-store
 $env:PORT = "5000"
 $env:NODE_ENV = "development"
-$env:ALLOW_TEST_OTP = "true"
+$env:MONGODB_URI = "mongodb://127.0.0.1:27017/shagun-staging"
 $env:JWT_SECRET = "staging_jwt_secret_shagun_mart_2026_test"
-$env:MONGODB_URI = "mongodb://127.0.0.1:27017/shagun_staging"
 node backend/server.js
-
-# 2. In a NEW terminal, start Customer Web (Vite)
-cd c:\Users\raman\Downloads\shagun-general-store
-npm run dev
-# Web opens at: http://localhost:5173
 ```
+*Backend runs on `http://localhost:5000`. Dev guard confirms local host logging `[DB CONNECT] Target Host: 127.0.0.1:27017, Database: shagun-staging`.*
 
-### B. Run Mobile App on Phone or Android Emulator
-Open a third terminal:
+### Step 5: Start Customer Web & Mobile App
+
+#### A. Web Frontend (Vite)
 ```powershell
-cd c:\Users\raman\Downloads\shagun-general-store\shagun-native
-npx expo start
+cd c:\Users\raman\Downloads\shagun-general-store
+$env:VITE_API_URL = "http://localhost:5000/api"
+npm run dev
+# Web opens at: http://localhost:5173 (API badge displays "API: localhost:5000")
 ```
-- Press `a` to open Android Emulator, or scan the QR code using Expo Go on your physical phone (ensure your phone is on the same local Wi-Fi).
+
+#### B. Mobile App (Expo) & Reaching from a Real Phone
+1. Ensure your physical phone and development PC are connected to the **same Wi-Fi network**.
+2. Find your PC's local Wi-Fi IP address:
+   ```powershell
+   ipconfig
+   # Look for "IPv4 Address", e.g. 192.168.1.50
+   ```
+3. Start Expo with `EXPO_PUBLIC_API_URL` pointing to your LAN IP:
+   ```powershell
+   cd c:\Users\raman\Downloads\shagun-general-store\shagun-native
+   $env:EXPO_PUBLIC_API_URL = "http://192.168.1.50:5000/api"
+   npx expo start
+   ```
+4. Scan the QR code using Expo Go on your phone.
+   - The top screen badge displays `API: 192.168.1.50:5000`.
+   - If accidentally pointed at production, a red banner appears: *"Dev build is pointed at the live server"*, blocking order placement.
 
 ---
 
