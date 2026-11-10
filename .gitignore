@@ -54,3 +54,9 @@ backups/
 backend/backups/
 backend/staging-data/
 **/staging-data/
+
+# Android Binaries
+*.apk
+*.aab
+**/*.apk
+**/*.aab
