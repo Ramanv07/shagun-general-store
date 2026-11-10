@@ -143,3 +143,65 @@ npx expo start
   - Column 4: **Contact Us** displays phone `+91 88272 59023`, address `Bamitha, Madhya Pradesh`, store hours `Mon–Sat: 9am – 9pm`, and link to `/contact-us`.
   - Each page displays the plain text draft disclaimer banner: `"Draft — pending final review by owner and legal counsel"`.
 
+### 1.12 UPI Intent Payments Flow (Customer Web, Mobile App & Admin)
+- [ ] **A. Web Desktop Checkout & QR Display:**
+  - Add items to cart and proceed to Checkout (`/checkout`).
+  - Select **UPI Instant Payment** radio option.
+  - Click **Place Order**.
+  - Navigates to `/confirming-payment/:orderId`.
+  - Verify desktop view displays client-rendered QR code with `"Scan with any UPI App"`, amount, and order ID.
+  - Verify countdown timer shows remaining window (30 minutes).
+  - Verify warning banner: *"If money was debited, enter your UTR, do not pay again"*.
+- [ ] **B. Mobile Web & App Intent Launch:**
+  - Open on mobile browser or Expo app on physical device.
+  - Select **UPI Instant Payment** -> Click Place Order.
+  - Automatically triggers UPI intent (`upi://pay?...`) opening installed UPI apps (GPay, PhonePe, Paytm, BHIM).
+  - If no UPI app installed: verify clear notice dialog displays without app crash and user remains on Confirming Payment screen.
+- [ ] **C. Retry Payment:**
+  - On Confirming Payment screen, click **Retry Payment**.
+  - Verifies that it reopens the exact same order with the same transaction reference (`tr`).
+- [ ] **D. UTR Entry & Verification:**
+  - Enter invalid UTR (e.g., `12345` or letters) -> error message explains UTR must be exactly 12 numeric digits.
+  - Enter valid 12-digit UTR (e.g., `512345678901`) -> submit.
+  - Status updates immediately to **Verifying**.
+  - Store admin receives notification alert (push / ntfy).
+- [ ] **E. Admin Approval & Idempotency:**
+  - Admin logs in at `/admin` -> Opens **UPI Payments** tab.
+  - Order appears in `Needs Verification` filter list showing customer name, amount, order ID, and submitted UTR.
+  - Click **Approve Payment** -> Confirmation modal displays -> Confirm.
+  - Status transitions to **Paid**.
+  - In Customer Confirming Screen or Orders list, status updates to **Paid** (green checkmark).
+- [ ] **F. Expiry & Late Payment Flow:**
+  - Place an order and allow/simulate the 30-minute timer expiration without submitting UTR.
+  - Order status transitions to **Expired** and reserved stock is released.
+  - Submit UTR on the expired order -> order updates to **Late Payment** with message: *"We received your reference and are checking it."*
+  - In Admin `/admin` UPI Payments tab:
+    - Admin sees order marked **Late Payment**.
+    - If stock is still available: admin clicks **Reinstate** -> stock is re-reserved and order returns to **Verifying** for approval.
+    - If item is out of stock: admin clicks **Refund Needed** -> prompts for refund note and marks order as **Refund Needed**.
+- [ ] **G. UPI App Matrix Verification (Test Each App):**
+  - **Google Pay:**
+    - [ ] Result: `[Pass / Warning / Blocked]`
+    - [ ] Exact message / behavior: `[FILL: note message or behavior, e.g. opened intent successfully / bank selector displayed]`
+  - **PhonePe:**
+    - [ ] Result: `[Pass / Warning / Blocked]`
+    - [ ] Exact message / behavior: `[FILL: note message or behavior]`
+  - **Paytm:**
+    - [ ] Result: `[Pass / Warning / Blocked]`
+    - [ ] Exact message / behavior: `[FILL: note message or behavior]`
+  - **BHIM:**
+    - [ ] Result: `[Pass / Warning / Blocked]`
+    - [ ] Exact message / behavior: `[FILL: note message or behavior]`
+- [ ] **H. Edge Case & Failure Mode Verification:**
+  - [ ] **App Kill & Reopen:** Force kill mobile app while on Confirming Payment screen; reopen app -> verifies app/Orders restores confirming screen for the active order with the exact same `tr`.
+  - [ ] **Back Navigation:** Tap device back button from Confirming Payment screen -> verifies order remains preserved in Orders list as Pending/Verifying.
+  - [ ] **Two Phones / Single Account:** Log in on two devices simultaneously; submit UTR on Phone A -> Phone B reflects `Verifying` upon next poll/refresh.
+  - [ ] **Slow / Flaky Network:** Throttle connection to 3G during UTR submission -> verify loading indicator prevents duplicate taps and retry succeeds.
+  - [ ] **Invalid UTR Formats:** Enter UTR with letters (e.g., `1234ABCD5678`) or 11 digits (e.g., `12345678901`) -> verify client and server reject with *"12 numeric digits"* error.
+  - [ ] **Live Expiry:** Keep Confirming screen open until timer reaches `0:00` -> screen updates to Expired state and reveals late payment handling.
+  - [ ] **No UPI App on Phone:** On a device/emulator with no UPI apps installed, tap pay -> shows "No UPI app found" alert and offers COD or manual UTR route.
+  - [ ] **Desktop Web View:** Open on desktop browser -> renders browser-side QR canvas cleanly without trying to launch an unhandled system `upi://` protocol.
+
+
+
+
