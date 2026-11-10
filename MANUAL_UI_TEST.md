@@ -68,6 +68,35 @@ npm run dev
 
 ---
 
+### 0.1 Host Safety Verification (Negative & Positive Tests)
+
+#### A. Negative Test: Dev Build Pointed to Live Production Server
+1. In PowerShell, simulate pointing the dev app at live production:
+   ```powershell
+   cd c:\Users\raman\Downloads\shagun-general-store\shagun-native
+   $env:EXPO_PUBLIC_API_URL = "https://shagun-general-store.vercel.app/api"
+   npx expo start
+   ```
+2. Open the app in Expo Go or dev preview (`http://localhost:8081`).
+3. **Expected Result:**
+   - Red warning banner appears at the top: `⚠️ Dev build is pointed at the live server (shagun-general-store.vercel.app)`.
+   - On the Checkout screen (`/checkout`), the "Place Order" button is disabled and shows red banner: *"Dev build is pointed at the live server. Order creation is blocked."*.
+   - On the Payment Confirmation screen (`/payment-confirm`), the "Submit UTR" button is disabled.
+
+#### B. Positive Test: Local Dev Backend & UPI Verification
+1. Start Expo pointed to the local backend:
+   ```powershell
+   cd c:\Users\raman\Downloads\shagun-general-store\shagun-native
+   $env:EXPO_PUBLIC_API_URL = "http://localhost:5000/api"
+   npx expo start
+   ```
+2. **Expected Result:**
+   - Top badge displays `API: localhost:5000`.
+   - Proceed to checkout: UPI option is available with payee name "Shagun mart" and VPA `8827259023@sbi`.
+   - Place Order creates order with `paymentStatus: "pending"`, shows countdown timer (30 min), QR code, and "Pay with UPI App" / "Submit UTR" buttons work without blocking.
+
+---
+
 ## 1. Step-by-Step Manual Test Checklist
 
 ### 1.1 Admin Dashboard: Banners Management
