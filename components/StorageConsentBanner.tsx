@@ -60,3 +60,4 @@ export const StorageConsentBanner: React.FC = () => {
     </div>
   );
 };
+

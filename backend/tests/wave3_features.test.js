@@ -7,7 +7,8 @@ import Review from '../models/Review.js';
 import WishlistItem from '../models/WishlistItem.js';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
-import authRoutes from '../routes/authRoutes.js';
+import authRoutes, { _testClearOtpStores } from '../routes/authRoutes.js';
+import { sendOtp, setTestMockTransporter } from '../services/otpService.js';
 import bcrypt from 'bcryptjs';
 
 jest.setTimeout(60000);
@@ -67,59 +68,127 @@ describe('W3-01: Timestamp alias createdAt on Review and Wishlist', () => {
   });
 });
 
-describe('W3-03: In-app password reset OTP flow', () => {
+describe('W3-03 & OTP Delivery: In-app password reset OTP hardening', () => {
   let registeredUser;
+  const testEmail = 'reset_user@example.com';
   const testPhone = '9876543210';
   const initialPassword = 'OldPassword123!';
   const newPassword = 'NewSecretPassword456!';
+  let dispatchedMails = [];
 
   beforeEach(async () => {
     await User.deleteMany({});
+    if (typeof _testClearOtpStores === 'function') _testClearOtpStores();
+    dispatchedMails = [];
+    setTestMockTransporter({
+      sendMail: async (opts) => {
+        dispatchedMails.push(opts);
+        return { success: true, messageId: 'test-mail-id' };
+      }
+    });
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(initialPassword, salt);
     registeredUser = await User.create({
       name: 'Password Reset Test User',
-      email: 'reset_test@example.com',
+      email: testEmail,
       phone: testPhone,
       password: hashedPassword,
       tokenVersion: 1
     });
   });
 
-  test('FAILS before fix: POST /api/auth/forgot-password sends OTP for registered phone', async () => {
-    // 1. Unknown phone should return 404
-    const unknownRes = await request.post('/api/auth/forgot-password').send({ phone: '9999999999' });
-    expect(unknownRes.status).toBe(404);
+  afterAll(() => {
+    setTestMockTransporter(null);
+  });
 
-    // 2. Registered phone should return 200 and dispatch OTP
-    const validRes = await request.post('/api/auth/forgot-password').send({ phone: testPhone });
-    expect(validRes.status).toBe(200);
-    expect(validRes.body.success).toBe(true);
-    expect(validRes.body.testOtp).toBeDefined();
+  test('sendOtp email channel unit test with mock transporter (no real emails sent)', async () => {
+    const res = await sendOtp({ channel: 'email', to: 'customer@example.com', code: '654321' });
+    expect(res.success).toBe(true);
+    expect(dispatchedMails.length).toBe(1);
+    expect(dispatchedMails[0].to).toBe('customer@example.com');
+  });
 
-    const otp = validRes.body.testOtp;
+  test('Generic response returned whether account exists or not (prevents user enumeration)', async () => {
+    // 1. Unknown user request
+    const unknownRes = await request.post('/api/auth/forgot-password').send({ email: 'nonexistent@example.com' });
+    expect(unknownRes.status).toBe(200);
+    expect(unknownRes.body.success).toBe(true);
+    expect(unknownRes.body.message).toContain('6-digit verification code has been sent');
 
-    // 3. Reset password with wrong OTP returns 400
-    const failRes = await request.post('/api/auth/reset-password').send({
-      phone: testPhone,
+    // 2. Known user request
+    const knownRes = await request.post('/api/auth/forgot-password').send({ email: testEmail });
+    expect(knownRes.status).toBe(200);
+    expect(knownRes.body.success).toBe(true);
+    expect(knownRes.body.message).toBe(unknownRes.body.message);
+  });
+
+  test('Full reset flow with 5 failed attempts triggering 15-minute lockout and OTP single use', async () => {
+    const initRes = await request.post('/api/auth/forgot-password').send({ email: testEmail });
+    expect(initRes.status).toBe(200);
+    const otp = initRes.body.testOtp;
+    expect(otp).toBeDefined();
+
+    // 4 wrong attempts
+    for (let i = 0; i < 4; i++) {
+      const failRes = await request.post('/api/auth/reset-password').send({
+        email: testEmail,
+        otp: '000000',
+        newPassword
+      });
+      expect(failRes.status).toBe(400);
+      expect(failRes.body.message).toContain('remaining');
+    }
+
+    // 5th wrong attempt triggers lockout
+    const lockRes = await request.post('/api/auth/reset-password').send({
+      email: testEmail,
       otp: '000000',
       newPassword
     });
-    expect(failRes.status).toBe(400);
+    expect(lockRes.status).toBe(429);
+    expect(lockRes.body.message).toContain('15 minutes');
 
-    // 4. Reset password with correct OTP returns 200, updates password and increments tokenVersion
-    const successRes = await request.post('/api/auth/reset-password').send({
-      phone: testPhone,
+    // Even correct OTP is blocked during lockout
+    const blockedRes = await request.post('/api/auth/reset-password').send({
+      email: testEmail,
       otp,
       newPassword
     });
-    expect(successRes.status).toBe(200);
-    expect(successRes.body.success).toBe(true);
+    expect(blockedRes.status).toBe(429);
+  });
 
-    // Verify user in DB has updated tokenVersion and new password
-    const updated = await User.findById(registeredUser._id);
-    expect(updated.tokenVersion).toBe(2);
-    const isNewMatch = await bcrypt.compare(newPassword, updated.password);
-    expect(isNewMatch).toBe(true);
+  test('Successful reset: password updated, tokenVersion incremented, OTP single-use', async () => {
+    const user2 = await User.create({
+      name: 'User 2',
+      email: 'user2@example.com',
+      phone: '9123456789',
+      password: await bcrypt.hash('InitialPass123', 10),
+      tokenVersion: 3
+    });
+
+    const initRes = await request.post('/api/auth/forgot-password').send({ email: 'user2@example.com' });
+    const otp = initRes.body.testOtp;
+
+    const resetRes = await request.post('/api/auth/reset-password').send({
+      email: 'user2@example.com',
+      otp,
+      newPassword
+    });
+    expect(resetRes.status).toBe(200);
+
+    // Verify tokenVersion incremented and password changed
+    const updated = await User.findById(user2._id);
+    expect(updated.tokenVersion).toBe(4);
+    const isNew = await bcrypt.compare(newPassword, updated.password);
+    expect(isNew).toBe(true);
+
+    // Verify single-use: Reusing same OTP fails
+    const reuseRes = await request.post('/api/auth/reset-password').send({
+      email: 'user2@example.com',
+      otp,
+      newPassword: 'AnotherPassword999!'
+    });
+    expect(reuseRes.status).toBe(400);
   });
 });

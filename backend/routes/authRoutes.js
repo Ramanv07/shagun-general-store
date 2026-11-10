@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
+import { sendOtp } from '../services/otpService.js';
 
 const googleClient = new OAuth2Client();
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
@@ -156,61 +157,107 @@ router.post('/verify-otp', async (req, res) => {
     }
 });
 
+// Rate limiter for forgot password requests: 10/hour per IP, 5/hour per identifier
+const resetRateLimiter = new Map();
+function isResetRateLimited(key, maxLimit = 5, windowMs = 3600000) {
+    const now = Date.now();
+    const entry = resetRateLimiter.get(key);
+    if (!entry || now - entry.firstAt > windowMs) {
+        resetRateLimiter.set(key, { count: 1, firstAt: now });
+        return false;
+    }
+    if (entry.count >= maxLimit) {
+        return true;
+    }
+    entry.count += 1;
+    return false;
+}
+
+// In-memory email OTP store: normalizedEmail -> { hashedOtp, expiresAt, attempts, lastSentAt, lockedUntil }
+const emailOtpStore = new Map();
+
+export const _testClearOtpStores = () => {
+    emailOtpStore.clear();
+    resetRateLimiter.clear();
+    otpStore.clear();
+};
+
 // @route   POST /api/auth/forgot-password
-// @desc    Initiate password reset OTP flow for registered phone number
+// @desc    Initiate password reset OTP flow for registered account (dispatches to email)
 router.post('/forgot-password', async (req, res) => {
     try {
-        const { phone } = req.body;
-        if (!phone) {
-            return res.status(400).json({ message: 'Phone number is required' });
-        }
-        const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
-        if (cleanPhone.length !== 10) {
-            return res.status(400).json({ message: 'Valid 10-digit phone number is required' });
+        const { email, phone } = req.body;
+        const rawTarget = String(email || phone || '').trim().toLowerCase();
+        if (!rawTarget) {
+            return res.status(400).json({ message: 'Email address or mobile number is required' });
         }
 
-        const user = await User.findOne({
-            $or: [
-                { phone: cleanPhone },
-                { phone: `+91${cleanPhone}` },
-                { phone: `91${cleanPhone}` }
-            ]
-        });
-        if (!user) {
-            return res.status(404).json({ message: 'No registered user found with this mobile number.' });
+        const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        if (isResetRateLimited(`ip:${clientIp}`, 10) || isResetRateLimited(`id:${rawTarget}`, 5)) {
+            return res.status(429).json({ message: 'Too many password reset requests. Please try again after 1 hour.' });
         }
 
-        // Rate limit: 60-second cooldown
-        const existing = otpStore.get(cleanPhone);
+        const genericMessage = 'If an account exists with this email or mobile, a 6-digit verification code has been sent to the registered email address.';
+
+        let user = null;
+        if (rawTarget.includes('@')) {
+            user = await User.findOne({ email: rawTarget });
+        } else {
+            const cleanPhone = rawTarget.replace(/\D/g, '').slice(-10);
+            user = await User.findOne({
+                $or: [
+                    { phone: cleanPhone },
+                    { phone: `+91${cleanPhone}` },
+                    { phone: `91${cleanPhone}` }
+                ]
+            });
+        }
+
+        // Generic response if user does not exist (prevents user enumeration)
+        if (!user || !user.email) {
+            return res.json({ success: true, message: genericMessage });
+        }
+
+        const normalizedEmail = user.email.toLowerCase().trim();
+        const existing = emailOtpStore.get(normalizedEmail);
+
+        // Account lockout check (15 minutes after 5 wrong attempts)
+        if (existing && existing.lockedUntil && Date.now() < existing.lockedUntil) {
+            const waitMins = Math.ceil((existing.lockedUntil - Date.now()) / 60000);
+            return res.status(429).json({
+                message: `Account is temporarily locked due to excessive failed attempts. Please wait ${waitMins} minute${waitMins > 1 ? 's' : ''}.`
+            });
+        }
+
+        // 60-second resend cooldown
         if (existing && Date.now() - existing.lastSentAt < 60000) {
             const waitSeconds = Math.ceil((60000 - (Date.now() - existing.lastSentAt)) / 1000);
-            return res.status(429).json({ message: `Please wait ${waitSeconds} seconds before requesting another OTP` });
+            return res.status(429).json({
+                message: `Please wait ${waitSeconds} seconds before requesting another verification code.`
+            });
         }
 
         const otp = crypto.randomInt(100000, 999999).toString();
-        const hashedOtp = hashOtp(otp, cleanPhone);
+        const hashedOtp = hashOtp(otp, normalizedEmail);
         const expiresAt = Date.now() + 5 * 60 * 1000;
 
-        otpStore.set(cleanPhone, {
+        emailOtpStore.set(normalizedEmail, {
             hashedOtp,
             expiresAt,
             attempts: 0,
-            lastSentAt: Date.now()
+            lastSentAt: Date.now(),
+            lockedUntil: null
         });
+
+        // Dispatch OTP via email provider layer
+        await sendOtp({ channel: 'email', to: normalizedEmail, code: otp });
 
         const isTestMode = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
 
-        if (process.env.FAST2SMS_API_KEY && !isTestMode) {
-            try {
-                await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&flash=0&numbers=${cleanPhone}`);
-            } catch (smsErr) {
-                console.error('[SMS Dispatch] Failed for masked phone:', maskPhone(cleanPhone));
-            }
-        }
-
         res.json({
             success: true,
-            message: `Password reset OTP sent via SMS to +91 ${maskPhone(cleanPhone)}`,
+            message: genericMessage,
+            targetEmail: isTestMode ? normalizedEmail : undefined,
             ...(isTestMode ? { testOtp: otp } : {})
         });
     } catch (error) {
@@ -223,43 +270,63 @@ router.post('/forgot-password', async (req, res) => {
 // @desc    Verify OTP and update user password (invalidating older sessions)
 router.post('/reset-password', async (req, res) => {
     try {
-        const { phone, otp, newPassword } = req.body;
-        if (!phone || !otp || !newPassword) {
-            return res.status(400).json({ message: 'Phone, OTP, and new password are required' });
+        const { email, phone, otp, newPassword } = req.body;
+        const rawTarget = String(email || phone || '').trim().toLowerCase();
+        if (!rawTarget || !otp || !newPassword) {
+            return res.status(400).json({ message: 'Email/phone, OTP code, and new password are required' });
         }
         if (typeof newPassword !== 'string' || newPassword.length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters long' });
         }
 
-        const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
-        const user = await User.findOne({
-            $or: [
-                { phone: cleanPhone },
-                { phone: `+91${cleanPhone}` },
-                { phone: `91${cleanPhone}` }
-            ]
-        });
-        if (!user) {
-            return res.status(404).json({ message: 'No registered user found with this mobile number.' });
+        let user = null;
+        if (rawTarget.includes('@')) {
+            user = await User.findOne({ email: rawTarget });
+        } else {
+            const cleanPhone = rawTarget.replace(/\D/g, '').slice(-10);
+            user = await User.findOne({
+                $or: [
+                    { phone: cleanPhone },
+                    { phone: `+91${cleanPhone}` },
+                    { phone: `91${cleanPhone}` }
+                ]
+            });
         }
 
-        const record = otpStore.get(cleanPhone);
-        const isTestOtpAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
+        if (!user || !user.email) {
+            return res.status(400).json({ message: 'Invalid or expired verification code.' });
+        }
 
+        const normalizedEmail = user.email.toLowerCase().trim();
+        const record = emailOtpStore.get(normalizedEmail);
+
+        if (record && record.lockedUntil && Date.now() < record.lockedUntil) {
+            const waitMins = Math.ceil((record.lockedUntil - Date.now()) / 60000);
+            return res.status(429).json({
+                message: `Account is temporarily locked. Please wait ${waitMins} minute${waitMins > 1 ? 's' : ''}.`
+            });
+        }
+
+        const isTestOtpAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
         let isValid = false;
+
         if (isTestOtpAllowed && String(otp).trim() === '999999') {
             isValid = true;
         } else if (record) {
             if (Date.now() >= record.expiresAt) {
-                otpStore.delete(cleanPhone);
-                return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+                emailOtpStore.delete(normalizedEmail);
+                return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
             }
+
             record.attempts += 1;
-            if (record.attempts > 5) {
-                otpStore.delete(cleanPhone);
-                return res.status(429).json({ message: 'Too many invalid attempts. Please request a new OTP.' });
+            if (record.attempts >= 5) {
+                record.lockedUntil = Date.now() + 15 * 60 * 1000; // 15-minute lockout
+                return res.status(429).json({
+                    message: 'Too many invalid attempts. Account has been locked for 15 minutes.'
+                });
             }
-            const candidateHash = hashOtp(String(otp), cleanPhone);
+
+            const candidateHash = hashOtp(String(otp), normalizedEmail);
             if (record.hashedOtp === candidateHash) {
                 isValid = true;
             }
@@ -267,15 +334,18 @@ router.post('/reset-password', async (req, res) => {
 
         if (!isValid) {
             return res.status(400).json({
-                message: record ? `Invalid OTP code. ${5 - record.attempts} attempts remaining.` : 'No OTP requested for this number or OTP expired'
+                message: record
+                    ? `Invalid verification code. ${5 - record.attempts} attempts remaining.`
+                    : 'Invalid or expired verification code.'
             });
         }
 
-        otpStore.delete(cleanPhone);
+        // Single-use guarantee: delete OTP immediately
+        emailOtpStore.delete(normalizedEmail);
 
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
-        user.tokenVersion = (user.tokenVersion || 0) + 1; // Invalidate older active JWT tokens
+        user.tokenVersion = (user.tokenVersion || 0) + 1; // Invalidate all prior sessions
         await user.save();
 
         res.json({
