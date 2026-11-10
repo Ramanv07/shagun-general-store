@@ -5,7 +5,8 @@
   "functions": {
     "api/index.js": {
       "memory": 512,
-      "maxDuration": 15
+      "maxDuration": 30,
+      "regions": ["bom1"]
     }
   },
   "rewrites": [
@@ -14,7 +15,11 @@
       "destination": "https://shagunmart-29a7d.firebaseapp.com/__/auth/:path*"
     },
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api",
       "destination": "/api/index.js"
     },
     {
