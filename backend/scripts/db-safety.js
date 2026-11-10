@@ -9,6 +9,10 @@ export async function getStagingConnection() {
     throw new Error('FATAL SAFETY TRIGGER: STAGING_MONGODB_URI points to Atlas or remote mongodb.net. Aborting immediately.');
   }
   const conn = await mongoose.createConnection(uri).asPromise();
+  if (conn.name !== 'shagun-staging') {
+    await conn.close();
+    throw new Error(`FATAL SAFETY TRIGGER: Database name is "${conn.name}", expected "shagun-staging". Aborting immediately.`);
+  }
   return conn;
 }
 

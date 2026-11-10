@@ -5,7 +5,12 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const uri = process.env.STAGING_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/shagun_staging';
+const uri = process.env.STAGING_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/shagun-staging';
+
+if (uri.includes('mongodb.net') || uri.includes('atlas')) {
+    console.error('FATAL SAFETY TRIGGER: check_collisions points to Atlas/mongodb.net. Aborting immediately.');
+    process.exit(1);
+}
 
 async function checkCollisions() {
     await mongoose.connect(uri);

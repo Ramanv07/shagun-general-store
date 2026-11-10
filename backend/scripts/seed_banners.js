@@ -9,7 +9,12 @@ import Banner from '../models/Banner.js';
 
 dotenv.config();
 
-const mongoUri = process.env.MONGODB_URI || process.env.STAGING_MONGODB_URI || 'mongodb://127.0.0.1:27017/shagun-staging';
+const mongoUri = process.env.STAGING_MONGODB_URI || 'mongodb://127.0.0.1:27017/shagun-staging';
+
+if (mongoUri.includes('mongodb.net') || mongoUri.includes('atlas')) {
+    console.error('FATAL SAFETY TRIGGER: seed_banners points to Atlas/mongodb.net. Aborting immediately.');
+    process.exit(1);
+}
 
 const INITIAL_BANNERS = [
     {
