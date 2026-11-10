@@ -52,6 +52,10 @@ const couponSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    redeemedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     active: {
         type: Boolean,
         default: true

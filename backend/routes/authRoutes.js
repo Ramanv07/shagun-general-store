@@ -4,6 +4,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
+import OtpSession from '../models/OtpSession.js';
+import Order from '../models/Order.js';
+import Rental from '../models/Rental.js';
+import Appointment from '../models/Appointment.js';
+import WishlistItem from '../models/WishlistItem.js';
+import AuditLog from '../models/AuditLog.js';
+import PaymentPreference from '../models/PaymentPreference.js';
 import { sendOtp } from '../services/otpService.js';
 
 const googleClient = new OAuth2Client();
@@ -69,24 +76,23 @@ router.post('/send-otp', async (req, res) => {
             return res.status(400).json({ message: 'Valid 10-digit phone number is required' });
         }
 
-        // Rate limit: 60-second cooldown between requests
-        const existing = otpStore.get(cleanPhone);
-        if (existing && Date.now() - existing.lastSentAt < 60000) {
-            const waitSeconds = Math.ceil((60000 - (Date.now() - existing.lastSentAt)) / 1000);
+        // Rate limit: 60-second cooldown between requests (persisted in DB)
+        const existing = await OtpSession.findOne({ identifier: cleanPhone });
+        if (existing && Date.now() - new Date(existing.lastSentAt).getTime() < 60000) {
+            const waitSeconds = Math.ceil((60000 - (Date.now() - new Date(existing.lastSentAt).getTime())) / 1000);
             return res.status(429).json({ message: `Please wait ${waitSeconds} seconds before requesting another OTP` });
         }
 
         // Generate cryptographically random 6-digit OTP
         const otp = crypto.randomInt(100000, 999999).toString();
         const hashedOtp = hashOtp(otp, cleanPhone);
-        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
-        otpStore.set(cleanPhone, {
-            hashedOtp,
-            expiresAt,
-            attempts: 0,
-            lastSentAt: Date.now()
-        });
+        await OtpSession.findOneAndUpdate(
+            { identifier: cleanPhone },
+            { hashedOtp, expiresAt, attempts: 0, lastSentAt: new Date(), lockedUntil: null },
+            { upsert: true, new: true }
+        );
 
         // Test mode hook ONLY when explicit flag enabled in non-production
         const isTestMode = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
@@ -120,12 +126,12 @@ router.post('/verify-otp', async (req, res) => {
             return res.status(400).json({ message: 'Phone and OTP are required' });
         }
         const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
-        const record = otpStore.get(cleanPhone);
+        const record = await OtpSession.findOne({ identifier: cleanPhone });
 
         // Fixed test OTP allowed ONLY when explicit test flag enabled in non-production
         const isTestOtpAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
         if (isTestOtpAllowed && otp.trim() === '999999') {
-            otpStore.delete(cleanPhone);
+            await OtpSession.deleteOne({ identifier: cleanPhone });
             return res.json({ success: true, verified: true });
         }
 
@@ -133,20 +139,21 @@ router.post('/verify-otp', async (req, res) => {
             return res.status(400).json({ message: 'No OTP requested for this number or OTP expired' });
         }
 
-        if (Date.now() >= record.expiresAt) {
-            otpStore.delete(cleanPhone);
+        if (Date.now() >= new Date(record.expiresAt).getTime()) {
+            await OtpSession.deleteOne({ identifier: cleanPhone });
             return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
         }
 
         record.attempts += 1;
         if (record.attempts > 5) {
-            otpStore.delete(cleanPhone);
+            await OtpSession.deleteOne({ identifier: cleanPhone });
             return res.status(429).json({ message: 'Too many invalid attempts. Please request a new OTP.' });
         }
+        await record.save();
 
         const candidateHash = hashOtp(String(otp), cleanPhone);
         if (record.hashedOtp === candidateHash) {
-            otpStore.delete(cleanPhone);
+            await OtpSession.deleteOne({ identifier: cleanPhone });
             return res.json({ success: true, verified: true });
         }
 
@@ -173,13 +180,9 @@ function isResetRateLimited(key, maxLimit = 5, windowMs = 3600000) {
     return false;
 }
 
-// In-memory email OTP store: normalizedEmail -> { hashedOtp, expiresAt, attempts, lastSentAt, lockedUntil }
-const emailOtpStore = new Map();
-
-export const _testClearOtpStores = () => {
-    emailOtpStore.clear();
+export const _testClearOtpStores = async () => {
     resetRateLimiter.clear();
-    otpStore.clear();
+    await OtpSession.deleteMany({}).catch(() => {});
 };
 
 // @route   POST /api/auth/forgot-password
@@ -219,19 +222,19 @@ router.post('/forgot-password', async (req, res) => {
         }
 
         const normalizedEmail = user.email.toLowerCase().trim();
-        const existing = emailOtpStore.get(normalizedEmail);
+        const existing = await OtpSession.findOne({ identifier: normalizedEmail });
 
         // Account lockout check (15 minutes after 5 wrong attempts)
-        if (existing && existing.lockedUntil && Date.now() < existing.lockedUntil) {
-            const waitMins = Math.ceil((existing.lockedUntil - Date.now()) / 60000);
+        if (existing && existing.lockedUntil && Date.now() < new Date(existing.lockedUntil).getTime()) {
+            const waitMins = Math.ceil((new Date(existing.lockedUntil).getTime() - Date.now()) / 60000);
             return res.status(429).json({
                 message: `Account is temporarily locked due to excessive failed attempts. Please wait ${waitMins} minute${waitMins > 1 ? 's' : ''}.`
             });
         }
 
         // 60-second resend cooldown
-        if (existing && Date.now() - existing.lastSentAt < 60000) {
-            const waitSeconds = Math.ceil((60000 - (Date.now() - existing.lastSentAt)) / 1000);
+        if (existing && Date.now() - new Date(existing.lastSentAt).getTime() < 60000) {
+            const waitSeconds = Math.ceil((60000 - (Date.now() - new Date(existing.lastSentAt).getTime())) / 1000);
             return res.status(429).json({
                 message: `Please wait ${waitSeconds} seconds before requesting another verification code.`
             });
@@ -239,15 +242,13 @@ router.post('/forgot-password', async (req, res) => {
 
         const otp = crypto.randomInt(100000, 999999).toString();
         const hashedOtp = hashOtp(otp, normalizedEmail);
-        const expiresAt = Date.now() + 5 * 60 * 1000;
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-        emailOtpStore.set(normalizedEmail, {
-            hashedOtp,
-            expiresAt,
-            attempts: 0,
-            lastSentAt: Date.now(),
-            lockedUntil: null
-        });
+        await OtpSession.findOneAndUpdate(
+            { identifier: normalizedEmail },
+            { hashedOtp, expiresAt, attempts: 0, lastSentAt: new Date(), lockedUntil: null },
+            { upsert: true, new: true }
+        );
 
         // Dispatch OTP via email provider layer
         await sendOtp({ channel: 'email', to: normalizedEmail, code: otp });
@@ -298,13 +299,22 @@ router.post('/reset-password', async (req, res) => {
         }
 
         const normalizedEmail = user.email.toLowerCase().trim();
-        const record = emailOtpStore.get(normalizedEmail);
+        const record = await OtpSession.findOne({ identifier: normalizedEmail });
 
-        if (record && record.lockedUntil && Date.now() < record.lockedUntil) {
-            const waitMins = Math.ceil((record.lockedUntil - Date.now()) / 60000);
+        if (!record) {
+            return res.status(400).json({ message: 'Invalid or expired verification code.' });
+        }
+
+        if (record && record.lockedUntil && Date.now() < new Date(record.lockedUntil).getTime()) {
+            const waitMins = Math.ceil((new Date(record.lockedUntil).getTime() - Date.now()) / 60000);
             return res.status(429).json({
                 message: `Account is temporarily locked. Please wait ${waitMins} minute${waitMins > 1 ? 's' : ''}.`
             });
+        }
+
+        if (Date.now() >= new Date(record.expiresAt).getTime()) {
+            await OtpSession.deleteOne({ identifier: normalizedEmail });
+            return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
         }
 
         const isTestOtpAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
@@ -312,19 +322,16 @@ router.post('/reset-password', async (req, res) => {
 
         if (isTestOtpAllowed && String(otp).trim() === '999999') {
             isValid = true;
-        } else if (record) {
-            if (Date.now() >= record.expiresAt) {
-                emailOtpStore.delete(normalizedEmail);
-                return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
-            }
-
+        } else {
             record.attempts += 1;
             if (record.attempts >= 5) {
-                record.lockedUntil = Date.now() + 15 * 60 * 1000; // 15-minute lockout
+                record.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute lockout
+                await record.save();
                 return res.status(429).json({
                     message: 'Too many invalid attempts. Account has been locked for 15 minutes.'
                 });
             }
+            await record.save();
 
             const candidateHash = hashOtp(String(otp), normalizedEmail);
             if (record.hashedOtp === candidateHash) {
@@ -341,7 +348,7 @@ router.post('/reset-password', async (req, res) => {
         }
 
         // Single-use guarantee: delete OTP immediately
-        emailOtpStore.delete(normalizedEmail);
+        await OtpSession.deleteOne({ identifier: normalizedEmail });
 
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
@@ -770,6 +777,201 @@ router.get('/users', protect, adminOnly, async (req, res) => {
     } catch (error) {
         console.error('Error fetching users:', error);
         res.status(500).json({ message: 'Error fetching users' });
+    }
+});
+
+// @route   POST /api/auth/delete-account
+// @desc    Self-service account deletion and anonymization with accounting preservation
+router.post('/delete-account', protect, async (req, res) => {
+    try {
+        const { currentPassword, googleIdToken, otp } = req.body;
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 1. Admin safety gate: refuse if this is the last remaining administrator
+        if (user.role === 'admin') {
+            const adminCount = await User.countDocuments({ role: 'admin' });
+            if (adminCount <= 1) {
+                return res.status(400).json({
+                    message: 'Cannot delete the last remaining administrator account. Promote another admin first.'
+                });
+            }
+        }
+
+        // 2. Identity Verification
+        let isIdentityVerified = false;
+
+        if (user.password && user.password !== '') {
+            if (!currentPassword) {
+                return res.status(400).json({ message: 'Current password is required to delete your account' });
+            }
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                return res.status(401).json({ message: 'Incorrect password. Account deletion aborted.' });
+            }
+            isIdentityVerified = true;
+        } else {
+            // Google-only or passwordless accounts
+            if (googleIdToken) {
+                try {
+                    const isTestAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_GOOGLE_AUTH === 'true';
+                    if (isTestAllowed && googleIdToken === 'test_google_token') {
+                        isIdentityVerified = true;
+                    } else {
+                        const ticket = await googleClient.verifyIdToken({
+                            idToken: googleIdToken,
+                            audience: [
+                                process.env.GOOGLE_CLIENT_ID_WEB,
+                                process.env.GOOGLE_CLIENT_ID_ANDROID,
+                                process.env.GOOGLE_CLIENT_ID_IOS
+                            ].filter(Boolean)
+                        });
+                        const payload = ticket.getPayload();
+                        if (payload && payload.email && payload.email.toLowerCase() === user.email.toLowerCase()) {
+                            isIdentityVerified = true;
+                        }
+                    }
+                } catch (gErr) {
+                    console.error('Google token verification failed during deletion:', gErr.message);
+                }
+            } else if (otp) {
+                const record = await OtpSession.findOne({ identifier: user.email.toLowerCase() });
+                const isTestAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
+                if (isTestAllowed && otp.trim() === '999999') {
+                    isIdentityVerified = true;
+                    await OtpSession.deleteOne({ identifier: user.email.toLowerCase() });
+                } else if (record && Date.now() < new Date(record.expiresAt).getTime()) {
+                    const candidateHash = hashOtp(String(otp), user.email.toLowerCase());
+                    if (record.hashedOtp === candidateHash) {
+                        isIdentityVerified = true;
+                        await OtpSession.deleteOne({ identifier: user.email.toLowerCase() });
+                    }
+                }
+            }
+
+            if (!isIdentityVerified) {
+                return res.status(401).json({
+                    message: 'Identity verification failed. Please provide a valid verification code or authentication token.'
+                });
+            }
+        }
+
+        // 3. Active Commitments Gates
+        const activeOrder = await Order.findOne({
+            user: user._id,
+            status: { $nin: ['Delivered', 'Cancelled'] }
+        });
+        if (activeOrder) {
+            return res.status(400).json({
+                message: 'Cannot delete account with an active order in progress. Please wait until your order is Delivered or Cancelled.'
+            });
+        }
+
+        const activeRental = await Rental.findOne({
+            $or: [
+                { customerPhone: user.phone },
+                { customerEmail: user.email }
+            ],
+            status: { $in: ['Booked', 'Active'] }
+        });
+        if (activeRental) {
+            return res.status(400).json({
+                message: 'Cannot delete account with an active lehenga rental. Please return the rental first.'
+            });
+        }
+
+        const activeAppointment = await Appointment.findOne({
+            $or: [
+                { user: user._id },
+                { customerPhone: user.phone }
+            ],
+            status: { $in: ['Pending', 'Confirmed'] }
+        });
+        if (activeAppointment) {
+            return res.status(400).json({
+                message: 'Cannot delete account with an upcoming parlour appointment. Please cancel your appointment first.'
+            });
+        }
+
+        // 4. Anonymization & Data Sanitization
+        const anonymizedEmail = `deleted_${user._id}@deleted.invalid`;
+        const oldEmail = user.email;
+        const oldPhone = user.phone;
+
+        user.name = 'Deleted User';
+        user.email = anonymizedEmail;
+        user.phone = '';
+        user.password = '';
+        user.googleId = '';
+        user.avatar = '';
+        user.addresses = [];
+        user.pushTokens = [];
+        user.notifications = [];
+        user.tokenVersion = (user.tokenVersion || 0) + 1; // Immediately kills all active JWT sessions
+        await user.save();
+
+        // 5. Clean up non-financial user-specific items
+        await WishlistItem.deleteMany({ user_id: user._id }).catch(() => {});
+        await OtpSession.deleteMany({
+            identifier: { $in: [oldEmail.toLowerCase(), oldPhone ? oldPhone.replace(/\D/g, '').slice(-10) : ''] }
+        }).catch(() => {});
+        await PaymentPreference.deleteOne({ user: user._id }).catch(() => {});
+
+        // 6. Redact PII from past orders, rentals, appointments (Financial Records Retention)
+        // Retention rules for tax/financial records need accountant's confirmation.
+        await Order.updateMany(
+            { user: user._id },
+            {
+                $set: {
+                    'shippingAddress.fullName': 'Deleted User',
+                    'shippingAddress.mobile': '0000000000',
+                    'shippingAddress.houseNo': 'Redacted',
+                    'shippingAddress.street': 'Redacted'
+                }
+            }
+        ).catch(() => {});
+
+        if (oldPhone) {
+            await Rental.updateMany(
+                { customerPhone: oldPhone },
+                {
+                    $set: {
+                        customerName: 'Deleted Customer',
+                        customerPhone: '0000000000',
+                        customerEmail: anonymizedEmail
+                    }
+                }
+            ).catch(() => {});
+
+            await Appointment.updateMany(
+                { customerPhone: oldPhone },
+                {
+                    $set: {
+                        customerName: 'Deleted Customer',
+                        customerPhone: '0000000000'
+                    }
+                }
+            ).catch(() => {});
+        }
+
+        // 7. AuditLog entry (NO PII)
+        await AuditLog.create({
+            admin_id: user._id,
+            action: 'account_deleted',
+            entity: 'User',
+            entity_id: String(user._id),
+            before_snapshot: null
+        }).catch(() => {});
+
+        res.json({
+            success: true,
+            message: 'Your account has been deleted and personal data anonymized.'
+        });
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        res.status(500).json({ message: 'Failed to delete account. Please contact support.' });
     }
 });
 

@@ -366,7 +366,7 @@ export const Home: React.FC = () => {
       ════════════════════════════════════════════ */}
       <footer className="footer-bg text-white py-12">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             {/* Brand */}
             <div>
               <div className="flex items-center gap-3 mb-4">
@@ -394,7 +394,29 @@ export const Home: React.FC = () => {
                   ['/bridal-lehenga', 'Bridal Lehenga Rentals'],
                   ['/beauty-parlor', 'Beauty Parlor'],
                   ['/orders', 'My Orders'],
-                  ['/privacy', 'Privacy Policy & Terms']
+                ].map(([path, label]) => (
+                  <li key={path}>
+                    <Link to={path}
+                      className="text-sm transition-colors hover:text-gold-400"
+                      style={{ color: 'rgba(251,243,231,0.65)' }}>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Policies & Legal */}
+            <div>
+              <h4 className="text-gold-400 text-xs font-bold tracking-widest uppercase mb-4">Policies &amp; Legal</h4>
+              <ul className="space-y-2">
+                {[
+                  ['/terms', 'Terms & Conditions'],
+                  ['/refund-policy', 'Refund & Cancellation'],
+                  ['/shipping-policy', 'Shipping & Delivery'],
+                  ['/rental-terms', 'Rental Terms'],
+                  ['/privacy', 'Privacy Policy'],
+                  ['/delete-account', 'Account Deletion Info'],
                 ].map(([path, label]) => (
                   <li key={path}>
                     <Link to={path}
@@ -422,6 +444,12 @@ export const Home: React.FC = () => {
                   </li>
                 ))}
               </ul>
+
+              <div className="mt-4">
+                <Link to="/contact-us" className="text-xs text-gold-400 font-semibold underline hover:text-gold-300">
+                  Store details &amp; Grievance Redressal →
+                </Link>
+              </div>
 
               <div className="flex items-center gap-4 mt-6">
                 <a

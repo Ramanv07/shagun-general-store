@@ -1,0 +1,113 @@
+# Shagun Mart: Manual UI & Integration Test Plan
+
+This manual verification plan tests all frontend screens and backend integration flows on **Staging** before public launch.
+
+---
+
+## 0. Exact Commands to Run Staging Locally
+
+### A. Run Staging Backend & Web
+Open PowerShell in the project directory:
+```powershell
+# 1. Start Local Staging Server (Backend + Staging MongoDB + Seed Data)
+cd c:\Users\raman\Downloads\shagun-general-store
+$env:PORT = "5000"
+$env:NODE_ENV = "development"
+$env:ALLOW_TEST_OTP = "true"
+$env:JWT_SECRET = "staging_jwt_secret_shagun_mart_2026_test"
+$env:MONGODB_URI = "mongodb://127.0.0.1:27017/shagun_staging"
+node backend/server.js
+
+# 2. In a NEW terminal, start Customer Web (Vite)
+cd c:\Users\raman\Downloads\shagun-general-store
+npm run dev
+# Web opens at: http://localhost:5173
+```
+
+### B. Run Mobile App on Phone or Android Emulator
+Open a third terminal:
+```powershell
+cd c:\Users\raman\Downloads\shagun-general-store\shagun-native
+npx expo start
+```
+- Press `a` to open Android Emulator, or scan the QR code using Expo Go on your physical phone (ensure your phone is on the same local Wi-Fi).
+
+---
+
+## 1. Step-by-Step Manual Test Checklist
+
+### 1.1 Admin Dashboard: Banners Management
+- [ ] **Action:** Log into Web Admin at `http://localhost:5173/admin` -> Open **🖼️ Banners** tab.
+- [ ] **Expected Result:**
+  - Existing banners render with thumbnail, title, target, placement tags, and Active toggle.
+  - Click **Add New Banner**: Form opens. Title (max 80 chars), target dropdown (`category`, `product`, `offers`, `none`), placement checkboxes (`app_home`, `web_home`, `offers`).
+  - Upload an image (<5MB) or enter Cloudinary URL. Click **Save Banner**.
+  - New banner appears immediately in list.
+  - Click **Move Up / Down**: Ordering changes and persists across page refresh.
+  - Toggle Active button: Status switches between Active / Inactive without reload.
+
+### 1.2 Admin Dashboard: Coupons Management
+- [ ] **Action:** In `/admin`, open **🏷️ Coupons** tab.
+- [ ] **Expected Result:**
+  - Click **Create Coupon**. Enter Code `WELCOME10`, Type `flat`, Value `50`, Min Order `200`, Usage Limit Total `10`, Per User `1`. Check `Active` and `Public Offer`.
+  - Click **Save Coupon**: Coupon appears in the table.
+  - Click **View Redemptions**: Shows current used count and redemption history.
+
+### 1.3 Admin Dashboard: Brands Management
+- [ ] **Action:** In `/admin`, open **✨ Brands** tab.
+- [ ] **Expected Result:**
+  - Click **Add New Brand**. Enter Name `Lakmé`, auto-generated slug `lakme`. Upload logo. Save.
+  - If a brand is deleted while products are linked to it, system shows warning and deactivates it instead of hard deletion.
+
+### 1.4 Web & App Home: Poster Carousel & "Brands You Love"
+- [ ] **Action:** Open Web Home (`http://localhost:5173/`) and Mobile App Home screen.
+- [ ] **Expected Result:**
+  - **Poster Carousel:** Auto-scrolls smoothly; width is responsive (328dp on 360dp mobile phone, 1024px on desktop). Tapping an active banner navigates to its assigned target route.
+  - **Brands You Love:**
+    - If 0 active brands with products exist: section is **completely hidden** (no empty container or broken UI).
+    - If active brands with products exist: horizontal row renders with logos and brand names.
+    - Tapping a brand opens `/shop?brand=<slug>` with products pre-filtered for that brand.
+
+### 1.5 Cart: Guest-to-Login Persistence & Coupon Application
+- [ ] **Action:** Open Web or App as a **guest** (logged out).
+- [ ] **Expected Result:**
+  - Add 2 products to cart. Cart counter increases. Close tab/app and reopen: cart items persist locally.
+  - Proceed to Checkout -> Redirected to Login with a prompt to authenticate.
+  - Log in with account: redirected back to Checkout/Cart with the 2 guest items intact.
+  - In Cart, enter coupon `WELCOME10` and click **Apply**:
+    - If subtotal < minOrderAmount: Clean message `"Minimum order amount of ₹... required"`.
+    - If valid: Instant green badge showing `"₹50 discount applied"`, subtotal and total update correctly.
+  - Click **Remove Coupon**: Total restores to full price immediately.
+
+### 1.6 Password Reset Flow
+- [ ] **Action:** On Login screen, click **Forgot Password?**.
+- [ ] **Expected Result:**
+  - Enter email address (e.g. `ramanvishwari+smoketest@gmail.com`).
+  - Screen displays generic verification message (no account enumeration).
+  - Check your real inbox: Single-use 6-digit OTP email arrives from "Shagun Mart" with clean HTML styling.
+  - Enter 6-digit OTP and new password:
+    - Entering 5 wrong OTPs shows account locked error for 15 minutes.
+    - Entering valid OTP resets password, logs in user, and revokes prior JWT tokens.
+
+### 1.7 Parlour Booking Flow
+- [ ] **Action:** Navigate to Beauty Parlour screen (`/beauty-parlor` on web or app).
+- [ ] **Expected Result:**
+  - Select service (e.g. "Bridal Makeup") -> pick an upcoming date -> pick an available time slot.
+  - Past dates are disabled.
+  - Confirm booking: Appointment creates successfully.
+  - Attempt to book the same service/date/slot in another tab: Rejected with 409 Conflict `"Slot just taken"`.
+
+### 1.8 Bridal Lehenga Rental Flow
+- [ ] **Action:** Navigate to Bridal Lehenga screen (`/bridal-lehenga`).
+- [ ] **Expected Result:**
+  - View lehenga catalog. Click a lehenga -> select rental date range (start date & return date).
+  - Submit booking inquiry: Rental booking records in database and appears in Admin Dashboard under **Lehenga Rentals**.
+
+### 1.9 Order Creation & Cancellation
+- [ ] **Action:** Place a COD order with coupon `WELCOME10`.
+- [ ] **Expected Result:**
+  - Order creates with status `Processing`. Discount and delivery fee calculated authoritatively by server.
+  - Store admin receives notification alert.
+  - In Admin Dashboard (`/admin` -> Orders), update order status to `Cancelled`.
+  - Product stock increments back, coupon `usedCount` decrements, and redemption record is cleared so user can re-use the coupon.
+

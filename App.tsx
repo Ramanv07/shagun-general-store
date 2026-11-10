@@ -18,6 +18,12 @@ import { BridalLehenga } from './pages/BridalLehenga';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { Login } from './pages/Login';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { DeleteAccountInfo } from './pages/DeleteAccountInfo';
+import { Terms } from './pages/Terms';
+import { RefundPolicy } from './pages/RefundPolicy';
+import { ShippingPolicy } from './pages/ShippingPolicy';
+import { RentalTerms } from './pages/RentalTerms';
+import { ContactUs } from './pages/ContactUs';
 import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TrackOrderModal } from './components/TrackOrderModal';
@@ -47,7 +53,13 @@ const PAGE_TITLES: Record<string, string> = {
   '/orders': 'My Orders | Shagun Mart',
   '/account': 'My Account | Shagun Mart',
   '/login': 'Sign In / Register | Shagun Mart',
-  '/privacy': 'Privacy Policy & Terms | Shagun Mart',
+  '/privacy': 'Privacy Policy | Shagun Mart',
+  '/delete-account': 'Account Deletion & Data Retention | Shagun Mart',
+  '/terms': 'Terms & Conditions | Shagun Mart',
+  '/refund-policy': 'Refund & Cancellation Policy | Shagun Mart',
+  '/shipping-policy': 'Shipping & Delivery Policy | Shagun Mart',
+  '/rental-terms': 'Bridal Lehenga Rental Terms | Shagun Mart',
+  '/contact-us': 'Contact Us & Store Location | Shagun Mart',
   '/admin': 'Admin Dashboard | Shagun Mart',
 };
 
@@ -62,6 +74,12 @@ const PAGE_DESCRIPTIONS: Record<string, string> = {
   '/account': 'Manage your personal profile, saved delivery addresses, and preferences.',
   '/login': 'Sign in or register for an account at Shagun Mart Bamitha.',
   '/privacy': 'Learn how Shagun Mart collects, uses, and protects your personal information and privacy.',
+  '/delete-account': 'Information on account deletion, anonymization, and data retention rules at Shagun Mart.',
+  '/terms': 'Terms and conditions governing the use of Shagun Mart website, store, and mobile app.',
+  '/refund-policy': 'Official policies on order cancellation, returns, and refunds at Shagun Mart.',
+  '/shipping-policy': 'Local shipping coverage, timelines, delivery fees, and free delivery thresholds.',
+  '/rental-terms': 'Terms and security deposit rules for bridal lehenga rentals at Shagun Mart.',
+  '/contact-us': 'Get in touch with Shagun Mart Bamitha via WhatsApp, phone, or in-store visit.',
   '/admin': 'Secure store administration panel for inventory, orders, and customer management.',
 };
 
@@ -116,6 +134,12 @@ const AppRoutes: React.FC = () => {
             }
           />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/delete-account" element={<DeleteAccountInfo />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/shipping-policy" element={<ShippingPolicy />} />
+          <Route path="/rental-terms" element={<RentalTerms />} />
+          <Route path="/contact-us" element={<ContactUs />} />
 
           <Route
             path="/checkout"

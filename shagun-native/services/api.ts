@@ -231,9 +231,14 @@ export const api = {
     return updated;
   },
 
-  deleteAccount: async (): Promise<void> => {
+  deleteAccount: async (password?: string): Promise<void> => {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${BASE}/api/auth/profile`, { method: 'DELETE', headers });
+    headers['Content-Type'] = 'application/json';
+    const res = await fetch(`${BASE}/api/auth/delete-account`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ currentPassword: password || '' }),
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as any).message || 'Failed to delete account');

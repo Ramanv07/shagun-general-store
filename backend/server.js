@@ -36,8 +36,35 @@ if (!process.env.JWT_SECRET) {
     process.exit(1);
 }
 
+const currentEnv = process.env.NODE_ENV || 'development';
+console.log(`[BOOT] Environment: ${currentEnv}`);
+
+// --- SEC-PROD: Refuse to boot in production if test/bypass flags or staging URI are set ---
+if (process.env.NODE_ENV === 'production') {
+    if (process.env.STAGING_MONGODB_URI) {
+        console.error('FATAL: STAGING_MONGODB_URI must not be set in production environment. Exiting.');
+        process.exit(1);
+    }
+    const dangerousFlags = [];
+    if (process.env.ALLOW_TEST_OTP === 'true') dangerousFlags.push('ALLOW_TEST_OTP=true');
+    if (process.env.ALLOW_TEST_GOOGLE_AUTH === 'true') dangerousFlags.push('ALLOW_TEST_GOOGLE_AUTH=true');
+    if (process.env.OTP_CHANNEL === 'console') dangerousFlags.push('OTP_CHANNEL=console');
+
+    if (dangerousFlags.length > 0) {
+        console.error(`FATAL: Insecure flags detected in production boot: ${dangerousFlags.join(', ')}. Server refusing to boot.`);
+        process.exit(1);
+    }
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Trust reverse proxy for rate-limiting (e.g. Render, Railway, Nginx, Cloudflare)
+if (process.env.TRUST_PROXY) {
+    app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
+} else if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 
 // --- H2: Security headers (CSP, HSTS, X-Frame-Options, hide X-Powered-By) ---
 app.use(helmet({

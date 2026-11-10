@@ -250,4 +250,94 @@ describe('B2: Coupons Validation, Edge Cases & Atomic Order Flow', () => {
     expect(redemption).toBeDefined();
     expect(redemption.amount).toBe(100);
   });
+
+  test('Simultaneous orders by one user with perUser limit 1 allows only ONE order to succeed', async () => {
+    const coupon = await Coupon.create({
+      code: 'RACE100',
+      type: 'flat',
+      value: 100,
+      minOrderAmount: 200,
+      active: true,
+      usageLimitTotal: 10,
+      usageLimitPerUser: 1
+    });
+
+    const orderPayload = {
+      items: [{ product: testProduct._id, quantity: 1 }],
+      shippingAddress: {
+        fullName: 'Race Tester',
+        mobile: '9876543210',
+        houseNo: '12B',
+        street: 'Main Road',
+        city: 'Bamitha',
+        state: 'Madhya Pradesh',
+        pinCode: '471105'
+      },
+      paymentMethod: 'COD',
+      totalAmount: 500,
+      couponCode: 'RACE100'
+    };
+
+    // Fire two simultaneous order requests for the same user
+    const [res1, res2] = await Promise.all([
+      request.post('/api/orders').set('Authorization', `Bearer ${user1Token}`).send(orderPayload),
+      request.post('/api/orders').set('Authorization', `Bearer ${user1Token}`).send(orderPayload)
+    ]);
+
+    const statuses = [res1.status, res2.status].sort();
+    // Exactly one should succeed (201) and the other must be blocked (400)
+    expect(statuses).toEqual([201, 400]);
+
+    const couponAfter = await Coupon.findOne({ code: 'RACE100' });
+    expect(couponAfter.usedCount).toBe(1);
+    expect(couponAfter.redeemedUsers.length).toBe(1);
+  });
+
+  test('Decrements usedCount and rolls back coupon reservation if inventory reservation fails', async () => {
+    const lowStockProduct = await Product.create({
+      name: 'Low Stock Item',
+      price: 300,
+      category: 'Skin Care',
+      stock: 1,
+      image: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+      description: 'Only 1 unit in stock'
+    });
+
+    await Coupon.create({
+      code: 'ROLLBACK50',
+      type: 'flat',
+      value: 50,
+      minOrderAmount: 200,
+      active: true,
+      usageLimitTotal: 5,
+      usageLimitPerUser: 1
+    });
+
+    // Try to order 2 units when only 1 is in stock
+    const failedRes = await request
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${user1Token}`)
+      .send({
+        items: [{ product: lowStockProduct._id, quantity: 2 }], // Exceeds stock of 1!
+        shippingAddress: {
+          fullName: 'Rollback Tester',
+          mobile: '9876543210',
+          houseNo: '12B',
+          street: 'Main Road',
+          city: 'Bamitha',
+          state: 'Madhya Pradesh',
+          pinCode: '471105'
+        },
+        paymentMethod: 'COD',
+        totalAmount: 600,
+        couponCode: 'ROLLBACK50'
+      });
+
+    expect(failedRes.status).toBe(400);
+
+    // Verify coupon usedCount is 0 and user is not locked in redeemedUsers
+    const couponAfter = await Coupon.findOne({ code: 'ROLLBACK50' });
+    expect(couponAfter.usedCount).toBe(0);
+    expect(couponAfter.redeemedUsers.length).toBe(0);
+  });
 });

@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import Review from '../models/Review.js';
 import WishlistItem from '../models/WishlistItem.js';
 import Appointment from '../models/Appointment.js';
+import User from '../models/User.js';
+import OtpSession from '../models/OtpSession.js';
 
 export async function up() {
   console.log('Running migration: 001_unique_indexes...');
@@ -51,6 +53,31 @@ export async function up() {
     }
   );
   console.log('Created partial unique index on Appointment (serviceId + date + slot)');
+
+  // 6. Deduplicate & create case-insensitive unique index on User email
+  const dupUsers = await User.aggregate([
+    { $group: { _id: { $toLower: '$email' }, count: { $sum: 1 }, ids: { $push: '$_id' } } },
+    { $match: { count: { $gt: 1 } } }
+  ]).catch(() => []);
+
+  if (dupUsers.length > 0) {
+    console.warn(`WARNING: Found ${dupUsers.length} duplicate user emails! Resolve manually before indexing.`);
+  } else {
+    try {
+      await User.collection.createIndex(
+        { email: 1 },
+        { unique: true, collation: { locale: 'en', strength: 2 }, name: 'email_case_insensitive' }
+      );
+      console.log('Created case-insensitive unique index on User (email)');
+    } catch (e) {
+      console.log('Index email_case_insensitive already exists or handled by schema');
+    }
+  }
+
+  // 7. OtpSession indexes: unique identifier + 24hr TTL
+  await OtpSession.collection.createIndex({ identifier: 1 }, { unique: true });
+  await OtpSession.collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 86400 });
+  console.log('Created unique identifier and TTL indexes on OtpSession');
 }
 
 if (process.argv[1]?.endsWith('001_unique_indexes.js')) {

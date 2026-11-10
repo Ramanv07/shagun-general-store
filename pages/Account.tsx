@@ -37,6 +37,12 @@ export const Account: React.FC = () => {
         isDefault: false
     });
 
+    // Account Deletion State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
     if (!user) {
         navigate('/login');
         return null;
@@ -106,6 +112,34 @@ export const Account: React.FC = () => {
             pinCode: '471105',
             isDefault: false
         });
+    };
+
+    const handleDeleteAccount = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setDeleteError('');
+        setDeleteLoading(true);
+        try {
+            const res = await fetch('/api/auth/delete-account', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${user?.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ currentPassword: deletePassword })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Failed to delete account');
+            }
+            alert('Your account has been deleted successfully.');
+            setShowDeleteModal(false);
+            logout();
+            navigate('/');
+        } catch (err: any) {
+            setDeleteError(err.message || 'Failed to delete account');
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     const handleDeleteAddress = (addrId?: string) => {
@@ -489,6 +523,33 @@ export const Account: React.FC = () => {
                     </div>
                 )}
 
+                {/* Danger Zone */}
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mt-8">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-red-900 flex items-center gap-2">
+                                <i className="fas fa-exclamation-triangle text-red-600"></i>
+                                Danger Zone
+                            </h3>
+                            <p className="text-sm text-red-700 mt-1">
+                                Permanently delete your account and personal data. Learn more about our data retention policy on our{' '}
+                                <Link to="/delete-account" className="underline font-semibold hover:text-red-900">
+                                    Account Deletion Info
+                                </Link>{' '}
+                                page.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => { setShowDeleteModal(true); setDeleteError(''); setDeletePassword(''); }}
+                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold shadow transition flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <i className="fas fa-trash-alt"></i>
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+
                 {/* Add Address Modal */}
                 {showAddressModal && (
                     <div className="fixed inset-0 bg-ink-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -612,6 +673,64 @@ export const Account: React.FC = () => {
                                         className="flex-1 py-3 bg-maroon-900 text-white rounded-xl hover:bg-maroon-800 transition text-sm font-bold shadow-md"
                                     >
                                         Save Address
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Account Modal */}
+                {showDeleteModal && (
+                    <div className="fixed inset-0 bg-ink-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                        <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
+                            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                                <h3 className="text-lg font-bold text-red-900 flex items-center gap-2">
+                                    <i className="fas fa-exclamation-circle text-red-600"></i>
+                                    Confirm Account Deletion
+                                </h3>
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="text-gray-400 hover:text-ink-900 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                                >
+                                    <i className="fas fa-times text-lg"></i>
+                                </button>
+                            </div>
+                            <p className="text-sm text-ink-600 mb-4">
+                                This action is irreversible. Your profile, delivery addresses, and personal details will be permanently removed or anonymized.
+                            </p>
+                            {deleteError && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm mb-4">
+                                    {deleteError}
+                                </div>
+                            )}
+                            <form onSubmit={handleDeleteAccount} className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold uppercase tracking-wider text-ink-600 block mb-1">
+                                        Current Password (if set)
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={deletePassword}
+                                        onChange={(e) => setDeletePassword(e.target.value)}
+                                        placeholder="Enter your current password"
+                                        className="w-full bg-white border border-gray-200 rounded-lg p-3 text-ink-900 outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDeleteModal(false)}
+                                        className="flex-1 py-2.5 border border-gray-200 text-ink-600 bg-white rounded-xl hover:bg-gray-50 text-sm font-bold"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={deleteLoading}
+                                        className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-bold shadow flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {deleteLoading ? 'Deleting...' : 'Delete Permanently'}
                                     </button>
                                 </div>
                             </form>

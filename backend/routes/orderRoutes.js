@@ -254,13 +254,20 @@ router.post('/', protect, async (req, res) => {
             if (couponResult.coupon.usageLimitTotal) {
                 updateFilter.usedCount = { $lt: couponResult.coupon.usageLimitTotal };
             }
+            if (couponResult.coupon.usageLimitPerUser === 1) {
+                updateFilter.redeemedUsers = { $ne: req.user._id };
+            }
+            const updateOps = { $inc: { usedCount: 1 } };
+            if (couponResult.coupon.usageLimitPerUser === 1) {
+                updateOps.$push = { redeemedUsers: req.user._id };
+            }
             const updatedCoupon = await Coupon.findOneAndUpdate(
                 updateFilter,
-                { $inc: { usedCount: 1 } },
+                updateOps,
                 { new: true }
             );
             if (!updatedCoupon) {
-                return res.status(400).json({ message: 'Coupon usage limit was reached just now. Please remove it.' });
+                return res.status(400).json({ message: 'Coupon limit reached or already redeemed by this account.' });
             }
             appliedCouponCode = updatedCoupon.code;
             appliedDiscountAmount = couponResult.discount;
@@ -282,6 +289,12 @@ router.post('/', protect, async (req, res) => {
                 // Rollback all prior decrements to prevent overselling
                 for (const d of decrementedList) {
                     await Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } });
+                }
+                if (couponDoc) {
+                    await Coupon.findByIdAndUpdate(couponDoc._id, {
+                        $inc: { usedCount: -1 },
+                        $pull: { redeemedUsers: req.user._id }
+                    }).catch(() => {});
                 }
                 return res.status(409).json({
                     message: `Inventory for "${item.name}" was just reserved by another customer. Please adjust quantity.`
@@ -365,6 +378,17 @@ router.post('/', protect, async (req, res) => {
 
         res.status(201).json(populatedOrder);
     } catch (error) {
+        if (typeof decrementedList !== 'undefined' && decrementedList.length > 0) {
+            for (const d of decrementedList) {
+                await Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } }).catch(() => {});
+            }
+        }
+        if (typeof couponDoc !== 'undefined' && couponDoc && typeof savedOrder === 'undefined') {
+            await Coupon.findByIdAndUpdate(couponDoc._id, {
+                $inc: { usedCount: -1 },
+                $pull: { redeemedUsers: req.user?._id }
+            }).catch(() => {});
+        }
         console.error('Error creating order:', error);
         res.status(500).json({ message: 'Failed to create order' });
     }
@@ -399,7 +423,13 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
             if (existingOrder.couponCode) {
                 try {
                     await CouponRedemption.deleteOne({ order: existingOrder._id });
-                    await Coupon.updateOne({ code: existingOrder.couponCode }, { $inc: { usedCount: -1 } });
+                    await Coupon.updateOne(
+                        { code: existingOrder.couponCode },
+                        { 
+                            $inc: { usedCount: -1 },
+                            $pull: { redeemedUsers: existingOrder.user?._id || existingOrder.user }
+                        }
+                    );
                 } catch (cErr) {
                     console.error('[CouponRedemption] Release error:', cErr.message);
                 }

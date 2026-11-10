@@ -14,12 +14,17 @@ const addressSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: { type: String, default: '' },
     phone: { type: String, default: '' },
     googleId: { type: String, default: '' },
     avatar: { type: String, default: '' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     tokenVersion: { type: Number, default: 0 },
+    otpHash: { type: String, default: null },
+    otpExpiry: { type: Date, default: null },
+    otpAttempts: { type: Number, default: 0 },
+    otpCooldownUntil: { type: Date, default: null },
+    otpLockedUntil: { type: Date, default: null },
     addresses: [addressSchema],
     pushTokens: [{ type: String }],
     notifications: [{
