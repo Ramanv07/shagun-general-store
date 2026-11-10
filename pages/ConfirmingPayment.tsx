@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { mockApi } from '../services/mockService';
 import { Order } from '../types';
+import { isLiveHost } from '../components/DevApiBanner';
 
 export const ConfirmingPayment: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -25,6 +26,9 @@ export const ConfirmingPayment: React.FC = () => {
   const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const isMobileBrowser = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.DEV ? 'http://localhost:5000/api' : '');
+  const isDevLiveBlocked = Boolean(import.meta.env.DEV && isLiveHost(apiUrl));
 
   // Fetch order data
   const fetchOrder = async (isBackground = false) => {
@@ -119,6 +123,11 @@ export const ConfirmingPayment: React.FC = () => {
     setUtrError(null);
     setUtrSuccess(null);
 
+    if (isDevLiveBlocked) {
+      setUtrError('Dev build is pointed at the live server');
+      return;
+    }
+
     const cleanUtr = utr.trim();
     if (!/^\d{12}$/.test(cleanUtr)) {
       setUtrError('UTR must be exactly 12 numeric digits (found on your bank debit receipt).');
@@ -139,6 +148,10 @@ export const ConfirmingPayment: React.FC = () => {
   };
 
   const handleRetryPayment = () => {
+    if (isDevLiveBlocked) {
+      alert('Dev build is pointed at the live server');
+      return;
+    }
     if (!order?.upiIntent?.upiUri) return;
     window.location.href = order.upiIntent.upiUri;
   };

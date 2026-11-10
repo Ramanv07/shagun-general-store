@@ -20,6 +20,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 import { Order } from '../types';
+import { API_BASE_URL } from '../constants';
+import { isLiveHost } from '../components/DevApiBanner';
 
 export default function PaymentConfirmScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -93,7 +95,14 @@ export default function PaymentConfirmScreen() {
     fetchOrder(true);
   };
 
+  const isDevLiveBlocked = Boolean(typeof __DEV__ !== 'undefined' && __DEV__ && isLiveHost(API_BASE_URL));
+
   const handleUtrSubmit = async () => {
+    if (isDevLiveBlocked) {
+      Alert.alert('Dev Guard', 'Dev build is pointed at the live server');
+      return;
+    }
+
     const cleanUtr = utr.trim();
     if (!/^\d{12}$/.test(cleanUtr)) {
       Alert.alert('Invalid UTR', 'UTR must be exactly 12 numeric digits from your bank transaction receipt.');
@@ -114,6 +123,11 @@ export default function PaymentConfirmScreen() {
   };
 
   const handleRetryPayment = async () => {
+    if (isDevLiveBlocked) {
+      Alert.alert('Dev Guard', 'Dev build is pointed at the live server');
+      return;
+    }
+
     if (!order?.upiIntent?.upiUri) {
       Alert.alert('Notice', 'No UPI payment link available for this order.');
       return;

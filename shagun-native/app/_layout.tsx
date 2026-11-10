@@ -8,6 +8,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 import { OrderProvider } from '../context/OrderContext';
 import OfflineNotice from '../components/OfflineNotice';
+import DevApiBanner from '../components/DevApiBanner';
 
 function NotificationListener() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export default function RootLayout() {
             <StatusBar style="light" />
             <SafeAreaView edges={['top']} style={styles.safeArea}>
               <OfflineNotice />
+              <DevApiBanner />
             </SafeAreaView>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

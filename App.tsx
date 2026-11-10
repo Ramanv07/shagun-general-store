@@ -30,6 +30,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { TrackOrderModal } from './components/TrackOrderModal';
 import { HelpSupportModal } from './components/HelpSupportModal';
 import { StorageConsentBanner } from './components/StorageConsentBanner';
+import { DevApiBanner } from './components/DevApiBanner';
 import { UserRole } from './types';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement; adminOnly?: boolean }> = ({ children, adminOnly }) => {
@@ -202,6 +203,7 @@ export default function App() {
           <CartProvider>
             {showIntro && <IntroOverlay onComplete={handleIntroComplete} />}
             <ErrorBoundary>
+              <DevApiBanner />
               <AppRoutes />
               <TrackOrderModal />
               <HelpSupportModal />
