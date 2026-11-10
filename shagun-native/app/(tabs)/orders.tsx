@@ -372,6 +372,71 @@ export default function OrdersScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── Payment Information Card ── */}
+        <View style={styles.orderHeaderCard}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: THEME.colors.maroon900 }}>
+                {activeOrder.paymentMethod === 'UPI' ? 'UPI Intent Payment' : 'Cash on Delivery (COD)'}
+              </Text>
+              <View style={{
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 12,
+                backgroundColor: activeOrder.paymentStatus === 'paid' ? '#dcfce7' :
+                                activeOrder.paymentStatus === 'verifying' ? '#fef3c7' :
+                                activeOrder.paymentStatus === 'late_payment' ? '#f3e8ff' :
+                                activeOrder.paymentStatus === 'expired' ? '#f3f4f6' : '#eff6ff'
+              }}>
+                <Text style={{
+                  fontSize: 11,
+                  fontWeight: '700',
+                  color: activeOrder.paymentStatus === 'paid' ? '#166534' :
+                         activeOrder.paymentStatus === 'verifying' ? '#92400e' :
+                         activeOrder.paymentStatus === 'late_payment' ? '#6b21a8' :
+                         activeOrder.paymentStatus === 'expired' ? '#4b5563' : '#1e40af'
+                }}>
+                  {activeOrder.paymentStatus === 'paid' ? 'Paid' :
+                   activeOrder.paymentStatus === 'verifying' ? 'Verifying' :
+                   activeOrder.paymentStatus === 'late_payment' ? 'Late Payment' :
+                   activeOrder.paymentStatus === 'expired' ? 'Expired' :
+                   activeOrder.paymentStatus === 'failed' ? 'Failed' : 'Pending'}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 12, color: THEME.colors.ink500 }}>
+              {activeOrder.paymentMethod === 'UPI'
+                ? (
+                  activeOrder.paymentStatus === 'paid' ? 'Payment confirmed by store management' :
+                  activeOrder.paymentStatus === 'verifying' ? 'Payment reference submitted; verification in progress' :
+                  activeOrder.paymentStatus === 'late_payment' ? 'We received your reference and are checking it.' :
+                  activeOrder.paymentStatus === 'expired' ? 'Payment window expired' :
+                  'Awaiting payment and UTR submission'
+                )
+                : 'Pay in cash upon delivery to courier'}
+            </Text>
+
+            {activeOrder.paymentMethod === 'UPI' && ['pending', 'Pending', 'verifying', 'late_payment', 'expired'].includes(activeOrder.paymentStatus || '') && (
+              <TouchableOpacity
+                style={{
+                  marginTop: 6,
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  backgroundColor: THEME.colors.maroon700,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+                onPress={() => router.push({ pathname: '/payment-confirm' as any, params: { orderId: activeOrder._id } })}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>
+                  {activeOrder.paymentStatus === 'paid' ? 'View Payment Details' : 'Open Payment & Submit UTR'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* ── Vertical Status Timeline Card ── */}
         <View style={styles.timelineCard}>
           <View style={styles.timelineList}>

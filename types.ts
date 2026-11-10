@@ -43,6 +43,7 @@ export enum OrderStatus {
 
 export interface Order {
   _id: string;
+  orderNumber?: string;
   user: User;
   items: CartItem[];
   totalAmount: number;
@@ -51,6 +52,20 @@ export interface Order {
   paymentStatus?: string;
   status: OrderStatus;
   createdAt: string;
+  upiTxnRef?: string;
+  upiUtr?: string;
+  upiUtrAttempts?: number;
+  paymentExpiresAt?: string;
+  paidAt?: string;
+  rejectionReason?: string;
+  upiIntent?: {
+    upiUri: string;
+    pa: string;
+    pn: string;
+    am: string;
+    tr: string;
+    expiresAt: string;
+  };
 }
 
 export interface Address {

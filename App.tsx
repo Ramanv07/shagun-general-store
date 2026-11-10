@@ -24,6 +24,7 @@ import { RefundPolicy } from './pages/RefundPolicy';
 import { ShippingPolicy } from './pages/ShippingPolicy';
 import { RentalTerms } from './pages/RentalTerms';
 import { ContactUs } from './pages/ContactUs';
+import { ConfirmingPayment } from './pages/ConfirmingPayment';
 import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TrackOrderModal } from './components/TrackOrderModal';
@@ -146,6 +147,23 @@ const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute>
                 <Checkout />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/confirming-payment/:orderId"
+            element={
+              <ProtectedRoute>
+                <ConfirmingPayment />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/confirm/:orderId"
+            element={
+              <ProtectedRoute>
+                <ConfirmingPayment />
               </ProtectedRoute>
             }
           />

@@ -59,7 +59,19 @@ export default function CheckoutScreen() {
 
   // Payment & Order states
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI' | 'Online'>('COD');
+  const [upiEnabled, setUpiEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    api.getUpiSettings().then(res => {
+      setUpiEnabled(Boolean(res.enabled));
+      if (!res.enabled && paymentMethod === 'UPI') {
+        setPaymentMethod('COD');
+      }
+    }).catch(() => {
+      setUpiEnabled(false);
+    });
+  }, []);
 
   // If user has no address, prompt to add one first
   useEffect(() => {
@@ -255,11 +267,36 @@ export default function CheckoutScreen() {
           pinCode: selectedAddress.pinCode,
         },
         paymentMethod,
-        paymentStatus: 'Pending' as const,
+        paymentStatus: paymentMethod === 'UPI' ? 'pending' : 'Pending' as const,
       };
 
       const placedOrder = await addOrder(orderPayload);
       clearCart();
+
+      // For UPI orders: attempt to open UPI app via Linking, then route to payment confirmation screen
+      if (paymentMethod === 'UPI') {
+        const upiUri = placedOrder?.upiIntent?.upiUri;
+        if (upiUri) {
+          try {
+            await Linking.openURL(upiUri);
+          } catch (linkErr) {
+            Alert.alert(
+              'No UPI app found',
+              'No UPI app was detected on this device. You can proceed to enter your 12-digit UTR reference, or choose Cash on Delivery (COD) instead.',
+              [
+                { text: 'Proceed to UTR', onPress: () => {} },
+                { text: 'Choose COD', onPress: () => { router.replace('/checkout'); } }
+              ]
+            );
+          }
+        }
+        router.replace({
+          pathname: '/payment-confirm' as any,
+          params: { orderId: placedOrder?._id }
+        });
+        return;
+      }
+
       setOrderPlacedOrder(placedOrder || (orderPayload as any));
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to place order');
@@ -488,23 +525,38 @@ export default function CheckoutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
           <View style={styles.paymentRow}>
-            {PAYMENT_METHODS.map(method => (
-              <TouchableOpacity
-                key={method}
-                style={[styles.paymentOption, paymentMethod === method && styles.paymentOptionActive]}
-                onPress={() => setPaymentMethod(method)}
-              >
-                <Ionicons
-                  name={method === 'COD' ? 'cash-outline' : method === 'UPI' ? 'phone-portrait-outline' : 'card-outline'}
-                  size={20}
-                  color={paymentMethod === method ? '#f5ede8' : '#7c1f3e'}
-                />
-                <Text style={[styles.paymentOptionText, paymentMethod === method && styles.paymentOptionTextActive]}>
-                  {method}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {PAYMENT_METHODS.map(method => {
+              const isUpiDisabled = method === 'UPI' && !upiEnabled;
+              return (
+                <TouchableOpacity
+                  key={method}
+                  disabled={isUpiDisabled}
+                  style={[
+                    styles.paymentOption,
+                    paymentMethod === method && styles.paymentOptionActive,
+                    isUpiDisabled && { opacity: 0.45 }
+                  ]}
+                  onPress={() => {
+                    if (!isUpiDisabled) setPaymentMethod(method);
+                  }}
+                >
+                  <Ionicons
+                    name={method === 'COD' ? 'cash-outline' : method === 'UPI' ? 'phone-portrait-outline' : 'card-outline'}
+                    size={20}
+                    color={paymentMethod === method ? '#f5ede8' : '#7c1f3e'}
+                  />
+                  <Text style={[styles.paymentOptionText, paymentMethod === method && styles.paymentOptionTextActive]}>
+                    {method}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
+          {!upiEnabled && (
+            <Text style={{ fontSize: 11, color: '#991b1b', marginTop: 6 }}>
+              UPI payments are temporarily unavailable. Please choose Cash on Delivery.
+            </Text>
+          )}
         </View>
 
         {/* ── Order Summary ── */}

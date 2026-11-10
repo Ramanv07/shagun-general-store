@@ -26,9 +26,23 @@ export const Checkout: React.FC = () => {
 
   const [selectedAddressId, setSelectedAddressId] = useState<string>(defaultAddr?._id || 'new');
   const [saveToProfile, setSaveToProfile] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI'>('COD');
+  const [upiSettings, setUpiSettings] = useState<{ enabled: boolean; upi_vpa: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [orderId, setOrderId] = useState('');
+
+  // Check store UPI availability on mount
+  useEffect(() => {
+    mockApi.getUpiSettings().then(res => {
+      setUpiSettings(res);
+      if (!res.enabled && paymentMethod === 'UPI') {
+        setPaymentMethod('COD');
+      }
+    }).catch(() => {
+      setUpiSettings({ enabled: false, upi_vpa: null });
+    });
+  }, []);
 
   const savedAddresses = user?.addresses || [];
 
@@ -114,8 +128,8 @@ export const Checkout: React.FC = () => {
         totalAmount: finalAmount,
         shippingAddress: formData,
         status: 'Processing' as any,
-        paymentMethod: 'COD',
-        paymentStatus: 'Pending',
+        paymentMethod,
+        paymentStatus: paymentMethod === 'UPI' ? 'pending' : 'Pending',
         couponCode: appliedCoupon?.code || undefined,
         discountAmount: discountAmount || 0
       } as any);
@@ -143,9 +157,19 @@ export const Checkout: React.FC = () => {
       }
 
       setOrderId(newOrder._id);
-
-      // 3. Clear Cart & Show Thank You Modal
       clearCart();
+
+      // If UPI, trigger intent on mobile and route to Confirming Payment screen
+      if (paymentMethod === 'UPI') {
+        const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobile && newOrder.upiIntent?.upiUri) {
+          window.location.href = newOrder.upiIntent.upiUri;
+        }
+        navigate(`/confirming-payment/${newOrder._id}`);
+        return;
+      }
+
+      // 3. For COD, Show Thank You Modal
       setShowThankYou(true);
     } catch (error: any) {
       console.error('Checkout error:', error);
@@ -311,10 +335,80 @@ export const Checkout: React.FC = () => {
                 {deliveryFee === 0 ? 'FREE' : '₹30'}
               </span>
             </div>
+            {/* Payment Method Selector */}
+            <div className="pt-4 border-t border-cream-200 space-y-3">
+              <label className="text-maroon-800 font-bold text-sm block">
+                Select Payment Method:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Cash on Delivery option */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPaymentMethod('COD')}
+                  className={`p-4 rounded-xl border cursor-pointer transition text-left flex items-start gap-3 ${
+                    paymentMethod === 'COD'
+                      ? 'bg-maroon-50 border-maroon-600 text-maroon-900 shadow-sm'
+                      : 'bg-white border-cream-300 hover:border-gold-400 text-cream-800'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === 'COD'}
+                    onChange={() => setPaymentMethod('COD')}
+                    className="mt-1 text-maroon-600 focus:ring-maroon-600"
+                  />
+                  <div>
+                    <span className="font-semibold text-sm block text-maroon-800">Cash on Delivery</span>
+                    <span className="text-xs text-cream-700 block mt-0.5">Pay in cash when courier arrives</span>
+                  </div>
+                </div>
+
+                {/* UPI Intent option */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (upiSettings?.enabled) setPaymentMethod('UPI');
+                  }}
+                  className={`p-4 rounded-xl border transition text-left flex items-start gap-3 ${
+                    !upiSettings?.enabled
+                      ? 'bg-gray-100 border-gray-300 opacity-60 cursor-not-allowed text-gray-500'
+                      : paymentMethod === 'UPI'
+                        ? 'bg-maroon-50 border-maroon-600 text-maroon-900 shadow-sm cursor-pointer'
+                        : 'bg-white border-cream-300 hover:border-gold-400 text-cream-800 cursor-pointer'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    disabled={!upiSettings?.enabled}
+                    checked={paymentMethod === 'UPI'}
+                    onChange={() => {
+                      if (upiSettings?.enabled) setPaymentMethod('UPI');
+                    }}
+                    className="mt-1 text-maroon-600 focus:ring-maroon-600"
+                  />
+                  <div>
+                    <span className="font-semibold text-sm block text-maroon-800">UPI Instant Payment</span>
+                    <span className="text-xs text-cream-700 block mt-0.5">GPay, PhonePe, Paytm, BHIM or QR</span>
+                    {!upiSettings?.enabled && (
+                      <span className="text-[11px] text-rose-700 block mt-1">
+                        Temporarily unavailable. Please choose COD.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-between items-center pt-3 border-t border-cream-200">
               <div>
                 <span className="text-cream-800 block text-xs">Payment Method</span>
-                <span className="text-maroon-600 text-xs font-semibold">Cash on Delivery (COD)</span>
+                <span className="text-maroon-600 text-xs font-semibold">
+                  {paymentMethod === 'UPI' ? 'UPI Payment' : 'Cash on Delivery (COD)'}
+                </span>
               </div>
               <div className="text-right">
                 <span className="text-cream-700 block text-xs">Total Amount</span>

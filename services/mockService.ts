@@ -329,6 +329,36 @@ export const mockApi = {
     return await res.json();
   },
 
+  getOrderById: async (id: string): Promise<Order> => {
+    const res = await fetch(`/api/orders/${id}`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch order');
+    }
+    return await res.json();
+  },
+
+  submitUpiUtr: async (id: string, utr: string): Promise<{ success: boolean; message: string; order: Order }> => {
+    const res = await fetch(`/api/orders/${id}/upi-utr`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ utr })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to submit UTR');
+    }
+    return await res.json();
+  },
+
+  getUpiSettings: async (): Promise<{ enabled: boolean; upi_vpa: string | null; upi_name: string | null; timeout_minutes: number }> => {
+    const res = await fetch('/api/settings/upi');
+    if (!res.ok) return { enabled: false, upi_vpa: null, upi_name: null, timeout_minutes: 30 };
+    return await res.json();
+  },
+
   deleteOrder: async (id: string): Promise<void> => {
     const res = await fetch(`/api/orders/${id}`, {
       method: 'DELETE',

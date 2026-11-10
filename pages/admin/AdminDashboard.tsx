@@ -6,6 +6,8 @@ import { CATEGORIES } from '../../constants';
 import { AdminBanners } from './AdminBanners';
 import { AdminCoupons } from './AdminCoupons';
 import { AdminBrands } from './AdminBrands';
+import { AdminUpiPayments } from './AdminUpiPayments';
+import { resizeImage } from '../../utils/imageResizer';
 
 const getAuthToken = () => {
     try {
@@ -46,7 +48,7 @@ const rentalStatusColors: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews' | 'banners' | 'coupons' | 'brands'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'upi' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews' | 'banners' | 'coupons' | 'brands'>('overview');
     const [adminReviews, setAdminReviews] = useState<any[]>([]);
     const [loadingReviews, setLoadingReviews] = useState(false);
     const [reviewFilter, setReviewFilter] = useState<'all' | 'approved' | 'hidden'>('all');
@@ -475,10 +477,11 @@ export const AdminDashboard: React.FC = () => {
             const maxAllowed = type === 'product' ? 4 : 8;
             const filesArray = Array.from(files);
 
-            // Upload all selected files concurrently in parallel
+            // Upload all selected files concurrently in parallel with client-side resize
             const uploadPromises = filesArray.map(async (file) => {
+                const processedFile = await resizeImage(file, 1600, 0.8);
                 const formData = new FormData();
-                formData.append('image', file);
+                formData.append('image', processedFile);
 
                 const res = await fetch('/api/upload', {
                     method: 'POST',
@@ -490,7 +493,7 @@ export const AdminDashboard: React.FC = () => {
 
                 if (!res.ok) throw new Error('Upload failed');
                 const data = await res.json();
-                return data.imageUrl as string;
+                return (data.imageUrl || data.url) as string;
             });
 
             const uploadedUrls = await Promise.all(uploadPromises);
@@ -580,6 +583,7 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'overview', label: 'Overview' },
                         { id: 'products', label: 'Products' },
                         { id: 'orders', label: 'Orders' },
+                        { id: 'upi', label: 'UPI Payments' },
                         { id: 'banners', label: '🖼️ Banners' },
                         { id: 'coupons', label: '🏷️ Coupons' },
                         { id: 'brands', label: '✨ Brands' },
@@ -2072,6 +2076,9 @@ export const AdminDashboard: React.FC = () => {
 
                     {/* COUPONS */}
                     {activeTab === 'coupons' && <AdminCoupons token={getAuthToken()} />}
+
+                    {/* UPI PAYMENTS */}
+                    {activeTab === 'upi' && <AdminUpiPayments token={getAuthToken()} />}
 
                     {/* BRANDS */}
                     {activeTab === 'brands' && <AdminBrands token={getAuthToken()} />}

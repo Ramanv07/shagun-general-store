@@ -182,6 +182,40 @@ export const api = {
     return res.json();
   },
 
+  getOrderById: async (id: string): Promise<Order> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/orders/${id}`, { headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to fetch order');
+    }
+    return res.json();
+  },
+
+  submitUpiUtr: async (id: string, utr: string): Promise<{ success: boolean; message: string; order: Order }> => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/orders/${id}/upi-utr`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ utr })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to submit UTR');
+    }
+    return res.json();
+  },
+
+  getUpiSettings: async (): Promise<{ enabled: boolean; upi_vpa: string | null; upi_name: string | null; timeout_minutes: number }> => {
+    try {
+      const res = await fetch(`${BASE}/api/settings/upi`);
+      if (!res.ok) return { enabled: false, upi_vpa: null, upi_name: null, timeout_minutes: 30 };
+      return await res.json();
+    } catch {
+      return { enabled: false, upi_vpa: null, upi_name: null, timeout_minutes: 30 };
+    }
+  },
+
   deleteOrder: async (id: string): Promise<void> => {
     const headers = await getAuthHeaders();
     const res = await fetch(`${BASE}/api/orders/${id}`, { method: 'DELETE', headers });
@@ -478,7 +512,7 @@ export const api = {
   },
 
   getPaymentPreferences: async (): Promise<PaymentPreference> => {
-    if (BASE.includes('vercel.app')) return { preferred_method: 'COD', upi_id: '' };
+    if (BASE.includes('vercel.app')) return { preferred_method: 'COD' };
     try {
       const headers = await getAuthHeaders();
       const res = await fetch(`${BASE}/api/payment-preferences`, { headers });
@@ -486,7 +520,7 @@ export const api = {
     } catch (e) {
       console.warn('Failed to fetch payment preferences', e);
     }
-    return { preferred_method: 'COD', upi_id: '' };
+    return { preferred_method: 'COD' };
   },
 
   getBanners: async (placement: string = 'app_home') => {
@@ -543,12 +577,12 @@ export const api = {
     return cached ? JSON.parse(cached) : [];
   },
 
-  updatePaymentPreferences: async (preferred_method: 'COD' | 'UPI', upi_id?: string): Promise<PaymentPreference> => {
+  updatePaymentPreferences: async (preferred_method: 'COD' | 'UPI'): Promise<PaymentPreference> => {
     const headers = await getAuthHeaders();
     const res = await fetch(`${BASE}/api/payment-preferences`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify({ preferred_method, upi_id }),
+      body: JSON.stringify({ preferred_method }),
     });
     const data = await res.json();
     if (!res.ok) {

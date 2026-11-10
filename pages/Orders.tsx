@@ -149,6 +149,27 @@ export const Orders: React.FC = () => {
                         <i className={`fas ${statusIcons[order.status]}`}></i>
                         {order.status}
                       </span>
+                      {order.paymentMethod === 'UPI' && (
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                          order.paymentStatus === 'paid'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            : order.paymentStatus === 'verifying'
+                              ? 'bg-amber-50 text-amber-800 border-amber-300'
+                              : order.paymentStatus === 'late_payment'
+                                ? 'bg-purple-50 text-purple-800 border-purple-300'
+                                : order.paymentStatus === 'expired'
+                                  ? 'bg-gray-100 text-gray-700 border-gray-300'
+                                  : 'bg-blue-50 text-blue-800 border-blue-300'
+                        }`}>
+                          UPI: {
+                            order.paymentStatus === 'paid' ? 'Paid' :
+                            order.paymentStatus === 'verifying' ? 'Verifying' :
+                            order.paymentStatus === 'late_payment' ? 'Late Payment' :
+                            order.paymentStatus === 'expired' ? 'Expired' :
+                            order.paymentStatus === 'failed' ? 'Failed' : 'Pending'
+                          }
+                        </span>
+                      )}
                     </div>
                     <p className="text-cream-700 text-sm mb-1">
                       {order.items.length} item{order.items.length > 1 ? 's' : ''} &bull; Rs.{order.totalAmount.toLocaleString()}
@@ -309,24 +330,63 @@ export const Orders: React.FC = () => {
                 {/* Payment */}
                 <div>
                   <h3 className="font-semibold text-maroon-700 mb-3">Payment Information</h3>
-                  <div className="bg-cream-200 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                      <p className="text-maroon-700 font-medium">{selectedOrder.paymentMethod || 'Cash on Delivery (COD)'}</p>
-                      <p className="text-cream-700 text-xs mt-0.5">
-                        {(selectedOrder.status === OrderStatus.DELIVERED || selectedOrder.paymentStatus === 'Completed')
-                          ? 'Payment received upon delivery'
-                          : 'Pay upon delivery to courier'}
-                      </p>
+                  <div className="bg-cream-200 p-4 rounded-xl space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-maroon-700 font-medium">
+                          {selectedOrder.paymentMethod === 'UPI' ? 'UPI Payment (GPay/PhonePe/Paytm)' : (selectedOrder.paymentMethod || 'Cash on Delivery (COD)')}
+                        </p>
+                        <p className="text-cream-700 text-xs mt-0.5">
+                          {selectedOrder.paymentMethod === 'UPI'
+                            ? (
+                              selectedOrder.paymentStatus === 'paid' ? 'Payment confirmed by store management' :
+                              selectedOrder.paymentStatus === 'verifying' ? 'Payment reference submitted; verification in progress' :
+                              selectedOrder.paymentStatus === 'late_payment' ? 'We received your reference and are checking it.' :
+                              selectedOrder.paymentStatus === 'expired' ? 'Payment window expired' :
+                              selectedOrder.paymentStatus === 'failed' ? (selectedOrder.rejectionReason || 'Payment verification failed') :
+                              'Awaiting payment and UTR submission'
+                            )
+                            : (selectedOrder.status === OrderStatus.DELIVERED || selectedOrder.paymentStatus === 'Completed')
+                              ? 'Payment received upon delivery'
+                              : 'Pay upon delivery to courier'
+                          }
+                        </p>
+                      </div>
+                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                        (selectedOrder.paymentStatus === 'paid' || selectedOrder.paymentStatus === 'Completed')
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : selectedOrder.paymentStatus === 'verifying'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : selectedOrder.paymentStatus === 'late_payment'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : selectedOrder.paymentStatus === 'expired'
+                                ? 'bg-gray-200 text-gray-700 border-gray-400'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                      }`}>
+                        {selectedOrder.paymentStatus === 'paid' ? 'Paid' :
+                         selectedOrder.paymentStatus === 'verifying' ? 'Verifying' :
+                         selectedOrder.paymentStatus === 'late_payment' ? 'Late Payment' :
+                         selectedOrder.paymentStatus === 'expired' ? 'Expired' :
+                         selectedOrder.paymentStatus === 'failed' ? 'Failed' :
+                         (selectedOrder.paymentStatus || 'Pending')}
+                      </span>
                     </div>
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                      (selectedOrder.status === OrderStatus.DELIVERED || selectedOrder.paymentStatus === 'Completed')
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}>
-                      {(selectedOrder.status === OrderStatus.DELIVERED || selectedOrder.paymentStatus === 'Completed')
-                        ? 'Completed'
-                        : (selectedOrder.paymentStatus || 'Pending')}
-                    </span>
+
+                    {selectedOrder.paymentMethod === 'UPI' && (
+                      <div className="pt-2 border-t border-cream-300 flex justify-between items-center text-xs">
+                        <span className="text-cream-700">
+                          {selectedOrder.upiUtr ? `UTR: ${selectedOrder.upiUtr}` : 'No UTR submitted yet'}
+                        </span>
+                        {['pending', 'Pending', 'verifying', 'late_payment', 'expired'].includes(selectedOrder.paymentStatus || '') && (
+                          <Link
+                            to={`/confirming-payment/${selectedOrder._id}`}
+                            className="text-maroon-700 hover:text-maroon-900 font-bold underline"
+                          >
+                            Open Payment Screen &rarr;
+                          </Link>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
