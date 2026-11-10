@@ -21,7 +21,19 @@ const orderSchema = new mongoose.Schema({
         pinCode: { type: String, required: true }
     },
     paymentMethod: { type: String, enum: ['COD', 'Online', 'UPI'], default: 'COD' },
-    paymentStatus: { type: String, enum: ['Pending', 'Completed', 'Failed'], default: 'Pending' },
+    paymentStatus: { 
+        type: String, 
+        enum: ['COD', 'pending', 'verifying', 'paid', 'failed', 'expired', 'late_payment', 'refund_needed', 'Pending', 'Completed', 'Failed'], 
+        default: 'Pending' 
+    },
+    upiTxnRef: { type: String, trim: true },
+    upiUtr: { type: String, trim: true },
+    upiUtrAttempts: { type: Number, default: 0 },
+    paymentExpiresAt: { type: Date, default: null },
+    paidAt: { type: Date, default: null },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    upiIntent: { type: mongoose.Schema.Types.Mixed, default: null },
+    rejectionReason: { type: String, default: null },
     couponCode: { type: String, default: null },
     discountAmount: { type: Number, default: 0 },
     status: { 
@@ -29,11 +41,6 @@ const orderSchema = new mongoose.Schema({
         enum: ['Processing', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'], 
         default: 'Processing' 
     }
-}, { timestamps: true });
+}, { timestamps: true, autoIndex: false });
 
-// High-performance indexes for lightning-fast queries
-orderSchema.index({ user: 1, createdAt: -1 });
-orderSchema.index({ legacyUserId: 1, createdAt: -1 });
-orderSchema.index({ createdAt: -1 });
-
-export default mongoose.model('Order', orderSchema);
+export default mongoose.models.Order || mongoose.model('Order', orderSchema);

@@ -97,4 +97,60 @@ router.put('/delivery', protect, adminOnly, async (req, res) => {
   }
 });
 
+// @route   GET /api/settings/upi
+// @desc    Get public store UPI settings (VPA, display name). Returns enabled: false if unconfigured.
+router.get('/upi', async (_req, res) => {
+  try {
+    const config = await StoreSetting.findOne({ key: 'upi_config' }).lean();
+    const upiData = config?.value || config || {};
+    const hasUpi = Boolean(upiData.upi_vpa && upiData.upi_name);
+    res.json({
+      enabled: hasUpi,
+      upi_vpa: hasUpi ? upiData.upi_vpa : null,
+      upi_name: hasUpi ? upiData.upi_name : null,
+      timeout_minutes: Number(upiData.timeout_minutes) || 30
+    });
+  } catch (err) {
+    console.error('Error fetching UPI settings:', err);
+    res.status(500).json({ message: 'Failed to fetch UPI settings' });
+  }
+});
+
+// @route   PUT /api/settings/upi
+// @desc    Admin: Update store UPI VPA, display name, and timeout
+router.put('/upi', protect, adminOnly, async (req, res) => {
+  try {
+    const { upi_vpa, upi_name, timeout_minutes, merchant_code } = req.body;
+    if (!upi_vpa || !upi_name) {
+      return res.status(400).json({ message: 'upi_vpa and upi_name are required' });
+    }
+
+    const payload = {
+      upi_vpa: String(upi_vpa).trim(),
+      upi_name: String(upi_name).trim(),
+      timeout_minutes: Number(timeout_minutes) || 10,
+      merchant_code: merchant_code ? String(merchant_code).trim() : null
+    };
+
+    const updated = await StoreSetting.findOneAndUpdate(
+      { key: 'upi_config' },
+      { $set: { value: payload } },
+      { upsert: true, new: true }
+    );
+
+    await logAuditEvent(req.user._id, 'SETTINGS_UPDATE', 'StoreSetting', 'upi_config', {
+      timeout_minutes: payload.timeout_minutes
+    });
+
+    res.json({
+      success: true,
+      message: 'UPI settings updated successfully',
+      settings: updated.value
+    });
+  } catch (err) {
+    console.error('Error updating UPI settings:', err);
+    res.status(500).json({ message: 'Failed to update UPI settings' });
+  }
+});
+
 export default router;

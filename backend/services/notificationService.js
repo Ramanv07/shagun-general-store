@@ -215,7 +215,8 @@ export async function sendAdminOrderNotification(order) {
           'Tags': 'shopping_bags,moneybag,package',
           'Click': 'https://shagun-general-store.vercel.app/admin'
         },
-        body: ntfyBody
+        body: ntfyBody,
+        signal: AbortSignal.timeout(5000)
       });
       console.log(`[Notification] ntfy push sent to topic "${ntfyTopic}" for order #${orderId}`);
     } catch (ntfyErr) {
@@ -235,7 +236,7 @@ export async function sendAdminOrderNotification(order) {
           `👉 *Admin Portal:* https://shagun-general-store.vercel.app/admin`;
 
         const waUrl = `https://api.callmebot.com/whatsapp.php?phone=${adminPhone}&text=${encodeURIComponent(waText)}&apikey=${callMeBotKey}`;
-        await fetch(waUrl);
+        await fetch(waUrl, { signal: AbortSignal.timeout(5000) });
         console.log(`[Notification] CallMeBot WhatsApp sent to ${adminPhone} for order #${orderId}`);
       } catch (waErr) {
         console.error('[Notification] CallMeBot WhatsApp error:', waErr.message);

@@ -13,6 +13,7 @@ import AuditLog from '../models/AuditLog.js';
 import PaymentPreference from '../models/PaymentPreference.js';
 import Notification from '../models/Notification.js';
 import { sendOtp } from '../services/otpService.js';
+import { withTimeout } from '../utils/asyncHelper.js';
 
 const googleClient = new OAuth2Client();
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
@@ -56,8 +57,7 @@ const maskPhone = (phone) => {
     return str.length === 10 ? `${str.slice(0, 2)}****${str.slice(-4)}` : '******';
 };
 
-// In-memory OTP storage with secure SHA-256 hash, attempt counting, and cooldown
-const otpStore = new Map();
+// Secure SHA-256 OTP hashing with HMAC-like secret salt
 
 const hashOtp = (otp, phone) => {
     const secret = process.env.JWT_SECRET || 'shagun_default_otp_salt';
@@ -196,8 +196,8 @@ router.post('/forgot-password', async (req, res) => {
             return res.status(400).json({ message: 'Email address or mobile number is required' });
         }
 
-        const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
-        if (isResetRateLimited(`ip:${clientIp}`, 10) || isResetRateLimited(`id:${rawTarget}`, 5)) {
+        // Identifier-based rate limit: max 5 requests per identifier/hour (IP limiting handled by MongoRateLimiter)
+        if (isResetRateLimited(`id:${rawTarget}`, 5)) {
             return res.status(429).json({ message: 'Too many password reset requests. Please try again after 1 hour.' });
         }
 
@@ -251,8 +251,8 @@ router.post('/forgot-password', async (req, res) => {
             { upsert: true, new: true }
         );
 
-        // Dispatch OTP via email provider layer
-        await sendOtp({ channel: 'email', to: normalizedEmail, code: otp });
+        // Dispatch OTP via email provider layer (with 5s timeout, safe failure)
+        await withTimeout(sendOtp({ channel: 'email', to: normalizedEmail, code: otp }), 5000, 'sendOtp');
 
         const isTestMode = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
 
@@ -902,7 +902,9 @@ const handleDeleteAccount = async (req, res) => {
         await OtpSession.deleteMany({
             identifier: { $in: [oldEmail.toLowerCase(), oldPhone ? oldPhone.replace(/\D/g, '').slice(-10) : ''].filter(Boolean) }
         }).catch(() => {});
-        await PaymentPreference.deleteOne({ user: user._id }).catch(() => {});
+        await PaymentPreference.deleteMany({
+            $or: [{ user_id: user._id }, { user: user._id }]
+        }).catch(() => {});
         await Notification.deleteMany({
             $or: [
                 { user_id: user._id },
