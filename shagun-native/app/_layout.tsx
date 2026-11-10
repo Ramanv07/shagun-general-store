@@ -9,6 +9,9 @@ import { CartProvider } from '../context/CartContext';
 import { OrderProvider } from '../context/OrderContext';
 import OfflineNotice from '../components/OfflineNotice';
 import DevApiBanner from '../components/DevApiBanner';
+import { initWebAlertPolyfill } from '../utils/webAlertPolyfill';
+
+initWebAlertPolyfill();
 
 function NotificationListener() {
   const router = useRouter();

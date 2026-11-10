@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Alert, ActivityIndicator, Linking, Modal, SafeAreaView, StatusBar,
+  StyleSheet, Alert, ActivityIndicator, Linking, Modal, SafeAreaView, StatusBar, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -90,6 +90,33 @@ export default function AccountScreen() {
   };
 
   const confirmDeleteAccount = () => {
+    const executeDelete = async (pwd?: string) => {
+      try {
+        await api.deleteAccount(pwd);
+        logout();
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert('Your account has been deleted successfully.');
+        } else {
+          Alert.alert('Account Deleted', 'Your account has been deleted successfully.');
+        }
+      } catch (err: any) {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(err.message || 'Failed to delete account');
+        } else {
+          Alert.alert('Error', err.message || 'Failed to delete account');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const pwd = window.prompt(
+        '⚠️ Are you sure you want to permanently delete your account?\n\nEnter your password to confirm (leave blank if signed in with Google):'
+      );
+      if (pwd === null) return;
+      executeDelete(pwd);
+      return;
+    }
+
     Alert.alert(
       '⚠️ Delete Account',
       'Are you sure you want to delete your account? This will permanently remove your profile and personal data. This action cannot be undone.',
@@ -98,15 +125,7 @@ export default function AccountScreen() {
         {
           text: 'Delete Permanently',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.deleteAccount();
-              logout();
-              Alert.alert('Account Deleted', 'Your account has been deleted successfully.');
-            } catch (err: any) {
-              Alert.alert('Error', err.message || 'Failed to delete account');
-            }
-          },
+          onPress: () => executeDelete(),
         },
       ]
     );
