@@ -72,6 +72,28 @@ export const api = {
     throw new Error((err as any).message || 'Google authentication failed');
   },
 
+  forgotPassword: async (phone: string): Promise<{ success: boolean; message: string }> => {
+    const res = await fetch(`${BASE}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data;
+    throw new Error(data.message || 'Failed to request password reset');
+  },
+
+  resetPassword: async (phone: string, otp: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const res = await fetch(`${BASE}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, otp, newPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data;
+    throw new Error(data.message || 'Failed to reset password');
+  },
+
   logout: async (): Promise<void> => {
     await appStorage.deleteItem(STORAGE_KEYS.CURRENT_USER);
   },

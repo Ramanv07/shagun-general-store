@@ -22,6 +22,7 @@ import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TrackOrderModal } from './components/TrackOrderModal';
 import { HelpSupportModal } from './components/HelpSupportModal';
+import { StorageConsentBanner } from './components/StorageConsentBanner';
 import { UserRole } from './types';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement; adminOnly?: boolean }> = ({ children, adminOnly }) => {
@@ -162,6 +163,7 @@ export default function App() {
               <AppRoutes />
               <TrackOrderModal />
               <HelpSupportModal />
+              <StorageConsentBanner />
             </ErrorBoundary>
           </CartProvider>
         </OrderProvider>

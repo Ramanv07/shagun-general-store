@@ -8,7 +8,14 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, required: true, maxlength: 1000 },
   status: { type: String, enum: ['approved', 'hidden'], default: 'approved' },
   created_at: { type: Date, default: Date.now },
-}, { timestamps: true, autoIndex: false });
+}, { timestamps: false, autoIndex: false, toJSON: { virtuals: true }, toObject: { virtuals: true } });
+
+reviewSchema.virtual('createdAt')
+  .get(function() {
+    return this.created_at;
+  })
+  .set(function(v) {
+    this.created_at = v;
+  });
 
 export default mongoose.models.Review || mongoose.model('Review', reviewSchema, 'reviews');
-

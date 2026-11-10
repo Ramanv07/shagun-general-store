@@ -461,6 +461,7 @@ const ps = StyleSheet.create({
   wrap: {
     marginTop: 14,
     marginHorizontal: 16,
+    alignSelf: 'stretch',
     alignItems: 'center',
     overflow: 'hidden',
   },

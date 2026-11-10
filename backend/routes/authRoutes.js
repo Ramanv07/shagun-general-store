@@ -156,6 +156,138 @@ router.post('/verify-otp', async (req, res) => {
     }
 });
 
+// @route   POST /api/auth/forgot-password
+// @desc    Initiate password reset OTP flow for registered phone number
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) {
+            return res.status(400).json({ message: 'Phone number is required' });
+        }
+        const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+        if (cleanPhone.length !== 10) {
+            return res.status(400).json({ message: 'Valid 10-digit phone number is required' });
+        }
+
+        const user = await User.findOne({
+            $or: [
+                { phone: cleanPhone },
+                { phone: `+91${cleanPhone}` },
+                { phone: `91${cleanPhone}` }
+            ]
+        });
+        if (!user) {
+            return res.status(404).json({ message: 'No registered user found with this mobile number.' });
+        }
+
+        // Rate limit: 60-second cooldown
+        const existing = otpStore.get(cleanPhone);
+        if (existing && Date.now() - existing.lastSentAt < 60000) {
+            const waitSeconds = Math.ceil((60000 - (Date.now() - existing.lastSentAt)) / 1000);
+            return res.status(429).json({ message: `Please wait ${waitSeconds} seconds before requesting another OTP` });
+        }
+
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const hashedOtp = hashOtp(otp, cleanPhone);
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+
+        otpStore.set(cleanPhone, {
+            hashedOtp,
+            expiresAt,
+            attempts: 0,
+            lastSentAt: Date.now()
+        });
+
+        const isTestMode = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
+
+        if (process.env.FAST2SMS_API_KEY && !isTestMode) {
+            try {
+                await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&flash=0&numbers=${cleanPhone}`);
+            } catch (smsErr) {
+                console.error('[SMS Dispatch] Failed for masked phone:', maskPhone(cleanPhone));
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Password reset OTP sent via SMS to +91 ${maskPhone(cleanPhone)}`,
+            ...(isTestMode ? { testOtp: otp } : {})
+        });
+    } catch (error) {
+        console.error('Forgot password error:', error.message);
+        res.status(500).json({ message: 'Failed to process password reset request' });
+    }
+});
+
+// @route   POST /api/auth/reset-password
+// @desc    Verify OTP and update user password (invalidating older sessions)
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { phone, otp, newPassword } = req.body;
+        if (!phone || !otp || !newPassword) {
+            return res.status(400).json({ message: 'Phone, OTP, and new password are required' });
+        }
+        if (typeof newPassword !== 'string' || newPassword.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+        }
+
+        const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+        const user = await User.findOne({
+            $or: [
+                { phone: cleanPhone },
+                { phone: `+91${cleanPhone}` },
+                { phone: `91${cleanPhone}` }
+            ]
+        });
+        if (!user) {
+            return res.status(404).json({ message: 'No registered user found with this mobile number.' });
+        }
+
+        const record = otpStore.get(cleanPhone);
+        const isTestOtpAllowed = process.env.NODE_ENV !== 'production' && process.env.ALLOW_TEST_OTP === 'true';
+
+        let isValid = false;
+        if (isTestOtpAllowed && String(otp).trim() === '999999') {
+            isValid = true;
+        } else if (record) {
+            if (Date.now() >= record.expiresAt) {
+                otpStore.delete(cleanPhone);
+                return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+            }
+            record.attempts += 1;
+            if (record.attempts > 5) {
+                otpStore.delete(cleanPhone);
+                return res.status(429).json({ message: 'Too many invalid attempts. Please request a new OTP.' });
+            }
+            const candidateHash = hashOtp(String(otp), cleanPhone);
+            if (record.hashedOtp === candidateHash) {
+                isValid = true;
+            }
+        }
+
+        if (!isValid) {
+            return res.status(400).json({
+                message: record ? `Invalid OTP code. ${5 - record.attempts} attempts remaining.` : 'No OTP requested for this number or OTP expired'
+            });
+        }
+
+        otpStore.delete(cleanPhone);
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.tokenVersion = (user.tokenVersion || 0) + 1; // Invalidate older active JWT tokens
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Password has been reset successfully. Please log in with your new password.'
+        });
+    } catch (error) {
+        console.error('Reset password error:', error.message);
+        res.status(500).json({ message: 'Failed to reset password' });
+    }
+});
+
 // @route   POST /api/auth/register
 // @desc    Register a new user (with verified phone or email)
 router.post('/register', async (req, res) => {

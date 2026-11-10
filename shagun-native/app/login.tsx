@@ -62,6 +62,61 @@ export default function LoginScreen() {
 
   // Forgot password modal
   const [showForgot, setShowForgot] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'phone' | 'otp'>('phone');
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+
+  const handleRequestResetOtp = async () => {
+    setForgotError('');
+    setForgotSuccess('');
+    const clean = forgotPhone.replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) {
+      setForgotError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await api.forgotPassword(clean);
+      setForgotSuccess(res.message || 'OTP sent successfully!');
+      setForgotStep('otp');
+    } catch (err: any) {
+      setForgotError(err.message || 'Failed to send OTP');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleCompleteReset = async () => {
+    setForgotError('');
+    setForgotSuccess('');
+    const clean = forgotPhone.replace(/\D/g, '').slice(-10);
+    if (!forgotOtp || forgotOtp.trim().length !== 6) {
+      setForgotError('Please enter the 6-digit OTP code.');
+      return;
+    }
+    if (!forgotNewPassword || forgotNewPassword.length < 6) {
+      setForgotError('New password must be at least 6 characters long.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await api.resetPassword(clean, forgotOtp.trim(), forgotNewPassword);
+      setSuccess(res.message || 'Password reset successfully! Please log in.');
+      setShowForgot(false);
+      setForgotStep('phone');
+      setForgotPhone('');
+      setForgotOtp('');
+      setForgotNewPassword('');
+    } catch (err: any) {
+      setForgotError(err.message || 'Failed to reset password');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   // ── Google Sign In Handler ──────────────────────────────────────────────
   const handleGoogleSignIn = async () => {
@@ -466,31 +521,126 @@ export default function LoginScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Forgot Password?</Text>
-              <TouchableOpacity onPress={() => setShowForgot(false)} style={styles.modalCloseBtn}>
+              <Text style={styles.modalTitle}>
+                {forgotStep === 'phone' ? 'Reset Password' : 'Enter OTP & New Password'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowForgot(false);
+                  setForgotStep('phone');
+                  setForgotError('');
+                  setForgotSuccess('');
+                }}
+                style={styles.modalCloseBtn}
+              >
                 <X size={18} color={THEME.colors.ink500} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalBodyText}>
-              To reset your password or recover your account, please connect with Shagun Mart support directly on WhatsApp.
-            </Text>
+            {forgotError ? (
+              <View style={[styles.alertBox, styles.alertError, { marginBottom: 12 }]}>
+                <AlertCircle size={15} color={THEME.colors.red700} />
+                <Text style={styles.alertText}>{forgotError}</Text>
+              </View>
+            ) : null}
 
-            <TouchableOpacity
-              style={styles.whatsappBtn}
-              onPress={() => {
-                setShowForgot(false);
-                Linking.openURL(
-                  `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(
-                    'Hello Shagun Mart, I need help resetting my password.'
-                  )}`
-                );
-              }}
-              activeOpacity={0.85}
-            >
-              <Phone size={16} color={THEME.colors.white} />
-              <Text style={styles.whatsappBtnText}>Contact Support on WhatsApp</Text>
-            </TouchableOpacity>
+            {forgotSuccess ? (
+              <View style={[styles.alertBox, styles.alertSuccess, { marginBottom: 12 }]}>
+                <CheckCircle size={15} color={THEME.colors.forest700} />
+                <Text style={styles.alertText}>{forgotSuccess}</Text>
+              </View>
+            ) : null}
+
+            {forgotStep === 'phone' ? (
+              <>
+                <Text style={styles.modalBodyText}>
+                  Enter your registered 10-digit mobile number to receive a secure one-time verification code.
+                </Text>
+                <TextInput
+                  style={[styles.textInput, { marginBottom: 14 }]}
+                  placeholder="Enter 10-digit mobile number"
+                  placeholderTextColor={THEME.colors.ink300}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={forgotPhone}
+                  onChangeText={setForgotPhone}
+                />
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { marginBottom: 10 }]}
+                  onPress={handleRequestResetOtp}
+                  disabled={forgotLoading}
+                  activeOpacity={0.85}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator size="small" color={THEME.colors.white} />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Send Verification OTP</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalBodyText}>
+                  Enter the 6-digit OTP sent to +91 {forgotPhone.slice(-10)} and your new password.
+                </Text>
+                <TextInput
+                  style={[styles.textInput, { marginBottom: 10 }]}
+                  placeholder="6-digit OTP"
+                  placeholderTextColor={THEME.colors.ink300}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={forgotOtp}
+                  onChangeText={setForgotOtp}
+                />
+                <TextInput
+                  style={[styles.textInput, { marginBottom: 14 }]}
+                  placeholder="New password (min 6 characters)"
+                  placeholderTextColor={THEME.colors.ink300}
+                  secureTextEntry
+                  value={forgotNewPassword}
+                  onChangeText={setForgotNewPassword}
+                />
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { marginBottom: 10 }]}
+                  onPress={handleCompleteReset}
+                  disabled={forgotLoading}
+                  activeOpacity={0.85}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator size="small" color={THEME.colors.white} />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Reset Password & Log In</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setForgotStep('phone');
+                    setForgotError('');
+                  }}
+                  style={{ alignSelf: 'center', paddingVertical: 4 }}
+                >
+                  <Text style={[styles.forgotLink, { fontSize: 12 }]}>← Change phone number</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <View style={{ borderTopWidth: 1, borderTopColor: THEME.colors.line, marginTop: 12, paddingTop: 10 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  Linking.openURL(
+                    `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(
+                      'Hello Shagun Mart, I need assistance resetting my password.'
+                    )}`
+                  );
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                <Phone size={13} color={THEME.colors.forest700} />
+                <Text style={{ fontSize: 11.5, color: THEME.colors.forest700, fontWeight: '600' }}>
+                  Need help? Contact WhatsApp Support
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

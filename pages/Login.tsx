@@ -32,6 +32,75 @@ export const Login: React.FC = () => {
 
   // Forgot password modal
   const [showForgot, setShowForgot] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'phone' | 'otp'>('phone');
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+
+  const handleRequestResetOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+    const clean = forgotPhone.replace(/\D/g, '').slice(-10);
+    if (clean.length !== 10) {
+      setForgotError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: clean })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
+      setForgotSuccess(data.message || 'OTP sent successfully!');
+      setForgotStep('otp');
+    } catch (err: any) {
+      setForgotError(err.message || 'Failed to send OTP');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleCompleteReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+    const clean = forgotPhone.replace(/\D/g, '').slice(-10);
+    if (!forgotOtp || forgotOtp.trim().length !== 6) {
+      setForgotError('Please enter the 6-digit OTP code.');
+      return;
+    }
+    if (!forgotNewPassword || forgotNewPassword.length < 6) {
+      setForgotError('New password must be at least 6 characters long.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: clean, otp: forgotOtp.trim(), newPassword: forgotNewPassword })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to reset password');
+      setSuccess(data.message || 'Password reset successfully! Please log in.');
+      setShowForgot(false);
+      setForgotStep('phone');
+      setForgotPhone('');
+      setForgotOtp('');
+      setForgotNewPassword('');
+    } catch (err: any) {
+      setForgotError(err.message || 'Failed to reset password');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   // Close forgot password modal on Escape
   useEffect(() => {
@@ -484,30 +553,132 @@ export const Login: React.FC = () => {
             aria-modal="true"
             className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in"
           >
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center animate-scale-in border border-gray-100">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-800 text-lg">
-                <i className="fas fa-key" />
+            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-scale-in border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-800 text-sm">
+                    <i className="fas fa-key" />
+                  </div>
+                  <h2 className="font-semibold text-sm text-gray-900">
+                    {forgotStep === 'phone' ? 'Reset Password' : 'Verify OTP & New Password'}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgot(false);
+                    setForgotStep('phone');
+                    setForgotError('');
+                    setForgotSuccess('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  <i className="fas fa-times text-sm" />
+                </button>
               </div>
-              <h2 className="font-semibold text-base text-gray-900 mb-1.5">Reset Password</h2>
-              <p className="text-xs text-gray-500 mb-5 leading-relaxed">
-                Contact store administration via WhatsApp with your registered mobile or email to receive reset assistance.
-              </p>
-              <div className="space-y-2">
+
+              {forgotError && (
+                <div className="p-2.5 mb-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs flex items-center gap-2">
+                  <i className="fas fa-exclamation-circle text-xs shrink-0" />
+                  <span>{forgotError}</span>
+                </div>
+              )}
+
+              {forgotSuccess && (
+                <div className="p-2.5 mb-3 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-700 text-xs flex items-center gap-2">
+                  <i className="fas fa-check-circle text-xs shrink-0" />
+                  <span>{forgotSuccess}</span>
+                </div>
+              )}
+
+              {forgotStep === 'phone' ? (
+                <form onSubmit={handleRequestResetOtp} className="space-y-3">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Enter your registered 10-digit mobile number to receive a secure password reset OTP.
+                  </p>
+                  <div>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
+                      value={forgotPhone}
+                      onChange={(e) => setForgotPhone(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="w-full py-2.5 px-4 bg-[#18181b] hover:bg-black text-white text-xs font-medium rounded-xl transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {forgotLoading ? (
+                      <i className="fas fa-spinner fa-spin" />
+                    ) : (
+                      'Send Verification OTP'
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleCompleteReset} className="space-y-3">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Enter the 6-digit OTP sent to your phone and your new password.
+                  </p>
+                  <div>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="6-digit OTP code"
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-gray-900 focus:bg-white transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="New password (min 6 characters)"
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="w-full py-2.5 px-4 bg-[#18181b] hover:bg-black text-white text-xs font-medium rounded-xl transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {forgotLoading ? (
+                      <i className="fas fa-spinner fa-spin" />
+                    ) : (
+                      'Reset Password & Log In'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotStep('phone');
+                      setForgotError('');
+                    }}
+                    className="w-full text-center text-xs text-gray-500 hover:text-gray-800 pt-1"
+                  >
+                    ← Change phone number
+                  </button>
+                </form>
+              )}
+
+              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                <span>Need help?</span>
                 <a
                   href="https://wa.me/918827259023?text=Hello,%20I%20need%20assistance%20resetting%20my%20Shagun%20Store%20account%20password."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 bg-[#18181b] hover:bg-black text-white text-xs font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
+                  className="text-emerald-700 hover:underline font-medium flex items-center gap-1"
                 >
-                  <i className="fab fa-whatsapp text-sm" /> WhatsApp Support
+                  <i className="fab fa-whatsapp" /> WhatsApp
                 </a>
-                <button
-                  type="button"
-                  onClick={() => setShowForgot(false)}
-                  className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-xl transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
               </div>
             </div>
           </div>
