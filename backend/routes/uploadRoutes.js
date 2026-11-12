@@ -98,12 +98,12 @@ router.post('/', protect, adminOnly, handleUpload, async (req, res) => {
 // @desc    Upload a base64 image string directly to Cloudinary
 // @access  Private/Admin
 router.post('/base64', protect, adminOnly, async (req, res) => {
-  try {
-    const { image } = req.body;
-    if (!image) {
-      return res.status(400).json({ message: 'No image provided' });
-    }
+  const { image } = req.body || {};
+  if (!image) {
+    return res.status(400).json({ message: 'No image provided' });
+  }
 
+  try {
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 8);
     const uploadResponse = await cloudinary.uploader.upload(image, {
