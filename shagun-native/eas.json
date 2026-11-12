@@ -13,13 +13,14 @@
       }
     },
     "preview": {
+      "node": "24.12.0",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
       "env": {
         "EXPO_PUBLIC_APP_ENV": "preview",
-        "EXPO_PUBLIC_API_URL": "https://<YOUR-PREVIEW-DOMAIN-OR-VERCEL-URL>/api",
+        "EXPO_PUBLIC_API_URL": "https://shagun-general-store.vercel.app/api",
         "EXPO_PUBLIC_PRODUCTION_API_HOST": "api.shagunmart.com"
       }
     },
