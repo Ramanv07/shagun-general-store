@@ -81,7 +81,15 @@ router.post('/', protect, adminOnly, handleUpload, async (req, res) => {
 
     res.json({ imageUrl: uploadResult.secure_url, url: uploadResult.secure_url });
   } catch (error) {
-    console.error('Cloudinary stream error:', error);
+    console.error('Cloudinary stream error:', error.message || error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[DEV UPLOAD] Cloudinary upload failed in local environment; using fallback demo image.');
+      return res.json({
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        url: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        fallback: true
+      });
+    }
     res.status(500).json({ message: 'Failed to upload image to cloud storage' });
   }
 });
@@ -106,7 +114,14 @@ router.post('/base64', protect, adminOnly, async (req, res) => {
 
     res.json({ imageUrl: uploadResponse.secure_url });
   } catch (error) {
-    console.error('Base64 Cloudinary upload error:', error);
+    console.error('Base64 Cloudinary upload error:', error.message || error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[DEV UPLOAD] Cloudinary base64 upload failed in local environment; using fallback demo image.');
+      return res.json({
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        fallback: true
+      });
+    }
     res.status(500).json({ message: 'Failed to upload base64 image' });
   }
 });
