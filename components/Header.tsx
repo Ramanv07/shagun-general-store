@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Heart, ShoppingBag, ChevronDown, Menu, X, User as UserIcon, LogOut, ShieldCheck, Package } from 'lucide-react';
+import { Search, Heart, ShoppingBag, ChevronDown, Menu, X, User as UserIcon, LogOut, ShieldCheck, Package, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { UserRole, Product } from '../types';
@@ -521,6 +521,19 @@ export const Header: React.FC = () => {
             )}
           </div>
         )}
+      </div>
+
+      {/* Android app download: intentionally visible only in the mobile web layout. */}
+      <div className="lg:hidden px-5 pb-3">
+        <a
+          href="/shagun-app.apk"
+          download="shagun-mart.apk"
+          className="w-full min-h-11 rounded-xl bg-maroon-900 text-white flex items-center justify-center gap-2.5 px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors hover:bg-maroon-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-900"
+          aria-label="Download the Shagun Mart Android app APK"
+        >
+          <Download size={18} strokeWidth={2} aria-hidden="true" />
+          <span>Download Shagun Mart App</span>
+        </a>
       </div>
 
     </header>
