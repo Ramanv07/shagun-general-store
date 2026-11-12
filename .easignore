@@ -1,15 +1,15 @@
 # Root .easignore: Exclude web and backend code from native mobile build
-backend/
-components/
-pages/
-context/
-services/
-public/
-dist/
-node_modules/
+/backend/
+/components/
+/pages/
+/context/
+/services/
+/public/
+/dist/
+/node_modules/
 *.apk
 *.aab
 .git/
-api/
-scripts/
-android/
+/api/
+/scripts/
+/android/
