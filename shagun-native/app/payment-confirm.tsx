@@ -128,6 +128,14 @@ export default function PaymentConfirmScreen() {
       return;
     }
 
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Desktop Notice',
+        'UPI apps (GPay, PhonePe, Paytm) only open on mobile devices.\n\nEnter your 12-digit bank UTR below to confirm payment, or test the app on a mobile phone.'
+      );
+      return;
+    }
+
     if (!order?.upiIntent?.upiUri) {
       Alert.alert('Notice', 'No UPI payment link available for this order.');
       return;
