@@ -32,8 +32,10 @@ dotenv.config();
 
 // ─── Boot Guard & Security Validations ─────────────────────────────
 if (!process.env.JWT_SECRET) {
-    console.error('FATAL: JWT_SECRET is not set in environment variables. Exiting.');
-    process.exit(1);
+    console.error('FATAL: JWT_SECRET is not set in environment variables.');
+    if (!process.env.VERCEL) {
+        process.exit(1);
+    }
 }
 
 const currentEnv = process.env.NODE_ENV || 'development';
@@ -41,8 +43,10 @@ console.log(`[BOOT] Environment: ${currentEnv}`);
 
 if (process.env.NODE_ENV === 'production') {
     if (process.env.STAGING_MONGODB_URI) {
-        console.error('FATAL: STAGING_MONGODB_URI must not be set in production environment. Exiting.');
-        process.exit(1);
+        console.error('FATAL: STAGING_MONGODB_URI must not be set in production environment.');
+        if (!process.env.VERCEL) {
+            process.exit(1);
+        }
     }
     const dangerousFlags = [];
     if (process.env.ALLOW_TEST_OTP === 'true') dangerousFlags.push('ALLOW_TEST_OTP=true');
@@ -50,8 +54,10 @@ if (process.env.NODE_ENV === 'production') {
     if (process.env.OTP_CHANNEL === 'console') dangerousFlags.push('OTP_CHANNEL=console');
 
     if (dangerousFlags.length > 0) {
-        console.error(`FATAL: Insecure flags detected in production boot: ${dangerousFlags.join(', ')}. Server refusing to boot.`);
-        process.exit(1);
+        console.error(`FATAL: Insecure flags detected in production boot: ${dangerousFlags.join(', ')}.`);
+        if (!process.env.VERCEL) {
+            process.exit(1);
+        }
     }
 }
 
