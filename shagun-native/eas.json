@@ -25,12 +25,13 @@
       }
     },
     "production": {
+      "node": "24.12.0",
       "android": {
         "buildType": "app-bundle"
       },
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://<YOUR-DOMAIN-OR-VERCEL-URL>/api"
+        "EXPO_PUBLIC_API_URL": "https://shagun-general-store.vercel.app/api"
       }
     }
   },
