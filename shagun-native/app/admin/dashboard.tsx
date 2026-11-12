@@ -9,13 +9,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Order, OrderStatus, Product } from '../../types';
+import { CATEGORIES } from '../../constants';
 
 type Tab = 'orders' | 'products' | 'users';
 
-const CATEGORIES = ['General Use', 'Skin Care', 'Personal Care', 'Bangle', 'Toy', 'Bridal Lehenga'];
+const ADMIN_CATEGORIES = CATEGORIES.filter(c => c !== 'All');
 
 const emptyProduct = {
-  name: '', price: '', mrp: '', category: 'General Use', stock: '', description: '', image: '',
+  name: '', price: '', mrp: '', category: 'General Use', stock: '', description: '', image: '', images: [] as string[],
 };
 
 export default function AdminDashboard() {
@@ -76,45 +77,84 @@ export default function AdminDashboard() {
     ]);
   };
 
-  // ── Image Picker ──
-  const pickImage = async () => {
+  // ── Image Picker (Supports multiple images up to 4) ──
+  const pickImages = async () => {
+    const currentImages = form.images || (form.image ? [form.image] : []);
+    const remainingSlots = 4 - currentImages.length;
+    if (remainingSlots <= 0) {
+      Alert.alert('Limit Reached', 'You can upload up to 4 images per product.');
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
+      allowsMultipleSelection: true,
+      selectionLimit: remainingSlots,
+      quality: 0.6,
       base64: true,
     });
-    if (!result.canceled && result.assets[0]) {
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       setUploading(true);
       try {
-        const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
-        const url = await api.uploadImage(base64Img);
-        setForm(prev => ({ ...prev, image: url }));
+        const uploadedUrls: string[] = [];
+        for (const asset of result.assets) {
+          if (asset.base64) {
+            const base64Img = `data:image/jpeg;base64,${asset.base64}`;
+            const url = await api.uploadImage(base64Img);
+            uploadedUrls.push(url);
+          } else if (asset.uri) {
+            uploadedUrls.push(asset.uri);
+          }
+        }
+        setForm(prev => {
+          const prevImgs = prev.images || (prev.image ? [prev.image] : []);
+          const combined = [...prevImgs, ...uploadedUrls].slice(0, 4);
+          return {
+            ...prev,
+            images: combined,
+            image: combined[0] || '',
+          };
+        });
       } catch (e: any) {
-        Alert.alert('Upload Failed', e.message);
+        Alert.alert('Upload Failed', e.message || 'Failed to upload images');
       } finally {
         setUploading(false);
       }
     }
   };
 
+  const removeImage = (indexToRemove: number) => {
+    setForm(prev => {
+      const prevImgs = prev.images || (prev.image ? [prev.image] : []);
+      const updated = prevImgs.filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        images: updated,
+        image: updated[0] || '',
+      };
+    });
+  };
+
   // ── Save product ──
   const handleSaveProduct = async () => {
-    if (!form.name || !form.price || !form.stock || !form.description || !form.image) {
-      Alert.alert('Missing Fields', 'Please fill all fields and upload an image.');
+    const primaryImg = (form.images && form.images[0]) || form.image;
+    if (!form.name || !form.price || !form.stock || !form.description || !primaryImg) {
+      Alert.alert('Missing Fields', 'Please fill all required fields and upload at least one image.');
       return;
     }
     setSaving(true);
     try {
+      const allImages = form.images && form.images.length > 0 ? form.images : [primaryImg];
       const newProduct = await api.saveProduct({
-        name: form.name,
+        name: form.name.trim(),
         price: Number(form.price),
         mrp: form.mrp ? Number(form.mrp) : undefined,
         category: form.category,
         stock: Number(form.stock),
-        description: form.description,
-        image: form.image,
+        description: form.description.trim(),
+        image: primaryImg,
+        images: allImages,
       });
       setProducts(prev => [newProduct, ...prev]);
       setForm(emptyProduct);
@@ -258,19 +298,87 @@ export default function AdminDashboard() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
-            {/* Image Picker */}
-            <TouchableOpacity style={styles.imagePicker} onPress={pickImage} disabled={uploading}>
-              {uploading ? (
-                <ActivityIndicator color="#d4a853" size="large" />
-              ) : form.image ? (
-                <Image source={{ uri: form.image }} style={styles.imagePreview} />
-              ) : (
-                <View style={styles.imagePickerPlaceholder}>
-                  <Ionicons name="camera-outline" size={40} color="#9c7a8a" />
-                  <Text style={styles.imagePickerText}>Tap to upload image</Text>
+            {/* Image Picker & Multi-Image Gallery */}
+            <View style={styles.inputGroup}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.inputLabel}>Product Images * ({form.images?.length || 0}/4)</Text>
+                {(form.images?.length || 0) < 4 && (
+                  <TouchableOpacity
+                    onPress={pickImages}
+                    disabled={uploading}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                  >
+                    <Ionicons name="add-circle" size={18} color="#7c1f3e" />
+                    <Text style={{ fontSize: 13, color: '#7c1f3e', fontWeight: '700' }}>Add Images</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {form.images && form.images.length > 0 ? (
+                <View style={{ gap: 10 }}>
+                  {/* Primary Cover Image Preview */}
+                  <View style={styles.primaryCoverBox}>
+                    <Image source={{ uri: form.images[0] }} style={styles.primaryCoverImg} resizeMode="contain" />
+                    <View style={styles.primaryBadge}>
+                      <Text style={styles.primaryBadgeText}>Primary Cover</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.removeImageBtn}
+                      onPress={() => removeImage(0)}
+                    >
+                      <Ionicons name="close" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Thumbnail Strip */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                    {form.images.map((imgUrl, idx) => (
+                      <View key={`${imgUrl.slice(-10)}_${idx}`} style={styles.thumbWrapper}>
+                        <Image source={{ uri: imgUrl }} style={styles.thumbImg} resizeMode="cover" />
+                        <TouchableOpacity
+                          style={styles.removeThumbBtn}
+                          onPress={() => removeImage(idx)}
+                        >
+                          <Ionicons name="close" size={12} color="#fff" />
+                        </TouchableOpacity>
+                        {idx === 0 && (
+                          <View style={styles.thumbCoverTag}>
+                            <Text style={styles.thumbCoverText}>Cover</Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                    {form.images.length < 4 && (
+                      <TouchableOpacity
+                        style={styles.addMoreThumbBtn}
+                        onPress={pickImages}
+                        disabled={uploading}
+                      >
+                        {uploading ? (
+                          <ActivityIndicator size="small" color="#7c1f3e" />
+                        ) : (
+                          <>
+                            <Ionicons name="camera-outline" size={22} color="#7c1f3e" />
+                            <Text style={{ fontSize: 11, color: '#7c1f3e', fontWeight: '600' }}>+ Add</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
                 </View>
+              ) : (
+                <TouchableOpacity style={styles.imagePicker} onPress={pickImages} disabled={uploading}>
+                  {uploading ? (
+                    <ActivityIndicator color="#d4a853" size="large" />
+                  ) : (
+                    <View style={styles.imagePickerPlaceholder}>
+                      <Ionicons name="camera-outline" size={40} color="#9c7a8a" />
+                      <Text style={styles.imagePickerText}>Tap to upload images (up to 4)</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
 
             {/* Name */}
             <View style={styles.inputGroup}>
@@ -319,9 +427,12 @@ export default function AdminDashboard() {
 
             {/* Category */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Category</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {CATEGORIES.map(cat => (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.inputLabel}>Category: <Text style={{ color: '#7c1f3e', fontWeight: '800' }}>{form.category}</Text></Text>
+                <Text style={{ fontSize: 11, color: '#9c7a8a' }}>({ADMIN_CATEGORIES.length} categories)</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                {ADMIN_CATEGORIES.map(cat => (
                   <TouchableOpacity
                     key={cat}
                     style={[styles.catPill, form.category === cat && styles.catPillActive]}
@@ -430,6 +541,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   imagePreview: { width: '100%', height: '100%', borderRadius: 10 },
+  primaryCoverBox: {
+    height: 200, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1,
+    borderColor: '#e8d5c4', overflow: 'hidden', position: 'relative',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  primaryCoverImg: { width: '100%', height: '100%' },
+  primaryBadge: {
+    position: 'absolute', top: 10, left: 10, backgroundColor: '#7c1f3e',
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+  },
+  primaryBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
+  removeImageBtn: {
+    position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.65)',
+    width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+  },
+  thumbWrapper: {
+    position: 'relative', width: 68, height: 68, borderRadius: 8,
+    overflow: 'hidden', borderWidth: 1.5, borderColor: '#e8d5c4',
+    backgroundColor: '#fff',
+  },
+  thumbImg: { width: '100%', height: '100%' },
+  removeThumbBtn: {
+    position: 'absolute', top: 2, right: 2, backgroundColor: 'rgba(0,0,0,0.65)',
+    width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center',
+  },
+  thumbCoverTag: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(124, 31, 62, 0.9)', alignItems: 'center', paddingVertical: 1,
+  },
+  thumbCoverText: { color: '#ffffff', fontSize: 9, fontWeight: '700' },
+  addMoreThumbBtn: {
+    width: 68, height: 68, borderRadius: 8, borderWidth: 1.5,
+    borderStyle: 'dashed', borderColor: '#7c1f3e', backgroundColor: '#fdf2f4',
+    alignItems: 'center', justifyContent: 'center', gap: 2,
+  },
   imagePickerPlaceholder: { alignItems: 'center', gap: 8 },
   imagePickerText: { color: '#9c7a8a', fontSize: 13, fontWeight: '500' },
   inputGroup: { gap: 6 },

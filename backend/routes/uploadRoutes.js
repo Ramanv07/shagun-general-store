@@ -116,9 +116,9 @@ router.post('/base64', protect, adminOnly, async (req, res) => {
   } catch (error) {
     console.error('Base64 Cloudinary upload error:', error.message || error);
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('[DEV UPLOAD] Cloudinary base64 upload failed in local environment; using fallback demo image.');
+      console.warn('[DEV UPLOAD] Cloudinary base64 upload failed in local environment; returning uploaded base64 data URI.');
       return res.json({
-        imageUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        imageUrl: image,
         fallback: true
       });
     }
