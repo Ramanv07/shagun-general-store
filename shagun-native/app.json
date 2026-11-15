@@ -16,7 +16,7 @@
     "android": {
       "package": "com.raman.shagunmart",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#FAF6F0",
@@ -28,6 +28,15 @@
         "RECEIVE_BOOT_COMPLETED"
       ],
       "softwareKeyboardLayoutMode": "pan"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b5f0f01b-d17c-477f-a261-11ccda7be2e6",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "web": {
       "favicon": "./assets/favicon.png"
