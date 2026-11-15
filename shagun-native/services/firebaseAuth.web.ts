@@ -46,3 +46,4 @@ export const signInWithGoogleWeb = async () => {
   const result = await signInWithPopup(authInstance, providerInstance);
   return result.user;
 };
+
