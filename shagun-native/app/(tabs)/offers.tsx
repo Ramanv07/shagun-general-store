@@ -1,65 +1,70 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
   TouchableOpacity, Image, StatusBar, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { THEME } from '../../constants/theme';
-import { ChevronLeft, Search, Bell, ArrowRight, Tag, Truck, Gift } from 'lucide-react-native';
+import { ChevronLeft, Search, Bell, ArrowRight, Tag, Truck, Gift, Zap, Sparkles, Percent } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { api } from '../../services/api';
-import { Product, Brand } from '../../types';
+import { Product } from '../../types';
 import ProductCard from '../../components/ProductCard';
 import NotificationModal from '../../components/NotificationModal';
 import { useBackToHome } from '../../components/useAndroidBackHandler';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const OFFERS_DATA = [
+type OfferFilter = 'all' | '50_plus' | '30_plus' | 'under_199' | 'top_rated';
+
+const HERO_OFFERS = [
   {
-    id: 'off-1',
-    title: 'Up to\n60% OFF',
-    subtitle: 'on Beauty Products',
-    icon: Gift,
-    category: 'Beauty',
-    image: require('../../assets/images/cat-beauty.jpg'),
+    id: 'hero-1',
+    filter: '50_plus' as OfferFilter,
+    title: 'Up to\n55% OFF',
+    subtitle: 'on Nourishing Lotions & Creams',
+    badge: 'MEGA SAVINGS',
+    tag: '50%+ OFF',
+    icon: Percent,
+    image: require('../../assets/images/cat-personal-care.jpg'),
   },
   {
-    id: 'off-2',
-    title: 'Flat\n₹100 OFF',
-    subtitle: 'on orders above ₹599',
+    id: 'hero-2',
+    filter: 'under_199' as OfferFilter,
+    title: 'Budget\nStore',
+    subtitle: 'Daily Essentials under ₹199',
+    badge: 'POCKET FRIENDLY',
+    tag: 'UNDER ₹199',
     icon: Tag,
-    category: 'Personal Care',
-    image: require('../../assets/images/promo-essentials.jpg'),
+    image: require('../../assets/images/hero-vanity.jpg'),
   },
   {
-    id: 'off-3',
+    id: 'hero-3',
+    filter: 'all' as OfferFilter,
     title: 'Free\nDelivery',
-    subtitle: 'above ₹399',
+    subtitle: 'On orders above ₹399',
+    badge: 'SHAGUN EXPRESS',
+    tag: 'FREE SHIPPING',
     icon: Truck,
-    category: 'All',
-    image: require('../../assets/images/cat-household.jpg'),
+    image: require('../../assets/images/promo-essentials.jpg'),
   },
 ];
 
-export default function OffersScreen() {
+function OffersScreenInner() {
   useBackToHome();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<OfferFilter>('all');
   const [notif, setNotif] = useState(false);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const [prodData, brandData] = await Promise.all([
-        api.getProducts(),
-        api.getBrands().catch(() => [] as Brand[]),
-      ]);
-      setProducts(prodData);
-      setBrands(brandData);
+      const prodData = await api.getProducts();
+      setProducts(prodData || []);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load products for offers:', e);
     } finally {
       setLoading(false);
     }
@@ -69,7 +74,44 @@ export default function OffersScreen() {
     loadProducts();
   }, [loadProducts]);
 
-  const newArrivals = products.slice(-6).reverse();
+  // Calculate discount and sort by highest discount first
+  const sortedDeals = useMemo(() => {
+    const list = products.map(p => {
+      const effMrp = p.mrp && p.mrp > p.price ? p.mrp : p.price;
+      const discountPct = effMrp > p.price ? Math.round(((effMrp - p.price) / effMrp) * 100) : 0;
+      const savings = effMrp - p.price;
+      return { ...p, discountPct, savings };
+    });
+
+    return list.sort((a, b) => b.discountPct - a.discountPct);
+  }, [products]);
+
+  // Filter deals based on active pill
+  const filteredDeals = useMemo(() => {
+    if (activeFilter === '50_plus') {
+      return sortedDeals.filter(p => p.discountPct >= 50);
+    }
+    if (activeFilter === '30_plus') {
+      return sortedDeals.filter(p => p.discountPct >= 30);
+    }
+    if (activeFilter === 'under_199') {
+      return sortedDeals.filter(p => p.price <= 199);
+    }
+    if (activeFilter === 'top_rated') {
+      return sortedDeals.filter(p => (p.rating || 0) >= 4.5);
+    }
+    return sortedDeals;
+  }, [sortedDeals, activeFilter]);
+
+  const filterCounts = useMemo(() => {
+    return {
+      all: sortedDeals.length,
+      '50_plus': sortedDeals.filter(p => p.discountPct >= 50).length,
+      '30_plus': sortedDeals.filter(p => p.discountPct >= 30).length,
+      under_199: sortedDeals.filter(p => p.price <= 199).length,
+      top_rated: sortedDeals.filter(p => (p.rating || 0) >= 4.5).length,
+    };
+  }, [sortedDeals]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -88,7 +130,7 @@ export default function OffersScreen() {
 
         <View style={styles.brandContainer}>
           <Image source={require('../../assets/icon.png')} style={styles.brandIcon} resizeMode="cover" />
-          <Text style={styles.brandTitle}>Shagun Mart</Text>
+          <Text style={styles.brandTitle}>Offers & Deals</Text>
         </View>
 
         <View style={styles.rightIcons}>
@@ -116,137 +158,155 @@ export default function OffersScreen() {
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Brands You Love Section ── */}
-        {brands.length > 0 && (
-          <View style={styles.brandsSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Brands You Love</Text>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => router.push('/(tabs)/shop')}
-                style={styles.seeAllBtn}
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-                <ArrowRight size={13} color={THEME.colors.maroon700} strokeWidth={2} />
-              </TouchableOpacity>
-            </View>
+        {/* ── Offer Highlights Strip ── */}
+        <View style={styles.highlightStrip}>
+          <Zap size={16} color={THEME.colors.gold500} fill={THEME.colors.gold500} />
+          <Text style={styles.highlightText}>
+            Special Daily Discounts • Up to <Text style={{ fontWeight: '800' }}>55% OFF</Text> on Essentials
+          </Text>
+        </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.brandsTrack}
-            >
-              {brands.map(brand => {
-                const isVaseline = brand.slug === 'vaseline';
-                return (
-                  <TouchableOpacity
-                    key={brand._id || brand.slug}
-                    style={[styles.brandCard, isVaseline && styles.vaselineCard]}
-                    activeOpacity={0.8}
-                    onPress={() => router.push({ pathname: '/(tabs)/shop', params: { brand: brand.slug } } as any)}
-                  >
-                    <Text
-                      style={[
-                        styles.brandCardText,
-                        isVaseline && styles.vaselineText,
-                        brand.slug === 'mamaearth' && styles.mamaearthText,
-                        brand.slug === 'ponds' && styles.pondsText,
-                        brand.slug === 'dove' && styles.doveText,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {brand.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ── Skin Care Favourites Banner ── */}
-        <TouchableOpacity
-          style={styles.heroBanner}
-          activeOpacity={0.9}
-          onPress={() => router.push({ pathname: '/(tabs)/shop', params: { category: 'Skin Care' } } as any)}
-        >
-          <View style={styles.heroBannerLeft}>
-            <Text style={styles.heroBannerTitle}>Skin Care{'\n'}Favourites</Text>
-            <Text style={styles.heroBannerSubtitle}>Cleanse • Nourish • Glow</Text>
-            <View style={styles.heroBannerBtn}>
-              <Text style={styles.heroBannerBtnText}>Shop Skin Care</Text>
-              <ArrowRight size={12} color={THEME.colors.white} strokeWidth={2} />
-            </View>
-          </View>
-          <View style={styles.heroBannerRight}>
-            <Image
-              source={require('../../assets/images/hero-vanity.jpg')}
-              style={styles.heroBannerImg}
-              resizeMode="cover"
-            />
-          </View>
-        </TouchableOpacity>
-
-        {/* ── Offers for You Section ── */}
+        {/* ── Hero Offers Carousel ── */}
         <View style={styles.sectionHeader}>
-          <View style={styles.titleWithIcon}>
-            <Tag size={18} color={THEME.colors.maroon700} strokeWidth={2} />
-            <Text style={styles.sectionTitle}>Offers for You</Text>
+          <View style={styles.sectionTitleRow}>
+            <Sparkles size={16} color={THEME.colors.maroon700} />
+            <Text style={styles.sectionTitle}>Featured Deals for You</Text>
           </View>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/(tabs)/shop')}
-            style={styles.seeAllBtn}
-          >
-            <Text style={styles.seeAllText}>See All</Text>
-            <ArrowRight size={13} color={THEME.colors.maroon700} strokeWidth={2} />
-          </TouchableOpacity>
         </View>
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.offersTrack}
+          contentContainerStyle={styles.heroTrack}
         >
-          {OFFERS_DATA.map(offer => (
-            <TouchableOpacity
-              key={offer.id}
-              style={styles.offerCard}
-              activeOpacity={0.85}
-              onPress={() => router.push({ pathname: '/(tabs)/shop', params: { category: offer.category } } as any)}
-            >
-              <Text style={styles.offerTitle}>{offer.title}</Text>
-              <Text style={styles.offerSubtitle}>{offer.subtitle}</Text>
-              <View style={styles.offerImgContainer}>
-                <Image source={offer.image} style={styles.offerImg} resizeMode="cover" />
-              </View>
-            </TouchableOpacity>
-          ))}
+          {HERO_OFFERS.map(offer => {
+            const isSelected = activeFilter === offer.filter;
+            return (
+              <TouchableOpacity
+                key={offer.id}
+                style={[styles.heroCard, isSelected && styles.heroCardActive]}
+                activeOpacity={0.85}
+                onPress={() => setActiveFilter(offer.filter)}
+              >
+                <View style={styles.heroBadge}>
+                  <Text style={styles.heroBadgeText}>{offer.badge}</Text>
+                </View>
+                <Text style={styles.heroTitle}>{offer.title}</Text>
+                <Text style={styles.heroSubtitle} numberOfLines={2}>{offer.subtitle}</Text>
+                <View style={styles.heroActionRow}>
+                  <View style={styles.heroTagPill}>
+                    <Text style={styles.heroTagText}>{offer.tag}</Text>
+                  </View>
+                  <ArrowRight size={13} color={THEME.colors.maroon900} />
+                </View>
+                <View style={styles.heroImgContainer}>
+                  <Image source={offer.image} style={styles.heroImg} resizeMode="cover" />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
-        {/* ── New Arrivals Section (2-up grid) ── */}
-        <View style={styles.newArrivalsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>New Arrivals</Text>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.push('/(tabs)/shop')}
-              style={styles.seeAllBtn}
-            >
-              <Text style={styles.seeAllText}>See All</Text>
-              <ArrowRight size={13} color={THEME.colors.maroon700} strokeWidth={2} />
-            </TouchableOpacity>
+        {/* ── Filter Tabs ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterPillsTrack}
+          style={styles.filterPillsScroll}
+        >
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'all' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('all')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterPillText, activeFilter === 'all' && styles.filterPillTextActive]}>
+              All Deals ({filterCounts.all})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === '50_plus' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('50_plus')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterPillText, activeFilter === '50_plus' && styles.filterPillTextActive]}>
+              50%+ OFF ({filterCounts['50_plus']})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === '30_plus' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('30_plus')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterPillText, activeFilter === '30_plus' && styles.filterPillTextActive]}>
+              30%+ OFF ({filterCounts['30_plus']})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'under_199' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('under_199')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterPillText, activeFilter === 'under_199' && styles.filterPillTextActive]}>
+              Under ₹199 ({filterCounts.under_199})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'top_rated' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('top_rated')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterPillText, activeFilter === 'top_rated' && styles.filterPillTextActive]}>
+              Top Rated ({filterCounts.top_rated})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* ── Products Deals Grid ── */}
+        <View style={styles.dealsSection}>
+          <View style={styles.dealsHeaderRow}>
+            <View>
+              <Text style={styles.dealsHeaderTitle}>
+                {activeFilter === '50_plus' ? 'Mega Savings (50%+ OFF)' :
+                 activeFilter === '30_plus' ? 'Super Deals (30%+ OFF)' :
+                 activeFilter === 'under_199' ? 'Budget Deals Under ₹199' :
+                 activeFilter === 'top_rated' ? 'Top Rated Favourites' : 'All Active Offers'}
+              </Text>
+              <Text style={styles.dealsHeaderSub}>
+                Verified prices with instant delivery
+              </Text>
+            </View>
+            <Text style={styles.dealsCountBadge}>
+              {filteredDeals.length} {filteredDeals.length === 1 ? 'deal' : 'deals'}
+            </Text>
           </View>
 
           {loading ? (
-            <ActivityIndicator color={THEME.colors.maroon700} size="large" style={{ marginVertical: 30 }} />
-          ) : newArrivals.length === 0 ? (
+            <ActivityIndicator color={THEME.colors.maroon700} size="large" style={{ marginVertical: 32 }} />
+          ) : filteredDeals.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No new arrivals at this time</Text>
+              <Text style={styles.emptyTitle}>No deals in this filter</Text>
+              <Text style={styles.emptyText}>Showing all available store discounts instead:</Text>
+              <TouchableOpacity
+                style={styles.resetFilterBtn}
+                onPress={() => setActiveFilter('all')}
+              >
+                <Text style={styles.resetFilterBtnText}>View All Deals</Text>
+              </TouchableOpacity>
+              <View style={styles.gridContainer}>
+                {sortedDeals.map(item => (
+                  <View key={item._id} style={styles.gridItemWrapper}>
+                    <ProductCard product={item} />
+                  </View>
+                ))}
+              </View>
             </View>
           ) : (
             <View style={styles.gridContainer}>
-              {newArrivals.map(item => (
+              {filteredDeals.map(item => (
                 <View key={item._id} style={styles.gridItemWrapper}>
                   <ProductCard product={item} />
                 </View>
@@ -261,6 +321,14 @@ export default function OffersScreen() {
   );
 }
 
+export default function OffersScreen() {
+  return (
+    <ErrorBoundary fallbackTitle="Offers Error">
+      <OffersScreenInner />
+    </ErrorBoundary>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -271,7 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     backgroundColor: THEME.colors.blush50,
   },
   iconBtn: {
@@ -286,212 +354,231 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   brandIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 7,
   },
   brandTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    color: THEME.colors.maroon700,
+    color: THEME.colors.maroon900,
   },
   rightIcons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
   scroll: {
     flex: 1,
   },
   scrollInner: {
-    paddingBottom: 32,
+    paddingBottom: 28,
   },
-  heroBanner: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 16,
-    borderRadius: THEME.radius.card,
-    backgroundColor: THEME.colors.blushCard,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    minHeight: 140,
-    ...THEME.shadow,
-  },
-  heroBannerLeft: {
-    flex: 1.2,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  heroBannerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: THEME.colors.maroon900,
-    lineHeight: 24,
-  },
-  heroBannerSubtitle: {
-    fontSize: 11,
-    color: THEME.colors.ink500,
-    marginTop: 4,
-  },
-  heroBannerBtn: {
+  highlightStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: THEME.colors.maroon700,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FDF0EE',
+    borderWidth: 1,
+    borderColor: '#FCD8D4',
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: THEME.radius.pill,
-    alignSelf: 'flex-start',
-    marginTop: 10,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
   },
-  heroBannerBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: THEME.colors.white,
-  },
-  heroBannerRight: {
-    width: '40%',
-  },
-  heroBannerImg: {
-    width: '100%',
-    height: '100%',
+  highlightText: {
+    fontSize: 12,
+    color: THEME.colors.maroon900,
+    fontWeight: '600',
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  titleWithIcon: {
+  sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: THEME.colors.maroon900,
-  },
-  seeAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  seeAllText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: THEME.colors.maroon700,
-  },
-  offersTrack: {
-    paddingHorizontal: 16,
-    gap: 12,
-    paddingBottom: 10,
-  },
-  offerCard: {
-    width: 130,
-    backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius.card,
-    padding: 12,
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: THEME.colors.blushCard,
-    ...THEME.shadow,
-  },
-  offerTitle: {
-    fontSize: 14,
     fontWeight: '800',
     color: THEME.colors.maroon900,
-    lineHeight: 18,
   },
-  offerSubtitle: {
-    fontSize: 10,
-    color: THEME.colors.ink500,
-    marginTop: 2,
-    marginBottom: 8,
-    lineHeight: 13,
+  heroTrack: {
+    paddingHorizontal: 16,
+    gap: 12,
+    paddingVertical: 6,
   },
-  offerImgContainer: {
-    width: '100%',
-    height: 70,
-    borderRadius: 8,
+  heroCard: {
+    width: 210,
+    height: 168,
+    backgroundColor: THEME.colors.white,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: THEME.colors.line,
+    justifyContent: 'space-between',
+    position: 'relative',
     overflow: 'hidden',
-    backgroundColor: THEME.colors.blush50,
+    ...THEME.shadow,
+    elevation: 2,
   },
-  offerImg: {
+  heroCardActive: {
+    borderColor: THEME.colors.maroon700,
+    borderWidth: 2,
+    backgroundColor: '#FFF9F8',
+  },
+  heroBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: THEME.colors.maroon700,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  heroBadgeText: {
+    color: THEME.colors.white,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  heroTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: THEME.colors.maroon900,
+    lineHeight: 22,
+    marginTop: 4,
+    zIndex: 2,
+  },
+  heroSubtitle: {
+    fontSize: 11,
+    color: THEME.colors.ink500,
+    lineHeight: 15,
+    maxWidth: 130,
+    zIndex: 2,
+  },
+  heroActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 2,
+  },
+  heroTagPill: {
+    backgroundColor: '#FDF0EE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: THEME.radius.pill,
+  },
+  heroTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: THEME.colors.maroon900,
+  },
+  heroImgContainer: {
+    position: 'absolute',
+    right: -10,
+    bottom: -10,
+    width: 100,
+    height: 100,
+    opacity: 0.85,
+  },
+  heroImg: {
     width: '100%',
     height: '100%',
+    borderRadius: 50,
   },
-  newArrivalsSection: {
+  filterPillsScroll: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  filterPillsTrack: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: THEME.radius.pill,
+    backgroundColor: THEME.colors.white,
+    borderWidth: 1,
+    borderColor: THEME.colors.line,
+  },
+  filterPillActive: {
+    backgroundColor: THEME.colors.maroon700,
+    borderColor: THEME.colors.maroon700,
+  },
+  filterPillText: {
+    fontSize: 12,
+    color: THEME.colors.ink900,
+    fontWeight: '600',
+  },
+  filterPillTextActive: {
+    color: THEME.colors.white,
+    fontWeight: '700',
+  },
+  dealsSection: {
     marginTop: 14,
+  },
+  dealsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  dealsHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: THEME.colors.maroon900,
+  },
+  dealsHeaderSub: {
+    fontSize: 11,
+    color: THEME.colors.ink500,
+    marginTop: 1,
+  },
+  dealsCountBadge: {
+    fontSize: 12,
+    color: THEME.colors.ink500,
+    fontWeight: '600',
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 12,
-    gap: 10,
     justifyContent: 'space-between',
   },
   gridItemWrapper: {
-    width: '48.5%',
-    marginBottom: 10,
+    width: '48%',
+    marginBottom: 12,
   },
   emptyContainer: {
-    padding: 30,
+    padding: 24,
     alignItems: 'center',
   },
-  emptyText: {
-    fontSize: 14,
-    color: THEME.colors.ink500,
-  },
-  brandsSection: {
-    marginTop: 6,
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: THEME.colors.maroon900,
     marginBottom: 4,
   },
-  brandsTrack: {
+  emptyText: {
+    fontSize: 13,
+    color: THEME.colors.ink500,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  resetFilterBtn: {
+    backgroundColor: THEME.colors.maroon700,
     paddingHorizontal: 16,
-    gap: 10,
-    paddingVertical: 4,
+    paddingVertical: 8,
+    borderRadius: THEME.radius.pill,
+    marginBottom: 16,
   },
-  brandCard: {
-    height: 48,
-    paddingHorizontal: 20,
-    backgroundColor: THEME.colors.white,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EADBD7',
-    ...THEME.shadow,
-  },
-  brandCardText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: THEME.colors.ink900,
-    letterSpacing: 0.3,
-  },
-  vaselineCard: {
-    backgroundColor: '#0F4C81',
-    borderColor: '#0F4C81',
-  },
-  vaselineText: {
+  resetFilterBtnText: {
     color: THEME.colors.white,
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  mamaearthText: {
-    color: '#00A896',
-    fontWeight: '800',
-  },
-  pondsText: {
-    fontWeight: '900',
-    letterSpacing: 1,
-    color: '#1C1C1E',
-  },
-  doveText: {
-    fontWeight: '600',
-    fontStyle: 'italic',
-    color: '#0D3B66',
+    fontWeight: '700',
+    fontSize: 12,
   },
 });

@@ -102,10 +102,11 @@ const HOME_CATEGORIES = [
     filter: 'General Use',
   },
   {
-    id: 'toys-kids',
-    name: 'Toys &\nKids',
-    image: require('../../assets/images/cat-toys.jpg'),
-    filter: 'Toy',
+    id: 'beauty-parlor',
+    name: 'Beauty\nParlour',
+    image: require('../../assets/images/cat-parlour.jpg'),
+    filter: 'Beauty Parlour',
+    route: '/beauty-parlor',
   },
 ];
 

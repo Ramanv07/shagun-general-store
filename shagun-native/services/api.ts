@@ -130,6 +130,16 @@ export const api = {
     return [];
   },
 
+  getCategorySections: async (): Promise<any[]> => {
+    try {
+      const res = await fetch(`${BASE}/api/categories/sections`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn('Failed to fetch category sections', e);
+    }
+    return [];
+  },
+
   saveProduct: async (product: Partial<Product>): Promise<Product> => {
     const headers = await getAuthHeaders();
     const isMongoId = product._id && product._id.length === 24 && /^[0-9a-fA-F]+$/.test(product._id);

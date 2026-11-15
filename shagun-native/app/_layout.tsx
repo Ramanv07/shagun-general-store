@@ -9,6 +9,7 @@ import { CartProvider } from '../context/CartContext';
 import { OrderProvider } from '../context/OrderContext';
 import OfflineNotice from '../components/OfflineNotice';
 import DevApiBanner from '../components/DevApiBanner';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initWebAlertPolyfill } from '../utils/webAlertPolyfill';
 
 initWebAlertPolyfill();
@@ -41,30 +42,32 @@ function NotificationListener() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <OrderProvider>
-        <CartProvider>
-          <NotificationListener />
-          <View style={styles.container}>
-            <StatusBar style="light" />
-            <SafeAreaView edges={['top']} style={styles.safeArea}>
-              <OfflineNotice />
-              <DevApiBanner />
-            </SafeAreaView>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="login" options={{ headerShown: false }} />
-              <Stack.Screen name="checkout" options={{ headerShown: false }} />
-              <Stack.Screen name="beauty-parlor" options={{ headerShown: false }} />
-              <Stack.Screen name="bridal-lehenga" options={{ headerShown: false }} />
-              <Stack.Screen name="admin/dashboard" options={{ headerShown: false }} />
-              <Stack.Screen name="product-details" options={{ headerShown: false }} />
-              <Stack.Screen name="search" options={{ headerShown: false }} />
-            </Stack>
-          </View>
-        </CartProvider>
-      </OrderProvider>
-    </AuthProvider>
+    <ErrorBoundary fallbackTitle="Shagun Mart Notice">
+      <AuthProvider>
+        <OrderProvider>
+          <CartProvider>
+            <NotificationListener />
+            <View style={styles.container}>
+              <StatusBar style="light" />
+              <SafeAreaView edges={['top']} style={styles.safeArea}>
+                <OfflineNotice />
+                <DevApiBanner />
+              </SafeAreaView>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Screen name="checkout" options={{ headerShown: false }} />
+                <Stack.Screen name="beauty-parlor" options={{ headerShown: false }} />
+                <Stack.Screen name="bridal-lehenga" options={{ headerShown: false }} />
+                <Stack.Screen name="admin/dashboard" options={{ headerShown: false }} />
+                <Stack.Screen name="product-details" options={{ headerShown: false }} />
+                <Stack.Screen name="search" options={{ headerShown: false }} />
+              </Stack>
+            </View>
+          </CartProvider>
+        </OrderProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
