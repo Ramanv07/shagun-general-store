@@ -44,7 +44,7 @@ if (APP_ENV === 'production' || !isDev) {
   }
 }
 
-export const API_BASE_URL = envApiUrl || 'http://localhost:5000/api';
+export const API_BASE_URL = envApiUrl || 'https://shagun-general-store.vercel.app/api';
 
 export const PRIVACY_POLICY_URL = `${API_BASE_URL.replace(/\/api\/?$/, '')}/privacy`;
 

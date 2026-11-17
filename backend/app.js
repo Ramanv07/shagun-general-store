@@ -72,30 +72,42 @@ app.use(helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
 }));
 
-// CORS Configuration (Origins from env only, no wildcards, native app allowed)
+// CORS Configuration (Origins from env, localhost dev, vercel, native app allowed)
 const rawAllowedOrigins = [
     process.env.FRONTEND_URL,
     ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()) : []),
-    ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:5173', 'http://localhost:3000'] : [])
 ].filter(Boolean);
 
 app.use(cors({
     origin: (origin, cb) => {
-        // Native apps (Expo/Capacitor), curl, and server-to-server have no Origin header
+        // Native apps (Expo/Capacitor APK), curl, and server-to-server have no Origin header
         if (!origin) return cb(null, true);
 
-        // In production, reject arbitrary Vercel previews unless explicitly listed in ALLOWED_ORIGINS
-        if (process.env.NODE_ENV === 'production') {
-            if (rawAllowedOrigins.includes(origin)) {
-                return cb(null, true);
-            }
-            return cb(new Error('Not allowed by CORS'));
-        }
-
-        // Development/staging fallback
-        if (rawAllowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+        // Allow localhost and local IP development (Expo Web :8081, Vite :5173, React :3000, Emulator)
+        if (
+            origin.startsWith('http://localhost:') ||
+            origin.startsWith('http://127.0.0.1:') ||
+            origin.startsWith('http://192.168.') ||
+            origin.startsWith('http://10.0.')
+        ) {
             return cb(null, true);
         }
+
+        // Allow explicitly configured frontend URLs
+        if (rawAllowedOrigins.includes(origin)) {
+            return cb(null, true);
+        }
+
+        // Allow Vercel production and preview domains
+        if (/^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/.test(origin)) {
+            return cb(null, true);
+        }
+
+        // Allow production domain
+        if (/^https:\/\/([a-zA-Z0-9-]+\.)*shagunmart\.com$/.test(origin)) {
+            return cb(null, true);
+        }
+
         cb(new Error('Not allowed by CORS'));
     },
     credentials: true,
