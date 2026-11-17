@@ -43,7 +43,7 @@ const matchProductToCategory = (p: Product, category: string): boolean => {
 };
 
 const DEFAULT_CATEGORY_TILES = [
-  { id: 'Skin Care', name: 'Skin Care', image: require('../../assets/images/hero-vanity.jpg'), subtitle: 'Creams & Face Care' },
+  { id: 'Skin Care', name: 'Skin Care', image: require('../../assets/images/cat-skincare.jpg'), subtitle: 'Creams & Face Care' },
   { id: 'Personal Care', name: 'Personal Care', image: require('../../assets/images/cat-personal-care.jpg'), subtitle: 'Lotions & Hygiene' },
   { id: 'Beauty', name: 'Beauty & Glow', image: require('../../assets/images/cat-beauty.jpg'), subtitle: 'Moisturizers & Glow' },
   { id: 'General Use', name: 'Daily Care', image: require('../../assets/images/promo-essentials.jpg'), subtitle: 'Powders & Essentials' },
@@ -659,8 +659,8 @@ const styles = StyleSheet.create({
   },
   categoryTilesTrack: {
     paddingHorizontal: 16,
-    gap: 10,
-    paddingVertical: 6,
+    gap: 12,
+    paddingVertical: 10,
   },
   categoryTile: {
     width: 104,
@@ -670,22 +670,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: THEME.colors.line,
+    outlineStyle: 'none' as any,
     ...THEME.shadow,
     elevation: 2,
   },
   categoryTileSelected: {
-    borderColor: THEME.colors.maroon700,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1.5,
+    borderColor: THEME.colors.line,
+    backgroundColor: THEME.colors.white,
+    borderWidth: 1,
+    transform: [{ scale: 1.06 }],
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 6,
+    zIndex: 10,
   },
   categoryTileImgContainer: {
     width: 68,
     height: 68,
     borderRadius: 34,
     overflow: 'hidden',
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 0,
     marginBottom: 8,
   },
   categoryTileImg: {
@@ -699,7 +706,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoryTileNameSelected: {
-    color: THEME.colors.maroon700,
+    color: THEME.colors.black,
+    fontWeight: '900',
+    fontSize: 12.5,
   },
   categoryTileSub: {
     fontSize: 9.5,
@@ -724,17 +733,24 @@ const styles = StyleSheet.create({
     borderColor: THEME.colors.line,
   },
   filterChipActive: {
-    backgroundColor: THEME.colors.maroon700,
-    borderColor: THEME.colors.maroon700,
+    backgroundColor: THEME.colors.white,
+    borderColor: '#09090B',
+    borderWidth: 2,
+    shadowColor: '#09090B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+    transform: [{ scale: 1.03 }],
   },
   filterChipText: {
     fontSize: 12,
-    color: THEME.colors.ink900,
-    fontWeight: '600',
+    color: '#71717A',
+    fontWeight: '500',
   },
   filterChipTextActive: {
-    color: THEME.colors.white,
-    fontWeight: '700',
+    color: '#09090B',
+    fontWeight: '800',
   },
   sectionsContainer: {
     marginTop: 14,

@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     borderTopColor: THEME.colors.line,
   },
   checkoutBtn: {
-    backgroundColor: THEME.colors.maroon700,
+    backgroundColor: THEME.colors.black,
     borderRadius: THEME.radius.pill,
     height: 50,
     flexDirection: 'row',

@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 15,
     fontWeight: '800',
-    color: THEME.colors.maroon700,
+    color: THEME.colors.black,
   },
   mrp: {
     fontSize: 11,

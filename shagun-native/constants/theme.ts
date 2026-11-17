@@ -1,28 +1,36 @@
 export const THEME = {
   colors: {
-    // Primary brand greens (clean, modern e-commerce emerald palette)
-    maroon900: '#064E3B', // deep emerald forest (headers, high emphasis)
-    maroon700: '#047857', // crisp emerald green (primary brand, active pills, main CTAs)
-    emerald600: '#059669', // lively emerald
+    // Primary brand: White, Emerald Green & Jet Black
+    black: '#09090B',      // jet black (high-contrast headings, active dark pills, bold elements)
+    blackTrue: '#000000',  // absolute black
+    blackSoft: '#18181B',  // rich black slate
+    blackMuted: '#27272A', // dark border/badge
+
+    // Green palette (accents, discounts, success, active highlights)
+    maroon900: '#09090B', // headings & primary text now in crisp Jet Black
+    maroon700: '#059669', // lively emerald green (primary brand action & icons)
+    emerald700: '#047857', // deep emerald
+    emerald600: '#059669', // crisp emerald
     emerald500: '#10B981', // vibrant mint-green
     green50: '#ECFDF5',   // soft mint background
+    green100: '#D1FAE5',  // soft mint border
 
     gold500: '#F59E0B',   // warm amber star/rating
 
-    // Clean neutrals (replacing muddy blush/peach/cream with crisp white/slate)
-    cream50: '#F8FAFC',   // ultra-clean slate-white
-    peach100: '#F1F5F9',  // light slate
-    blush200: '#A7F3D0',  // soft pastel emerald accent (for borders/chips)
-    blush50: '#F8FAFC',   // crisp modern light slate/white app background
-    blushCard: '#ECFDF5', // fresh soft mint card background
+    // Clean neutrals (pure white & modern zinc slate)
+    cream50: '#FFFFFF',   // pure white
+    peach100: '#F4F4F5',  // light neutral slate
+    blush200: '#D1FAE5',  // soft pastel emerald accent (for borders/chips)
+    blush50: '#FFFFFF',   // crisp modern pure white app background
+    blushCard: '#F0FDF4', // fresh soft mint-white card background
 
     // Modern typography
-    ink900: '#0F172A',    // dark slate (not muddy brown)
-    ink500: '#64748B',    // neutral slate gray
+    ink900: '#09090B',    // jet black typography
+    ink500: '#71717A',    // neutral zinc gray
 
     // Base
     white: '#FFFFFF',
-    line: '#E2E8F0',      // crisp clean border
+    line: '#E4E4E7',      // crisp clean border
     success: '#10B981',   // clean emerald
     error: '#EF4444',     // clean red
   },
@@ -32,9 +40,9 @@ export const THEME = {
     sm: 8,
   },
   shadow: {
-    shadowColor: '#0F172A',
+    shadowColor: '#09090B',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },

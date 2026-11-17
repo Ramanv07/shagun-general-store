@@ -48,7 +48,7 @@ export default function RootLayout() {
           <CartProvider>
             <NotificationListener />
             <View style={styles.container}>
-              <StatusBar style="light" />
+              <StatusBar style="dark" />
               <SafeAreaView edges={['top']} style={styles.safeArea}>
                 <OfflineNotice />
                 <DevApiBanner />
@@ -74,9 +74,9 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#047857',
+    backgroundColor: '#FFFFFF',
   },
   safeArea: {
-    backgroundColor: '#047857',
+    backgroundColor: '#FFFFFF',
   },
 });

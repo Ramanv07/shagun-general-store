@@ -4,7 +4,7 @@ import {
   TouchableOpacity, Image, StatusBar, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { THEME } from '../../constants/theme';
-import { ChevronLeft, Search, Bell, ArrowRight, Tag, Truck, Gift, Zap, Sparkles, Percent } from 'lucide-react-native';
+import { ChevronLeft, Search, Bell, ArrowRight, Tag, Truck, Gift, Zap, Percent } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { api } from '../../services/api';
 import { Product } from '../../types';
@@ -21,8 +21,8 @@ const HERO_OFFERS = [
   {
     id: 'hero-1',
     filter: '50_plus' as OfferFilter,
-    title: 'Up to\n55% OFF',
-    subtitle: 'on Nourishing Lotions & Creams',
+    title: 'Up to 55% OFF',
+    subtitle: 'Nourishing Lotions & Creams',
     badge: 'MEGA SAVINGS',
     tag: '50%+ OFF',
     icon: Percent,
@@ -31,17 +31,17 @@ const HERO_OFFERS = [
   {
     id: 'hero-2',
     filter: 'under_199' as OfferFilter,
-    title: 'Budget\nStore',
-    subtitle: 'Daily Essentials under ₹199',
+    title: 'Budget Store',
+    subtitle: 'Daily Skincare under ₹199',
     badge: 'POCKET FRIENDLY',
     tag: 'UNDER ₹199',
     icon: Tag,
-    image: require('../../assets/images/hero-vanity.jpg'),
+    image: require('../../assets/images/cat-skincare.jpg'),
   },
   {
     id: 'hero-3',
     filter: 'all' as OfferFilter,
-    title: 'Free\nDelivery',
+    title: 'Free Delivery',
     subtitle: 'On orders above ₹399',
     badge: 'SHAGUN EXPRESS',
     tag: 'FREE SHIPPING',
@@ -74,7 +74,7 @@ function OffersScreenInner() {
     loadProducts();
   }, [loadProducts]);
 
-  // Calculate discount and sort by highest discount first
+  // Calculate discount and sort by highest discount first (prioritizing beauty & skincare)
   const sortedDeals = useMemo(() => {
     const list = products.map(p => {
       const effMrp = p.mrp && p.mrp > p.price ? p.mrp : p.price;
@@ -83,7 +83,15 @@ function OffersScreenInner() {
       return { ...p, discountPct, savings };
     });
 
-    return list.sort((a, b) => b.discountPct - a.discountPct);
+    return list.sort((a, b) => {
+      const aCat = (a.category || '').toLowerCase();
+      const bCat = (b.category || '').toLowerCase();
+      const aPriority = aCat.includes('skin') || aCat.includes('beauty') || aCat.includes('personal') || aCat.includes('hair');
+      const bPriority = bCat.includes('skin') || bCat.includes('beauty') || bCat.includes('personal') || bCat.includes('hair');
+      if (aPriority && !bPriority) return -1;
+      if (!aPriority && bPriority) return 1;
+      return b.discountPct - a.discountPct;
+    });
   }, [products]);
 
   // Filter deals based on active pill
@@ -169,7 +177,6 @@ function OffersScreenInner() {
         {/* ── Hero Offers Carousel ── */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Sparkles size={16} color={THEME.colors.maroon700} />
             <Text style={styles.sectionTitle}>Featured Deals for You</Text>
           </View>
         </View>
@@ -188,16 +195,16 @@ function OffersScreenInner() {
                 activeOpacity={0.85}
                 onPress={() => setActiveFilter(offer.filter)}
               >
-                <View style={styles.heroBadge}>
-                  <Text style={styles.heroBadgeText}>{offer.badge}</Text>
-                </View>
-                <Text style={styles.heroTitle}>{offer.title}</Text>
-                <Text style={styles.heroSubtitle} numberOfLines={2}>{offer.subtitle}</Text>
-                <View style={styles.heroActionRow}>
-                  <View style={styles.heroTagPill}>
-                    <Text style={styles.heroTagText}>{offer.tag}</Text>
+                <View style={styles.heroCardLeft}>
+                  <View style={styles.heroBadge}>
+                    <Text style={styles.heroBadgeText}>{offer.badge}</Text>
                   </View>
-                  <ArrowRight size={13} color={THEME.colors.maroon900} />
+                  <Text style={styles.heroTitle} numberOfLines={1}>{offer.title}</Text>
+                  <Text style={styles.heroSubtitle} numberOfLines={1}>{offer.subtitle}</Text>
+                  <View style={styles.heroActionRow}>
+                    <Text style={styles.heroTagText}>{offer.tag}</Text>
+                    <ArrowRight size={12} color="#059669" strokeWidth={2.5} />
+                  </View>
                 </View>
                 <View style={styles.heroImgContainer}>
                   <Image source={offer.image} style={styles.heroImg} resizeMode="cover" />
@@ -271,9 +278,9 @@ function OffersScreenInner() {
             <View>
               <Text style={styles.dealsHeaderTitle}>
                 {activeFilter === '50_plus' ? 'Mega Savings (50%+ OFF)' :
-                 activeFilter === '30_plus' ? 'Super Deals (30%+ OFF)' :
-                 activeFilter === 'under_199' ? 'Budget Deals Under ₹199' :
-                 activeFilter === 'top_rated' ? 'Top Rated Favourites' : 'All Active Offers'}
+                  activeFilter === '30_plus' ? 'Super Deals (30%+ OFF)' :
+                    activeFilter === 'under_199' ? 'Budget Deals Under ₹199' :
+                      activeFilter === 'top_rated' ? 'Top Rated Favourites' : 'All Active Offers'}
               </Text>
               <Text style={styles.dealsHeaderSub}>
                 Verified prices with instant delivery
@@ -413,81 +420,80 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   heroCard: {
-    width: 210,
-    height: 168,
+    width: 270,
+    height: 124,
     backgroundColor: THEME.colors.white,
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: THEME.colors.line,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    position: 'relative',
-    overflow: 'hidden',
     ...THEME.shadow,
     elevation: 2,
   },
   heroCardActive: {
-    borderColor: THEME.colors.maroon700,
-    borderWidth: 2,
-    backgroundColor: '#F0FDF4',
+    borderColor: '#059669',
+    borderWidth: 1.5,
+    backgroundColor: THEME.colors.white,
+  },
+  heroCardLeft: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'space-between',
+    paddingRight: 8,
   },
   heroBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: THEME.colors.maroon700,
-    borderRadius: 4,
-    paddingHorizontal: 6,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 6,
+    paddingHorizontal: 7,
     paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
   heroBadgeText: {
-    color: THEME.colors.white,
-    fontSize: 9,
+    color: '#047857',
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   heroTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: THEME.colors.maroon900,
-    lineHeight: 22,
-    marginTop: 4,
-    zIndex: 2,
+    fontSize: 16,
+    fontWeight: '800',
+    color: THEME.colors.black,
+    lineHeight: 20,
+    marginTop: 2,
   },
   heroSubtitle: {
     fontSize: 11,
     color: THEME.colors.ink500,
-    lineHeight: 15,
-    maxWidth: 130,
-    zIndex: 2,
+    lineHeight: 14,
   },
   heroActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    zIndex: 2,
-  },
-  heroTagPill: {
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: THEME.radius.pill,
+    gap: 4,
+    marginTop: 2,
   },
   heroTagText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: THEME.colors.maroon900,
+    color: '#059669',
   },
   heroImgContainer: {
-    position: 'absolute',
-    right: -10,
-    bottom: -10,
-    width: 100,
-    height: 100,
-    opacity: 0.85,
+    width: 86,
+    height: 86,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: THEME.colors.line,
   },
   heroImg: {
     width: '100%',
     height: '100%',
-    borderRadius: 50,
   },
   filterPillsScroll: {
     marginTop: 12,
@@ -506,17 +512,24 @@ const styles = StyleSheet.create({
     borderColor: THEME.colors.line,
   },
   filterPillActive: {
-    backgroundColor: THEME.colors.maroon700,
-    borderColor: THEME.colors.maroon700,
+    backgroundColor: THEME.colors.white,
+    borderColor: '#09090B',
+    borderWidth: 2,
+    shadowColor: '#09090B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+    transform: [{ scale: 1.03 }],
   },
   filterPillText: {
     fontSize: 12,
-    color: THEME.colors.ink900,
-    fontWeight: '600',
+    color: '#71717A',
+    fontWeight: '500',
   },
   filterPillTextActive: {
-    color: THEME.colors.white,
-    fontWeight: '700',
+    color: '#09090B',
+    fontWeight: '800',
   },
   dealsSection: {
     marginTop: 14,

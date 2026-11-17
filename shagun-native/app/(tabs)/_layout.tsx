@@ -61,7 +61,7 @@ export default function TabsLayout() {
           title: 'Cart',
           tabBarBadge: cartCount > 0 ? cartCount : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: THEME.colors.maroon700,
+            backgroundColor: THEME.colors.black,
             color: THEME.colors.white,
             fontSize: 10,
             fontWeight: '700',

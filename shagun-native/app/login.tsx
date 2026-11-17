@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: THEME.colors.maroon700,
+    backgroundColor: THEME.colors.black,
     borderRadius: THEME.radius.card,
     paddingVertical: 13,
     marginTop: 6,

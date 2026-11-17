@@ -623,7 +623,7 @@ export default function CheckoutScreen() {
           {isDevLiveBlocked ? (
             <Text style={[styles.orderBtnText, { color: '#ffffff' }]}>Dev build is pointed at the live server</Text>
           ) : loading ? (
-            <ActivityIndicator color="#1a0a12" />
+            <ActivityIndicator color="#ffffff" />
           ) : (
             <Text style={styles.orderBtnText}>Place Order (₹{finalTotal.toLocaleString('en-IN')}) →</Text>
           )}
@@ -941,11 +941,11 @@ const styles = StyleSheet.create({
 
   // Place Order Button
   orderBtn: {
-    backgroundColor: '#d4a853', marginHorizontal: 12, borderRadius: 14,
+    backgroundColor: '#09090B', marginHorizontal: 12, borderRadius: 14,
     paddingVertical: 16, alignItems: 'center',
-    shadowColor: '#d4a853', shadowOpacity: 0.3, shadowRadius: 5, elevation: 2,
+    shadowColor: '#09090B', shadowOpacity: 0.15, shadowRadius: 5, elevation: 2,
   },
-  orderBtnText: { color: '#1a0a12', fontWeight: '800', fontSize: 17 },
+  orderBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
 
   // Success Screen
   successIconCircle: {

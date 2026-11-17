@@ -79,7 +79,7 @@ const HOME_CATEGORIES = [
   {
     id: 'skin-care',
     name: 'Skin\nCare',
-    image: require('../../assets/images/hero-vanity.jpg'),
+    image: require('../../assets/images/cat-skincare.jpg'),
     filter: 'Skin Care',
   },
   {
@@ -593,9 +593,9 @@ const ps = StyleSheet.create({
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: THEME.colors.maroon700,
-    paddingHorizontal: 12,
+    gap: 5,
+    backgroundColor: THEME.colors.black,
+    paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: THEME.radius.pill,
     alignSelf: 'flex-start',
@@ -662,9 +662,9 @@ const s = StyleSheet.create({
   },
   brandTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: THEME.colors.maroon700,
-    letterSpacing: 0.2,
+    fontWeight: '900',
+    color: THEME.colors.black,
+    letterSpacing: -0.2,
   },
   brandSubtitle: {
     fontSize: 9.5,
@@ -738,9 +738,9 @@ const s = StyleSheet.create({
     height: 66,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: THEME.colors.white,
     borderWidth: 1.5,
-    borderColor: '#D1FAE5',
+    borderColor: THEME.colors.line,
     padding: 3,
     alignItems: 'center',
     justifyContent: 'center',
@@ -754,7 +754,7 @@ const s = StyleSheet.create({
   catLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0F172A',
+    color: THEME.colors.black,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 14,
