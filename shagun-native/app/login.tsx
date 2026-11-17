@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
   },
   pillSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#F3ECE9',
+    backgroundColor: '#F1F5F9',
     borderRadius: 14,
     padding: 4,
     marginBottom: 20,

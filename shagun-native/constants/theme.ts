@@ -1,19 +1,30 @@
 export const THEME = {
   colors: {
-    maroon900: '#5A0F1E',
-    maroon700: '#7A1428',
-    gold500: '#B8893A',
-    cream50: '#FBF5EE',
-    peach100: '#F6E4D6',
-    blush200: '#F3D3D3',
-    blush50: '#FDF3F2',
-    blushCard: '#FBE3E1',
-    ink900: '#2A1A1D',
-    ink500: '#6E5A5D',
+    // Primary brand greens (clean, modern e-commerce emerald palette)
+    maroon900: '#064E3B', // deep emerald forest (headers, high emphasis)
+    maroon700: '#047857', // crisp emerald green (primary brand, active pills, main CTAs)
+    emerald600: '#059669', // lively emerald
+    emerald500: '#10B981', // vibrant mint-green
+    green50: '#ECFDF5',   // soft mint background
+
+    gold500: '#F59E0B',   // warm amber star/rating
+
+    // Clean neutrals (replacing muddy blush/peach/cream with crisp white/slate)
+    cream50: '#F8FAFC',   // ultra-clean slate-white
+    peach100: '#F1F5F9',  // light slate
+    blush200: '#A7F3D0',  // soft pastel emerald accent (for borders/chips)
+    blush50: '#F8FAFC',   // crisp modern light slate/white app background
+    blushCard: '#ECFDF5', // fresh soft mint card background
+
+    // Modern typography
+    ink900: '#0F172A',    // dark slate (not muddy brown)
+    ink500: '#64748B',    // neutral slate gray
+
+    // Base
     white: '#FFFFFF',
-    line: '#EADBD0',
-    success: '#16A34A',
-    error: '#DC2626',
+    line: '#E2E8F0',      // crisp clean border
+    success: '#10B981',   // clean emerald
+    error: '#EF4444',     // clean red
   },
   radius: {
     card: 16,
@@ -21,10 +32,11 @@ export const THEME = {
     sm: 8,
   },
   shadow: {
-    shadowColor: '#5A0F1E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
 };
+

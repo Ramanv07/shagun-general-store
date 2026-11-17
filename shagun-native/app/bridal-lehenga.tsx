@@ -202,8 +202,8 @@ export default function BridalLehengaScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#7c1f3e' }}>
-      <StatusBar barStyle="light-content" backgroundColor="#7c1f3e" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#047857' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#047857" />
 
       {/* Top Bar with Back Button */}
       <View style={styles.topBar}>
@@ -222,7 +222,7 @@ export default function BridalLehengaScreen() {
         <FlatList
         data={lehengas}
         keyExtractor={item => item._id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#7c1f3e']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#047857']} />}
         ListHeaderComponent={() => (
           <View style={styles.hero}>
             <Ionicons name="diamond-outline" size={36} color="#d4a853" style={{ marginBottom: 8 }} />
@@ -315,7 +315,7 @@ export default function BridalLehengaScreen() {
 
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity
-                      style={[styles.rentBtn, isBooked ? { backgroundColor: '#d97706' } : { backgroundColor: '#7c1f3e' }]}
+                      style={[styles.rentBtn, isBooked ? { backgroundColor: '#d97706' } : { backgroundColor: '#047857' }]}
                       onPress={() => openRentalModal(item)}
                     >
                       <Ionicons name={isBooked ? "calendar" : "calendar-outline"} size={15} color="#fff" />
@@ -371,8 +371,8 @@ export default function BridalLehengaScreen() {
                     <View style={styles.successBox}>
                       <Text style={styles.successItem}>Lehenga: <Text style={{ fontWeight: 'bold' }}>{bookingSuccess.lehengaName}</Text></Text>
                       <Text style={styles.successItem}>Booking Date: <Text style={{ fontWeight: 'bold' }}>{formatDate(bookingSuccess.startDate)}</Text></Text>
-                      <Text style={styles.successItem}>Return Date: <Text style={{ fontWeight: 'bold', color: '#7c1f3e' }}>{formatDate(bookingSuccess.returnDate)}</Text></Text>
-                      <Text style={styles.successItem}>Total Rental: <Text style={{ fontWeight: 'bold', color: '#7c1f3e' }}>₹{bookingSuccess.totalAmount.toLocaleString('en-IN')}</Text></Text>
+                      <Text style={styles.successItem}>Return Date: <Text style={{ fontWeight: 'bold', color: '#047857' }}>{formatDate(bookingSuccess.returnDate)}</Text></Text>
+                      <Text style={styles.successItem}>Total Rental: <Text style={{ fontWeight: 'bold', color: '#047857' }}>₹{bookingSuccess.totalAmount.toLocaleString('en-IN')}</Text></Text>
                     </View>
 
                     <TouchableOpacity
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
   },
   backBtn: {
     padding: 6,
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '700',
   },
-  cardPrice: { fontSize: 22, fontWeight: '800', color: '#7c1f3e' },
+  cardPrice: { fontSize: 22, fontWeight: '800', color: '#047857' },
   rentBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
   },
   selectedItemImg: { width: 56, height: 56, borderRadius: 12 },
   selectedItemName: { fontSize: 15, fontWeight: '700', color: '#1a0a12' },
-  selectedItemPrice: { fontSize: 15, fontWeight: '800', color: '#7c1f3e' },
+  selectedItemPrice: { fontSize: 15, fontWeight: '800', color: '#047857' },
   conflictNotice: {
     backgroundColor: '#fef3c7',
     padding: 10,
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
     color: '#18181b',
   },
   submitBtn: {
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
   },
   successItem: { fontSize: 13, color: '#27272a' },
   doneBtn: {
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 16,

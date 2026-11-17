@@ -46,9 +46,9 @@ export default function AccountScreen() {
             onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="arrow-back" size={24} color="#7c1f3e" />
+            <Ionicons name="arrow-back" size={24} color="#047857" />
           </TouchableOpacity>
-          <Text style={[styles.topBarTitle, { color: '#7c1f3e' }]}>Account</Text>
+          <Text style={[styles.topBarTitle, { color: '#047857' }]}>Account</Text>
           <View style={{ width: 36 }} />
         </View>
         <View style={styles.empty}>
@@ -282,8 +282,8 @@ export default function AccountScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#7c1f3e' }}>
-      <StatusBar barStyle="light-content" backgroundColor="#7c1f3e" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#047857' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#047857" />
 
       {/* Top Bar with Back Button */}
       <View style={styles.topBar}>
@@ -335,7 +335,7 @@ export default function AccountScreen() {
         {/* My Orders */}
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/orders')}>
           <View style={styles.menuIconContainer}>
-            <Ionicons name="receipt-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="receipt-outline" size={20} color="#047857" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.menuItemText}>My Orders</Text>
@@ -347,7 +347,7 @@ export default function AccountScreen() {
         {/* My Addresses */}
         <TouchableOpacity style={styles.menuItem} onPress={openAddressModal}>
           <View style={styles.menuIconContainer}>
-            <Ionicons name="location-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="location-outline" size={20} color="#047857" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.menuItemText}>My Addresses</Text>
@@ -363,7 +363,7 @@ export default function AccountScreen() {
         {/* Beauty Parlor */}
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/beauty-parlor')}>
           <View style={styles.menuIconContainer}>
-            <Ionicons name="flower-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="flower-outline" size={20} color="#047857" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.menuItemText}>Beauty Parlor</Text>
@@ -375,7 +375,7 @@ export default function AccountScreen() {
         {/* Bridal Lehenga */}
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/bridal-lehenga')}>
           <View style={styles.menuIconContainer}>
-            <Ionicons name="heart-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="heart-outline" size={20} color="#047857" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.menuItemText}>Bridal Lehenga</Text>
@@ -399,7 +399,7 @@ export default function AccountScreen() {
 
         <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
           <View style={styles.menuIconContainer}>
-            <Ionicons name="document-text-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="document-text-outline" size={20} color="#047857" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.menuItemText}>Privacy Policy</Text>
@@ -429,11 +429,11 @@ export default function AccountScreen() {
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="location" size={22} color="#7c1f3e" />
+              <Ionicons name="location" size={22} color="#047857" />
               <Text style={styles.modalTitle}>My Addresses</Text>
             </View>
             <TouchableOpacity onPress={() => setAddressModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={26} color="#7c1f3e" />
+              <Ionicons name="close-circle" size={26} color="#047857" />
             </TouchableOpacity>
           </View>
 
@@ -446,7 +446,7 @@ export default function AccountScreen() {
                     {editingAddressId ? '✏️ Edit Address' : '➕ Add New Address'}
                   </Text>
                   <TouchableOpacity onPress={() => setAddressFormVisible(false)}>
-                    <Text style={{ color: '#7c1f3e', fontWeight: '600', fontSize: 13 }}>Cancel</Text>
+                    <Text style={{ color: '#047857', fontWeight: '600', fontSize: 13 }}>Cancel</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -536,7 +536,7 @@ export default function AccountScreen() {
                   <Ionicons
                     name={addrIsDefault ? 'checkbox' : 'square-outline'}
                     size={22}
-                    color="#7c1f3e"
+                    color="#047857"
                   />
                   <Text style={styles.checkboxText}>Set as default delivery address</Text>
                 </TouchableOpacity>
@@ -598,7 +598,7 @@ export default function AccountScreen() {
                           style={styles.actionBtn}
                           onPress={() => handleStartEditAddress(addr)}
                         >
-                          <Ionicons name="pencil" size={14} color="#7c1f3e" />
+                          <Ionicons name="pencil" size={14} color="#047857" />
                           <Text style={styles.actionBtnText}>Edit</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -653,15 +653,15 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 40, backgroundColor: '#f5ede8' },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#7c1f3e' },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#047857' },
   emptySubtitle: { fontSize: 13, color: '#777', textAlign: 'center', lineHeight: 18 },
-  loginBtn: { backgroundColor: '#7c1f3e', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 28 },
+  loginBtn: { backgroundColor: '#047857', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 28 },
   loginBtnText: { color: '#f5ede8', fontWeight: '700', fontSize: 15 },
   adminBtn: { backgroundColor: '#d4a853', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 28 },
   adminBtnText: { color: '#1a0a12', fontWeight: '700', fontSize: 15 },
   profileHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#7c1f3e', padding: 20, paddingTop: 28,
+    backgroundColor: '#047857', padding: 20, paddingTop: 28,
   },
   avatar: {
     width: 56, height: 56, borderRadius: 28, backgroundColor: '#d4a853',
@@ -676,12 +676,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', margin: 12, marginTop: 12, borderRadius: 14, padding: 16,
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#7c1f3e', marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#047857', marginBottom: 12 },
   input: {
     borderWidth: 1, borderColor: '#e8d5c4', borderRadius: 10, paddingHorizontal: 14,
     paddingVertical: 10, fontSize: 14, color: '#1a0a12', marginBottom: 10, backgroundColor: '#f5ede8',
   },
-  saveBtn: { backgroundColor: '#7c1f3e', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  saveBtn: { backgroundColor: '#047857', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   saveBtnText: { color: '#f5ede8', fontWeight: '700', fontSize: 14 },
   menuItem: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 13,
@@ -710,12 +710,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e8d5c4',
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#7c1f3e' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#047857' },
   modalCard: {
     backgroundColor: '#fff', borderRadius: 14, padding: 16,
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  formTitle: { fontSize: 16, fontWeight: '700', color: '#7c1f3e' },
+  formTitle: { fontSize: 16, fontWeight: '700', color: '#047857' },
   fieldLabel: { fontSize: 12.5, fontWeight: '600', color: '#555', marginBottom: 4, marginTop: 8 },
   modalInput: {
     borderWidth: 1, borderColor: '#e8d5c4', borderRadius: 8, paddingHorizontal: 12,
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 14 },
   checkboxText: { fontSize: 13, color: '#333', fontWeight: '500' },
   primaryBtn: {
-    backgroundColor: '#7c1f3e', borderRadius: 10, paddingVertical: 14,
+    backgroundColor: '#047857', borderRadius: 10, paddingVertical: 14,
     alignItems: 'center', marginTop: 8,
   },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
@@ -734,13 +734,13 @@ const styles = StyleSheet.create({
   },
   errorBannerText: { color: '#dc2626', fontSize: 13, fontWeight: '500' },
   addBtn: {
-    backgroundColor: '#7c1f3e', flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#047857', flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 10,
   },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   addrCard: {
     backgroundColor: '#fff', borderRadius: 12, padding: 14,
-    borderLeftWidth: 4, borderLeftColor: '#7c1f3e',
+    borderLeftWidth: 4, borderLeftColor: '#047857',
     shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 3, elevation: 1,
   },
   addrFullName: { fontSize: 15, fontWeight: '700', color: '#1a0a12' },
@@ -755,10 +755,10 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
-    borderWidth: 1, borderColor: '#7c1f3e',
+    borderWidth: 1, borderColor: '#047857',
   },
-  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#7c1f3e' },
+  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#047857' },
   emptyModalView: { alignItems: 'center', justifyContent: 'center', padding: 30, gap: 10 },
-  emptyModalTitle: { fontSize: 17, fontWeight: '700', color: '#7c1f3e' },
+  emptyModalTitle: { fontSize: 17, fontWeight: '700', color: '#047857' },
   emptyModalSub: { fontSize: 13, color: '#777', textAlign: 'center', lineHeight: 18, marginBottom: 10 },
 });

@@ -378,9 +378,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#FDF0EE',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: '#FCD8D4',
+    borderColor: '#A7F3D0',
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginHorizontal: 16,
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   heroCardActive: {
     borderColor: THEME.colors.maroon700,
     borderWidth: 2,
-    backgroundColor: '#FFF9F8',
+    backgroundColor: '#F0FDF4',
   },
   heroBadge: {
     alignSelf: 'flex-start',
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   heroTagPill: {
-    backgroundColor: '#FDF0EE',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: THEME.radius.pill,

@@ -140,7 +140,7 @@ export default function ProductDetailsScreen() {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAF6F0" />
-        <ActivityIndicator size="large" color="#7c1f3e" />
+        <ActivityIndicator size="large" color="#047857" />
         <Text style={styles.loadingText}>Loading product details...</Text>
       </SafeAreaView>
     );
@@ -150,7 +150,7 @@ export default function ProductDetailsScreen() {
     return (
       <SafeAreaView style={styles.errorContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FAF6F0" />
-        <Ionicons name="alert-circle-outline" size={60} color="#7c1f3e" />
+        <Ionicons name="alert-circle-outline" size={60} color="#047857" />
         <Text style={styles.errorTitle}>Product Not Found</Text>
         <Text style={styles.errorSubtitle}>The product you are looking for may have been removed or is unavailable.</Text>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
@@ -287,17 +287,17 @@ export default function ProductDetailsScreen() {
         {/* Flipkart-Style Highlights / Trust Badges */}
         <View style={styles.trustGrid}>
           <View style={styles.trustItem}>
-            <Ionicons name="flash-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="flash-outline" size={20} color="#047857" />
             <Text style={styles.trustTitle}>Fast Delivery</Text>
             <Text style={styles.trustDesc}>Within 24-48 hrs</Text>
           </View>
           <View style={styles.trustItem}>
-            <Ionicons name="shield-checkmark-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="shield-checkmark-outline" size={20} color="#047857" />
             <Text style={styles.trustTitle}>100% Genuine</Text>
             <Text style={styles.trustDesc}>Direct from Store</Text>
           </View>
           <View style={styles.trustItem}>
-            <Ionicons name="cash-outline" size={20} color="#7c1f3e" />
+            <Ionicons name="cash-outline" size={20} color="#047857" />
             <Text style={styles.trustTitle}>Cash on Delivery</Text>
             <Text style={styles.trustDesc}>Available</Text>
           </View>
@@ -369,7 +369,7 @@ export default function ProductDetailsScreen() {
           <Ionicons
             name={added ? 'checkmark-circle' : 'cart-outline'}
             size={20}
-            color={added ? '#065f46' : '#7c1f3e'}
+            color={added ? '#065f46' : '#047857'}
           />
           <Text style={[styles.cartActionText, added && { color: '#065f46' }]}>
             {added ? 'Added to Cart' : 'Add to Cart'}
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginTop: 20,
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   thumbnailSelected: {
-    borderColor: '#7c1f3e',
+    borderColor: '#047857',
   },
   thumbImg: {
     width: '100%',
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#7c1f3e',
+    color: '#047857',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: '#7c1f3e',
+    borderColor: '#047857',
     backgroundColor: '#FFFFFF',
   },
   cartActionBtnAdded: {
@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ecfdf5',
   },
   cartActionText: {
-    color: '#7c1f3e',
+    color: '#047857',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     gap: 6,
     height: 48,
     borderRadius: 8,
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
   },
   buyActionText: {
     color: '#FFFFFF',

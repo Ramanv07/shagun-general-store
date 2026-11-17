@@ -293,7 +293,7 @@ export default function AdminDashboard() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Add New Product</Text>
             <TouchableOpacity onPress={() => { setShowForm(false); setForm(emptyProduct); }}>
-              <Ionicons name="close" size={26} color="#7c1f3e" />
+              <Ionicons name="close" size={26} color="#047857" />
             </TouchableOpacity>
           </View>
 
@@ -308,8 +308,8 @@ export default function AdminDashboard() {
                     disabled={uploading}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                   >
-                    <Ionicons name="add-circle" size={18} color="#7c1f3e" />
-                    <Text style={{ fontSize: 13, color: '#7c1f3e', fontWeight: '700' }}>Add Images</Text>
+                    <Ionicons name="add-circle" size={18} color="#047857" />
+                    <Text style={{ fontSize: 13, color: '#047857', fontWeight: '700' }}>Add Images</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -355,11 +355,11 @@ export default function AdminDashboard() {
                         disabled={uploading}
                       >
                         {uploading ? (
-                          <ActivityIndicator size="small" color="#7c1f3e" />
+                          <ActivityIndicator size="small" color="#047857" />
                         ) : (
                           <>
-                            <Ionicons name="camera-outline" size={22} color="#7c1f3e" />
-                            <Text style={{ fontSize: 11, color: '#7c1f3e', fontWeight: '600' }}>+ Add</Text>
+                            <Ionicons name="camera-outline" size={22} color="#047857" />
+                            <Text style={{ fontSize: 11, color: '#047857', fontWeight: '600' }}>+ Add</Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
             {/* Category */}
             <View style={styles.inputGroup}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.inputLabel}>Category: <Text style={{ color: '#7c1f3e', fontWeight: '800' }}>{form.category}</Text></Text>
+                <Text style={styles.inputLabel}>Category: <Text style={{ color: '#047857', fontWeight: '800' }}>{form.category}</Text></Text>
                 <Text style={{ fontSize: 11, color: '#9c7a8a' }}>({ADMIN_CATEGORIES.length} categories)</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
   },
   backBtn: {
     padding: 6,
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   tabBtnTextActive: { color: '#d4a853' },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#7c1f3e', marginHorizontal: 12, marginTop: 10, paddingVertical: 12, borderRadius: 12,
+    backgroundColor: '#047857', marginHorizontal: 12, marginTop: 10, paddingVertical: 12, borderRadius: 12,
   },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   listCard: {
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
     borderWidth: 1, borderColor: '#d4b5a0',
   },
-  statusPillActive: { backgroundColor: '#7c1f3e', borderColor: '#7c1f3e' },
+  statusPillActive: { backgroundColor: '#047857', borderColor: '#047857' },
   statusPillText: { fontSize: 11, fontWeight: '600', color: '#9c7a8a' },
   statusPillTextActive: { color: '#f5ede8' },
 
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#fff',
     borderBottomWidth: 1, borderBottomColor: '#e8d5c4',
   },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#7c1f3e' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#047857' },
   imagePicker: {
     height: 180, borderRadius: 12, backgroundColor: '#fff', borderWidth: 2,
     borderColor: '#e8d5c4', borderStyle: 'dashed', overflow: 'hidden',
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   },
   primaryCoverImg: { width: '100%', height: '100%' },
   primaryBadge: {
-    position: 'absolute', top: 10, left: 10, backgroundColor: '#7c1f3e',
+    position: 'absolute', top: 10, left: 10, backgroundColor: '#047857',
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
   },
   primaryBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
@@ -573,13 +573,13 @@ const styles = StyleSheet.create({
   thumbCoverText: { color: '#ffffff', fontSize: 9, fontWeight: '700' },
   addMoreThumbBtn: {
     width: 68, height: 68, borderRadius: 8, borderWidth: 1.5,
-    borderStyle: 'dashed', borderColor: '#7c1f3e', backgroundColor: '#fdf2f4',
+    borderStyle: 'dashed', borderColor: '#047857', backgroundColor: '#ECFDF5',
     alignItems: 'center', justifyContent: 'center', gap: 2,
   },
   imagePickerPlaceholder: { alignItems: 'center', gap: 8 },
   imagePickerText: { color: '#9c7a8a', fontSize: 13, fontWeight: '500' },
   inputGroup: { gap: 6 },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#7c1f3e', textTransform: 'uppercase', letterSpacing: 0.5 },
+  inputLabel: { fontSize: 12, fontWeight: '700', color: '#047857', textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
     backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
     borderWidth: 1, borderColor: '#e8d5c4', fontSize: 14, color: '#1a0a12',
@@ -588,11 +588,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
     borderWidth: 1, borderColor: '#d4b5a0', backgroundColor: '#fff',
   },
-  catPillActive: { backgroundColor: '#7c1f3e', borderColor: '#7c1f3e' },
+  catPillActive: { backgroundColor: '#047857', borderColor: '#047857' },
   catPillText: { fontSize: 12, fontWeight: '600', color: '#9c7a8a' },
   catPillTextActive: { color: '#fff' },
   saveBtn: {
-    backgroundColor: '#7c1f3e', paddingVertical: 16, borderRadius: 12,
+    backgroundColor: '#047857', paddingVertical: 16, borderRadius: 12,
     alignItems: 'center', marginTop: 8, marginBottom: 30,
   },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },

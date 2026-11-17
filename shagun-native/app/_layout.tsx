@@ -74,9 +74,9 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
   },
   safeArea: {
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
   },
 });

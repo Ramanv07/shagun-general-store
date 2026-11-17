@@ -340,7 +340,7 @@ export default function CheckoutScreen() {
             onPress={() => router.replace('/orders')}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="arrow-back" size={24} color="#7c1f3e" />
+            <Ionicons name="arrow-back" size={24} color="#047857" />
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Order Confirmed</Text>
           <View style={{ width: 36 }} />
@@ -364,7 +364,7 @@ export default function CheckoutScreen() {
 
             <View style={styles.successRow}>
               <Text style={styles.successLabel}>Total Paid</Text>
-              <Text style={[styles.successVal, { color: '#7c1f3e', fontSize: 16 }]}>
+              <Text style={[styles.successVal, { color: '#047857', fontSize: 16 }]}>
                 ₹{orderPlacedOrder.totalAmount?.toLocaleString('en-IN') || finalTotal}
               </Text>
             </View>
@@ -441,7 +441,7 @@ export default function CheckoutScreen() {
             onPress={handleBack}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="arrow-back" size={24} color="#7c1f3e" />
+            <Ionicons name="arrow-back" size={24} color="#047857" />
           </TouchableOpacity>
           <Text style={styles.topBarTitle}>Checkout</Text>
           <View style={{ width: 36 }} />
@@ -449,7 +449,7 @@ export default function CheckoutScreen() {
 
         <View style={styles.emptyCartContainer}>
           <View style={styles.emptyCartIconCircle}>
-            <Ionicons name="cart-outline" size={60} color="#7c1f3e" />
+            <Ionicons name="cart-outline" size={60} color="#047857" />
           </View>
           <Text style={styles.emptyCartTitle}>Your Cart is Empty</Text>
           <Text style={styles.emptyCartSub}>Add items to your cart before proceeding to checkout.</Text>
@@ -478,7 +478,7 @@ export default function CheckoutScreen() {
           onPress={handleBack}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#7c1f3e" />
+          <Ionicons name="arrow-back" size={24} color="#047857" />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Checkout</Text>
         <View style={{ width: 36 }} />
@@ -490,7 +490,7 @@ export default function CheckoutScreen() {
           <View style={styles.deliveryCard}>
             <View style={styles.deliveryHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                <Ionicons name="location" size={18} color="#7c1f3e" />
+                <Ionicons name="location" size={18} color="#047857" />
                 <Text style={styles.deliveryToText} numberOfLines={1}>
                   Deliver to: <Text style={styles.deliveryToName}>{selectedAddress.fullName}</Text>
                 </Text>
@@ -507,7 +507,7 @@ export default function CheckoutScreen() {
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="pencil" size={13} color="#7c1f3e" />
+                <Ionicons name="pencil" size={13} color="#047857" />
                 <Text style={styles.changeBtnText}>Change / Edit</Text>
               </TouchableOpacity>
             </View>
@@ -520,7 +520,7 @@ export default function CheckoutScreen() {
         ) : (
           <View style={styles.noAddressCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-              <Ionicons name="location-outline" size={24} color="#7c1f3e" />
+              <Ionicons name="location-outline" size={24} color="#047857" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.noAddressTitle}>No Delivery Address Added</Text>
                 <Text style={styles.noAddressSub}>Please enter your address to place order</Text>
@@ -562,7 +562,7 @@ export default function CheckoutScreen() {
                   <Ionicons
                     name={method === 'COD' ? 'cash-outline' : method === 'UPI' ? 'phone-portrait-outline' : 'card-outline'}
                     size={20}
-                    color={paymentMethod === method ? '#f5ede8' : '#7c1f3e'}
+                    color={paymentMethod === method ? '#f5ede8' : '#047857'}
                   />
                   <Text style={[styles.paymentOptionText, paymentMethod === method && styles.paymentOptionTextActive]}>
                     {method}
@@ -602,7 +602,7 @@ export default function CheckoutScreen() {
           </View>
           <View style={styles.summaryRow}>
             <Text style={{ fontSize: 13, color: '#666' }}>Delivery</Text>
-            <Text style={{ fontSize: 13, color: deliveryFee === 0 ? '#1b8a4b' : '#7c1f3e', fontWeight: '600' }}>
+            <Text style={{ fontSize: 13, color: deliveryFee === 0 ? '#1b8a4b' : '#047857', fontWeight: '600' }}>
               {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
             </Text>
           </View>
@@ -635,7 +635,7 @@ export default function CheckoutScreen() {
           <SafeAreaView style={{ flex: 1, backgroundColor: '#f5ede8' }}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="location" size={22} color="#7c1f3e" />
+                <Ionicons name="location" size={22} color="#047857" />
                 <Text style={styles.modalTitle}>
                   {modalMode === 'form'
                     ? (editingId ? 'Edit Delivery Address' : 'Add Delivery Address')
@@ -643,7 +643,7 @@ export default function CheckoutScreen() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setShowAddressModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={26} color="#7c1f3e" />
+                <Ionicons name="close-circle" size={26} color="#047857" />
               </TouchableOpacity>
             </View>
 
@@ -737,7 +737,7 @@ export default function CheckoutScreen() {
                     <Ionicons
                       name={formDefault ? 'checkbox' : 'square-outline'}
                       size={22}
-                      color="#7c1f3e"
+                      color="#047857"
                     />
                     <Text style={styles.checkboxText}>Set as default delivery address</Text>
                   </TouchableOpacity>
@@ -799,7 +799,7 @@ export default function CheckoutScreen() {
                           <Ionicons
                             name={isSelected ? 'radio-button-on' : 'radio-button-off'}
                             size={22}
-                            color="#7c1f3e"
+                            color="#047857"
                             style={{ marginTop: 2 }}
                           />
                           <View style={{ flex: 1 }}>
@@ -824,7 +824,7 @@ export default function CheckoutScreen() {
                             onPress={() => startEditAddress(addr)}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           >
-                            <Ionicons name="pencil" size={13} color="#7c1f3e" />
+                            <Ionicons name="pencil" size={13} color="#047857" />
                             <Text style={styles.addrEditBtnText}>Edit</Text>
                           </TouchableOpacity>
 
@@ -863,7 +863,7 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#fbf5f2',
   },
-  topBarTitle: { fontSize: 18, fontWeight: '800', color: '#7c1f3e' },
+  topBarTitle: { fontSize: 18, fontWeight: '800', color: '#047857' },
 
   // Empty Cart
   emptyCartContainer: {
@@ -873,11 +873,11 @@ const styles = StyleSheet.create({
     width: 96, height: 96, borderRadius: 48, backgroundColor: '#fbf5f2',
     alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e8d5c4',
   },
-  emptyCartTitle: { fontSize: 20, fontWeight: '800', color: '#7c1f3e' },
+  emptyCartTitle: { fontSize: 20, fontWeight: '800', color: '#047857' },
   emptyCartSub: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 20, maxWidth: 280 },
   startShopBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#7c1f3e', paddingHorizontal: 24, paddingVertical: 13,
+    backgroundColor: '#047857', paddingHorizontal: 24, paddingVertical: 13,
     borderRadius: 24, marginTop: 8,
   },
   startShopBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
   // Compact Top Address Card
   deliveryCard: {
     backgroundColor: '#fff', margin: 12, marginBottom: 4, borderRadius: 12, padding: 14,
-    borderLeftWidth: 4, borderLeftColor: '#7c1f3e',
+    borderLeftWidth: 4, borderLeftColor: '#047857',
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
   deliveryHeaderRow: {
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fbf5f2', paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 8, borderWidth: 1, borderColor: '#e8d5c4',
   },
-  changeBtnText: { fontSize: 12, fontWeight: '700', color: '#7c1f3e' },
+  changeBtnText: { fontSize: 12, fontWeight: '700', color: '#047857' },
   deliveryAddressText: { fontSize: 13, color: '#555', lineHeight: 18 },
   deliveryPhoneText: { fontSize: 12.5, color: '#666', marginTop: 4 },
 
@@ -907,10 +907,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderWidth: 1.5, borderColor: '#e8d5c4', borderStyle: 'dashed',
   },
-  noAddressTitle: { fontSize: 13.5, fontWeight: '700', color: '#7c1f3e' },
+  noAddressTitle: { fontSize: 13.5, fontWeight: '700', color: '#047857' },
   noAddressSub: { fontSize: 12, color: '#777', marginTop: 2 },
   addAddressPromptBtn: {
-    backgroundColor: '#7c1f3e', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: '#047857', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
   },
   addAddressPromptBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
@@ -919,25 +919,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 16,
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#7c1f3e', marginBottom: 14 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#047857', marginBottom: 14 },
 
   // Payment
   paymentRow: { flexDirection: 'row', gap: 10 },
   paymentOption: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 12, borderRadius: 10, borderWidth: 2, borderColor: '#7c1f3e',
+    paddingVertical: 12, borderRadius: 10, borderWidth: 2, borderColor: '#047857',
   },
-  paymentOptionActive: { backgroundColor: '#7c1f3e' },
-  paymentOptionText: { fontWeight: '700', color: '#7c1f3e', fontSize: 13 },
+  paymentOptionActive: { backgroundColor: '#047857' },
+  paymentOptionText: { fontWeight: '700', color: '#047857', fontSize: 13 },
   paymentOptionTextActive: { color: '#f5ede8' },
 
   // Order Summary
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   summaryName: { flex: 1, color: '#333', fontSize: 13 },
-  summaryPrice: { fontWeight: '600', color: '#7c1f3e', fontSize: 13 },
+  summaryPrice: { fontWeight: '600', color: '#047857', fontSize: 13 },
   divider: { height: 1, backgroundColor: '#f0e4da', marginVertical: 8 },
   totalLabel: { fontWeight: '800', fontSize: 16, color: '#1a0a12' },
-  totalValue: { fontWeight: '800', fontSize: 18, color: '#7c1f3e' },
+  totalValue: { fontWeight: '800', fontSize: 18, color: '#047857' },
 
   // Place Order Button
   orderBtn: {
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
   successLabel: { fontSize: 13, color: '#666' },
   successVal: { fontSize: 14, fontWeight: '700', color: '#1a0a12' },
   primaryActionBtn: {
-    backgroundColor: '#7c1f3e', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#047857', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, width: '100%', paddingVertical: 14, borderRadius: 12, marginBottom: 10,
   },
   primaryActionBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
@@ -974,14 +974,14 @@ const styles = StyleSheet.create({
   secondaryActionBtn: {
     paddingVertical: 12, alignItems: 'center', width: '100%',
   },
-  secondaryActionBtnText: { color: '#7c1f3e', fontSize: 14, fontWeight: '700' },
+  secondaryActionBtnText: { color: '#047857', fontSize: 14, fontWeight: '700' },
 
   // Modal Styles
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e8d5c4',
   },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: '#7c1f3e' },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: '#047857' },
   modalCard: {
     backgroundColor: '#fff', borderRadius: 14, padding: 16,
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 14 },
   checkboxText: { fontSize: 13, color: '#333', fontWeight: '500' },
   primaryBtn: {
-    backgroundColor: '#7c1f3e', borderRadius: 10, paddingVertical: 14,
+    backgroundColor: '#047857', borderRadius: 10, paddingVertical: 14,
     alignItems: 'center', marginTop: 8,
   },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
@@ -1004,10 +1004,10 @@ const styles = StyleSheet.create({
   },
   errorBannerText: { color: '#dc2626', fontSize: 13, fontWeight: '500' },
   cancelLinkBtn: { alignItems: 'center', marginTop: 14, paddingVertical: 6 },
-  cancelLinkText: { color: '#7c1f3e', fontSize: 13, fontWeight: '600' },
+  cancelLinkText: { color: '#047857', fontSize: 13, fontWeight: '600' },
 
   addBtn: {
-    backgroundColor: '#7c1f3e', flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#047857', flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 10,
   },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
@@ -1018,7 +1018,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#e8d5c4',
   },
   addrSelectCardActive: {
-    borderColor: '#7c1f3e', backgroundColor: '#fff',
+    borderColor: '#047857', backgroundColor: '#fff',
   },
   addrSelectName: { fontSize: 15, fontWeight: '700', color: '#1a0a12' },
   defaultPill: {
@@ -1035,9 +1035,9 @@ const styles = StyleSheet.create({
   addrEditBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
-    borderWidth: 1, borderColor: '#7c1f3e',
+    borderWidth: 1, borderColor: '#047857',
   },
-  addrEditBtnText: { fontSize: 12, fontWeight: '600', color: '#7c1f3e' },
+  addrEditBtnText: { fontSize: 12, fontWeight: '600', color: '#047857' },
   selectedPill: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   selectedPillText: { fontSize: 12, fontWeight: '700', color: '#1b8a4b' },
 });

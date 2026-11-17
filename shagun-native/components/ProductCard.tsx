@@ -163,6 +163,8 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.white,
     borderRadius: THEME.radius.card,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: THEME.colors.line,
     ...THEME.shadow,
   },
   cardHorizontal: {

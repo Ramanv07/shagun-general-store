@@ -172,8 +172,8 @@ export default function BeautyParlorScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#7c1f3e' }}>
-      <StatusBar barStyle="light-content" backgroundColor="#7c1f3e" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#047857' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#047857" />
 
       {/* Top Bar with Back Button */}
       <View style={styles.topBar}>
@@ -199,12 +199,12 @@ export default function BeautyParlorScreen() {
         {/* Services List */}
         <Text style={styles.sectionTitle}>Our Salon Services</Text>
         {loadingServices ? (
-          <ActivityIndicator size="small" color="#7c1f3e" style={{ marginVertical: 24 }} />
+          <ActivityIndicator size="small" color="#047857" style={{ marginVertical: 24 }} />
         ) : (
           <View style={styles.servicesGrid}>
             {services.map((srv, i) => (
               <View key={srv.id || i} style={styles.serviceCard}>
-                <Ionicons name={srv.icon || 'sparkles-outline'} size={24} color="#7c1f3e" style={{ marginBottom: 4 }} />
+                <Ionicons name={srv.icon || 'sparkles-outline'} size={24} color="#047857" style={{ marginBottom: 4 }} />
                 <Text style={styles.serviceName}>{srv.name}</Text>
                 {srv.price > 0 && <Text style={styles.servicePrice}>₹{srv.price.toLocaleString('en-IN')}</Text>}
                 <Text style={styles.serviceDesc} numberOfLines={2}>{srv.desc}</Text>
@@ -268,7 +268,7 @@ export default function BeautyParlorScreen() {
               {/* Slots */}
               <Text style={styles.label}>Select Time Slot</Text>
               {loadingSlots ? (
-                <ActivityIndicator size="small" color="#7c1f3e" style={{ marginVertical: 12 }} />
+                <ActivityIndicator size="small" color="#047857" style={{ marginVertical: 12 }} />
               ) : (
                 <View style={styles.slotsGrid}>
                   {(allSlots.length > 0 ? allSlots : ['10:00 AM - 11:00 AM', '11:00 AM - 12:00 PM', '02:00 PM - 03:00 PM', '04:00 PM - 05:00 PM']).map((slot) => {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#7c1f3e',
+    backgroundColor: '#047857',
   },
   backBtn: {
     padding: 6,
@@ -365,11 +365,11 @@ const styles = StyleSheet.create({
   },
   container: { flex: 1, backgroundColor: '#fbf8f5' },
   hero: {
-    backgroundColor: '#7c1f3e', padding: 28, alignItems: 'center', gap: 6,
+    backgroundColor: '#047857', padding: 28, alignItems: 'center', gap: 6,
   },
   heroTitle: { color: '#f5ede8', fontSize: 22, fontWeight: '800' },
   heroSubtitle: { color: '#d4a853', fontSize: 13, textAlign: 'center' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#7c1f3e', padding: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#047857', padding: 16 },
   servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 12 },
   serviceCard: {
     width: '47%', backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 4,
@@ -377,10 +377,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#f0e6e0'
   },
   serviceName: { fontWeight: '700', color: '#1a0a12', fontSize: 14 },
-  servicePrice: { color: '#7c1f3e', fontWeight: '800', fontSize: 13 },
+  servicePrice: { color: '#047857', fontWeight: '800', fontSize: 13 },
   serviceDesc: { color: '#7a6650', fontSize: 11, lineHeight: 15, marginVertical: 2 },
   bookBadge: {
-    backgroundColor: '#7c1f3e', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: '#047857', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
     alignSelf: 'flex-start', marginTop: 6,
   },
   bookBadgeText: { color: '#f5ede8', fontSize: 11, fontWeight: '700' },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', margin: 12, borderRadius: 14, padding: 16, gap: 6,
     borderLeftWidth: 4, borderLeftColor: '#d4a853',
   },
-  timingsTitle: { fontWeight: '700', color: '#7c1f3e', fontSize: 15, marginBottom: 4 },
+  timingsTitle: { fontWeight: '700', color: '#047857', fontSize: 15, marginBottom: 4 },
   timingsText: { color: '#333', fontSize: 13 },
   timingsNote: { color: '#9c7a8a', fontSize: 12, fontStyle: 'italic', marginTop: 4 },
   ctaBtn: {
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
   },
   modalSub: { fontSize: 11, color: '#d4a853', fontWeight: '700', textTransform: 'uppercase' },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#7c1f3e' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#047857' },
   label: { fontSize: 12, fontWeight: '700', color: '#555', marginTop: 12, marginBottom: 4 },
   input: {
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 14,
@@ -418,13 +418,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderColor: '#ddd',
     backgroundColor: '#fff'
   },
-  slotChipSelected: { backgroundColor: '#7c1f3e', borderColor: '#7c1f3e' },
+  slotChipSelected: { backgroundColor: '#047857', borderColor: '#047857' },
   slotChipBooked: { backgroundColor: '#eee', borderColor: '#eee' },
   slotText: { fontSize: 11, color: '#333', fontWeight: '600' },
   slotTextSelected: { color: '#fff', fontWeight: '700' },
   slotTextBooked: { color: '#aaa', textDecorationLine: 'line-through' },
   confirmBtn: {
-    backgroundColor: '#7c1f3e', borderRadius: 12, paddingVertical: 14, alignItems: 'center',
+    backgroundColor: '#047857', borderRadius: 12, paddingVertical: 14, alignItems: 'center',
     marginTop: 20, marginBottom: 30,
   },
   confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 }

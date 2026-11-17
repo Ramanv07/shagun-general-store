@@ -663,10 +663,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   categoryTile: {
-    width: 108,
+    width: 104,
     backgroundColor: THEME.colors.white,
-    borderRadius: 14,
-    padding: 8,
+    borderRadius: 16,
+    padding: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: THEME.colors.line,
@@ -675,16 +675,18 @@ const styles = StyleSheet.create({
   },
   categoryTileSelected: {
     borderColor: THEME.colors.maroon700,
-    backgroundColor: '#FDF0EE',
+    backgroundColor: '#ECFDF5',
     borderWidth: 1.5,
   },
   categoryTileImgContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     overflow: 'hidden',
-    backgroundColor: THEME.colors.blush50,
-    marginBottom: 6,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+    marginBottom: 8,
   },
   categoryTileImg: {
     width: '100%',
@@ -697,7 +699,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoryTileNameSelected: {
-    color: THEME.colors.maroon900,
+    color: THEME.colors.maroon700,
   },
   categoryTileSub: {
     fontSize: 9.5,
