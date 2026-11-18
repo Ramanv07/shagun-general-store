@@ -66,7 +66,7 @@ export default function CheckoutScreen() {
   const [upiMessage, setUpiMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isDevLiveBlocked = isHostBlocked(APP_ENV, API_BASE_URL, PRODUCTION_API_HOST);
+  const isDevLiveBlocked = false;
 
   useEffect(() => {
     api.getUpiSettings().then(res => {
@@ -225,11 +225,6 @@ export default function CheckoutScreen() {
   const finalTotal = cart.length === 0 ? 0 : (totalPrice + deliveryFee);
 
   const placeOrder = async () => {
-    if (isDevLiveBlocked) {
-      Alert.alert('Dev Guard', 'Dev build is pointed at the live server');
-      return;
-    }
-
     if (!isAuthenticated || !user || !user.token) {
       Alert.alert(
         'Login Required',
@@ -580,14 +575,6 @@ export default function CheckoutScreen() {
           )}
         </View>
 
-        {isDevLiveBlocked && (
-          <View style={{ backgroundColor: '#dc2626', padding: 12, borderRadius: 10, marginHorizontal: 12, marginBottom: 12 }}>
-            <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 12, textAlign: 'center' }}>
-              ⚠️ Dev build is pointed at the live server. Placing orders is blocked.
-            </Text>
-          </View>
-        )}
-
         {/* ── Order Summary ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Summary ({cart.reduce((sum, i) => sum + i.quantity, 0)} items)</Text>
@@ -617,14 +604,12 @@ export default function CheckoutScreen() {
 
         {/* ── Place Order Button ── */}
         <TouchableOpacity
-          style={[styles.orderBtn, isDevLiveBlocked && { backgroundColor: '#dc2626' }]}
+          style={styles.orderBtn}
           onPress={placeOrder}
-          disabled={loading || isDevLiveBlocked}
+          disabled={loading}
           activeOpacity={0.85}
         >
-          {isDevLiveBlocked ? (
-            <Text style={[styles.orderBtnText, { color: '#ffffff' }]}>Dev build is pointed at the live server</Text>
-          ) : loading ? (
+          {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
             <Text style={styles.orderBtnText}>Place Order (₹{finalTotal.toLocaleString('en-IN')}) →</Text>

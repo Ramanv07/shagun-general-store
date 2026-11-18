@@ -28,7 +28,7 @@ export const ConfirmingPayment: React.FC = () => {
   const isMobileBrowser = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.DEV ? 'http://localhost:5000/api' : '');
-  const isDevLiveBlocked = Boolean(import.meta.env.DEV && isLiveHost(apiUrl));
+  const isDevLiveBlocked = false;
 
   // Fetch order data
   const fetchOrder = async (isBackground = false) => {

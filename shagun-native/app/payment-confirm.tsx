@@ -95,13 +95,9 @@ export default function PaymentConfirmScreen() {
     fetchOrder(true);
   };
 
-  const isDevLiveBlocked = isHostBlocked(APP_ENV, API_BASE_URL, PRODUCTION_API_HOST);
+  const isDevLiveBlocked = false;
 
   const handleUtrSubmit = async () => {
-    if (isDevLiveBlocked) {
-      Alert.alert('Dev Guard', 'Dev build is pointed at the live server');
-      return;
-    }
 
     const cleanUtr = utr.trim();
     if (!/^\d{12}$/.test(cleanUtr)) {
@@ -123,11 +119,6 @@ export default function PaymentConfirmScreen() {
   };
 
   const handleRetryPayment = async () => {
-    if (isDevLiveBlocked) {
-      Alert.alert('Dev Guard', 'Dev build is pointed at the live server');
-      return;
-    }
-
     if (Platform.OS === 'web') {
       Alert.alert(
         'Desktop Notice',

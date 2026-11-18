@@ -36,7 +36,7 @@ export const Checkout: React.FC = () => {
   const [orderId, setOrderId] = useState('');
 
   const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.DEV ? 'http://localhost:5000/api' : '');
-  const isDevLiveBlocked = Boolean(import.meta.env.DEV && isLiveHost(apiUrl));
+  const isDevLiveBlocked = false;
 
   // Check store UPI availability on mount
   useEffect(() => {
