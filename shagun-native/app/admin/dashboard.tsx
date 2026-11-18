@@ -195,10 +195,10 @@ export default function AdminDashboard() {
       {/* Stats Row */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll} contentContainerStyle={{ paddingHorizontal: 12, gap: 10 }}>
         {[
-          { label: 'Orders', value: orders.length, icon: 'receipt', color: '#f59e0b' },
+          { label: 'Orders', value: orders.filter(o => !o.isTestOrder).length, icon: 'receipt', color: '#f59e0b' },
           { label: 'Products', value: products.length, icon: 'cube', color: '#3b82f6' },
           { label: 'Users', value: users.length, icon: 'people', color: '#10b981' },
-          { label: 'Revenue', value: `₹${orders.reduce((s, o) => s + o.totalAmount, 0).toLocaleString('en-IN')}`, icon: 'cash', color: '#8b5cf6' },
+          { label: 'Revenue', value: `₹${orders.filter(o => !o.isTestOrder).reduce((s, o) => s + o.totalAmount, 0).toLocaleString('en-IN')}`, icon: 'cash', color: '#8b5cf6' },
         ].map(stat => (
           <View key={stat.label} style={[styles.statCard, { borderLeftColor: stat.color }]}>
             <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
@@ -243,6 +243,11 @@ export default function AdminDashboard() {
             return (
               <View style={styles.listCard}>
                 <Text style={styles.listCardTitle}>#{order._id.slice(-8).toUpperCase()}</Text>
+                {order.isTestOrder && (
+                  <Text style={{ backgroundColor: '#fef3c7', color: '#b45309', fontSize: 10, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start', marginVertical: 2 }}>
+                    TEST ORDER
+                  </Text>
+                )}
                 <Text style={styles.listCardSub}>{order.user?.name || 'Guest'} • ₹{order.totalAmount.toLocaleString('en-IN')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }} contentContainerStyle={{ gap: 6 }}>
                   {STATUS_OPTIONS.map(s => (
