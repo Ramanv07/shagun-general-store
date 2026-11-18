@@ -9,7 +9,6 @@ import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 import { OrderProvider } from '../context/OrderContext';
 import OfflineNotice from '../components/OfflineNotice';
-import DevApiBanner from '../components/DevApiBanner';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initWebAlertPolyfill } from '../utils/webAlertPolyfill';
 
@@ -95,7 +94,6 @@ export default function RootLayout() {
               <StatusBar style="dark" />
               <SafeAreaView edges={['top']} style={styles.safeArea}>
                 <OfflineNotice />
-                <DevApiBanner />
               </SafeAreaView>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

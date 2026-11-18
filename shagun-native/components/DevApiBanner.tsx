@@ -6,31 +6,7 @@ import { isHostBlocked, getDisplayHost, isLiveHost } from '../utils/hostSafety';
 export { isLiveHost, getDisplayHost, isHostBlocked };
 
 export default function DevApiBanner() {
-  if (APP_ENV === 'production' && !__DEV__) {
-    return null;
-  }
-
-  const isBlocked = isHostBlocked(APP_ENV, API_BASE_URL, PRODUCTION_API_HOST);
-  const displayHost = getDisplayHost(API_BASE_URL);
-
-  if (isBlocked) {
-    const warningMsg = APP_ENV === 'preview'
-      ? `⚠️ Preview build is pointed at production API (${displayHost})`
-      : `⚠️ Dev build is pointed at live server (${displayHost})`;
-    return (
-      <View style={styles.liveWarningBanner}>
-        <Text style={styles.liveWarningText}>{warningMsg}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.devBadge}>
-      <Text style={styles.devBadgeText}>
-        {APP_ENV !== 'production' ? `[${APP_ENV.toUpperCase()}] API: ${displayHost}` : `API: ${displayHost}`}
-      </Text>
-    </View>
-  );
+  return null;
 }
 
 const styles = StyleSheet.create({
