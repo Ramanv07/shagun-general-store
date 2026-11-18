@@ -10,6 +10,7 @@ export interface User {
   email: string;
   phone?: string;
   role: UserRole;
+  isTester?: boolean;
   addresses?: Address[];
   token?: string;
 }
@@ -69,6 +70,7 @@ export interface Order {
   paymentMethod?: string;
   paymentStatus?: string;
   status: OrderStatus;
+  isTestOrder?: boolean;
   createdAt: string;
   upiTxnRef?: string;
   upiUtr?: string;

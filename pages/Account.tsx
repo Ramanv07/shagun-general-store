@@ -45,6 +45,56 @@ export const Account: React.FC = () => {
     const [deleteError, setDeleteError] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
 
+    // In-App Feedback State
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [feedbackCategory, setFeedbackCategory] = useState<'Bug' | 'Feature Request' | 'Product / Store Experience' | 'Other'>('Bug');
+    const [feedbackMessage, setFeedbackMessage] = useState('');
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
+    const [feedbackError, setFeedbackError] = useState('');
+    const [feedbackSuccess, setFeedbackSuccess] = useState('');
+
+    const handleSendFeedback = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!feedbackMessage.trim() || feedbackMessage.trim().length < 5) {
+            setFeedbackError('Please enter at least 5 characters describing your feedback.');
+            return;
+        }
+        setFeedbackLoading(true);
+        setFeedbackError('');
+        try {
+            const token = user?.token;
+            const res = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    category: feedbackCategory,
+                    message: feedbackMessage.trim(),
+                    appVersion: '1.0.0',
+                    deviceModel: navigator.userAgent.slice(0, 50),
+                    platform: 'web'
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setFeedbackSuccess('Thank you! Your feedback has been submitted.');
+                setFeedbackMessage('');
+                setTimeout(() => {
+                    setShowFeedbackModal(false);
+                    setFeedbackSuccess('');
+                }, 2000);
+            } else {
+                setFeedbackError(data.message || 'Failed to submit feedback.');
+            }
+        } catch (err: any) {
+            setFeedbackError(err.message || 'Failed to submit feedback.');
+        } finally {
+            setFeedbackLoading(false);
+        }
+    };
+
     if (!user) {
         navigate('/login');
         return null;
@@ -525,6 +575,27 @@ export const Account: React.FC = () => {
                     </div>
                 )}
 
+                {/* Feedback Card */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-8">
+                    <div>
+                        <h3 className="text-base font-bold text-ink-900 flex items-center gap-2">
+                            <i className="fas fa-comment-dots text-emerald-600"></i>
+                            Send Feedback
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Found an issue or want to suggest an improvement? We appreciate your feedback.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => { setShowFeedbackModal(true); setFeedbackError(''); setFeedbackSuccess(''); }}
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow transition flex items-center gap-2 whitespace-nowrap"
+                    >
+                        <i className="fas fa-paper-plane"></i>
+                        Send Feedback
+                    </button>
+                </div>
+
                 {/* Danger Zone */}
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mt-8">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -736,6 +807,88 @@ export const Account: React.FC = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+                {/* In-App Feedback Modal */}
+                {showFeedbackModal && (
+                    <div className="fixed inset-0 bg-ink-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                        <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
+                            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                                <h3 className="text-lg font-bold text-ink-900 flex items-center gap-2">
+                                    <i className="fas fa-comment-dots text-emerald-600"></i>
+                                    Send Feedback
+                                </h3>
+                                <button
+                                    onClick={() => setShowFeedbackModal(false)}
+                                    className="text-gray-400 hover:text-ink-900 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                                >
+                                    <i className="fas fa-times text-lg"></i>
+                                </button>
+                            </div>
+
+                            {feedbackSuccess ? (
+                                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-center text-sm font-semibold">
+                                    <i className="fas fa-check-circle text-2xl text-emerald-600 block mb-2" />
+                                    {feedbackSuccess}
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSendFeedback} className="space-y-4">
+                                    {feedbackError && (
+                                        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
+                                            {feedbackError}
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-ink-600 block mb-1">
+                                            Category
+                                        </label>
+                                        <select
+                                            value={feedbackCategory}
+                                            onChange={(e) => setFeedbackCategory(e.target.value as any)}
+                                            className="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-sm text-ink-900 outline-none focus:border-emerald-600"
+                                        >
+                                            <option value="Bug">Bug Report</option>
+                                            <option value="Feature Request">Feature Request</option>
+                                            <option value="Product / Store Experience">Store / Product Feedback</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-ink-600 block mb-1">
+                                            Message *
+                                        </label>
+                                        <textarea
+                                            rows={4}
+                                            value={feedbackMessage}
+                                            onChange={(e) => setFeedbackMessage(e.target.value)}
+                                            placeholder="Describe the issue or suggestion..."
+                                            maxLength={1000}
+                                            className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm text-ink-900 outline-none focus:border-emerald-600"
+                                        />
+                                        <p className="text-[11px] text-gray-400 text-right">{feedbackMessage.length}/1000</p>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowFeedbackModal(false)}
+                                            className="flex-1 py-2.5 border border-gray-200 text-ink-600 bg-white rounded-xl hover:bg-gray-50 text-sm font-bold"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={feedbackLoading}
+                                            className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-bold shadow flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            {feedbackLoading ? 'Submitting...' : 'Submit'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
                         </div>
                     </div>
                 )}
