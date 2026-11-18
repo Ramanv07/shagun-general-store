@@ -39,8 +39,20 @@ export default function CheckoutScreen() {
     }
   }, [isAuthenticated, user]);
 
-  // Default address from user profile
-  const defaultAddr = user?.addresses?.find(a => a.isDefault) || user?.addresses?.[0] || null;
+  // Fallback default address for Bamitha / Khajuraho
+  const FALLBACK_DEFAULT_ADDR: Address = {
+    _id: 'default-bamitha',
+    fullName: user?.name || 'Customer',
+    mobile: user?.phone || '8827259023',
+    houseNo: 'Main Market',
+    street: 'Khajuraho Road',
+    city: 'Bamitha',
+    state: 'Madhya Pradesh',
+    pinCode: '471105',
+    isDefault: true,
+  };
+
+  const defaultAddr = user?.addresses?.find(a => a.isDefault) || user?.addresses?.[0] || FALLBACK_DEFAULT_ADDR;
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(defaultAddr);
 
   // Address Modal state
@@ -48,14 +60,14 @@ export default function CheckoutScreen() {
   const [modalMode, setModalMode] = useState<'list' | 'form'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form fields
+  // Form fields (prefilled with default Bamitha 471105)
   const [formName, setFormName] = useState(user?.name || '');
   const [formPhone, setFormPhone] = useState(user?.phone || '');
   const [formHouse, setFormHouse] = useState('');
-  const [formStreet, setFormStreet] = useState('');
-  const [formCity, setFormCity] = useState('');
-  const [formState, setFormState] = useState('');
-  const [formPin, setFormPin] = useState('');
+  const [formStreet, setFormStreet] = useState('Khajuraho Road');
+  const [formCity, setFormCity] = useState('Bamitha');
+  const [formState, setFormState] = useState('Madhya Pradesh');
+  const [formPin, setFormPin] = useState('471105');
   const [formDefault, setFormDefault] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
   const [formError, setFormError] = useState('');
@@ -121,10 +133,10 @@ export default function CheckoutScreen() {
     setFormName(user?.name || '');
     setFormPhone(user?.phone || '');
     setFormHouse('');
-    setFormStreet('');
-    setFormCity('');
-    setFormState('');
-    setFormPin('');
+    setFormStreet('Khajuraho Road');
+    setFormCity('Bamitha');
+    setFormState('Madhya Pradesh');
+    setFormPin('471105');
     setFormDefault((user?.addresses?.length || 0) === 0);
     setFormError('');
   };
@@ -134,10 +146,10 @@ export default function CheckoutScreen() {
     setFormName(addr.fullName || '');
     setFormPhone(addr.mobile || '');
     setFormHouse(addr.houseNo || '');
-    setFormStreet(addr.street || '');
-    setFormCity(addr.city || '');
-    setFormState(addr.state || '');
-    setFormPin(addr.pinCode || '');
+    setFormStreet(addr.street || 'Khajuraho Road');
+    setFormCity(addr.city || 'Bamitha');
+    setFormState(addr.state || 'Madhya Pradesh');
+    setFormPin(addr.pinCode || '471105');
     setFormDefault(!!addr.isDefault);
     setFormError('');
     setModalMode('form');
@@ -157,6 +169,11 @@ export default function CheckoutScreen() {
     const cleanPin = formPin.replace(/\D/g, '');
     if (cleanPin.length !== 6) {
       setFormError('Please enter a valid 6-digit PIN code.');
+      return;
+    }
+    const ALLOWED_PINCODES = ['471105', '471606'];
+    if (!ALLOWED_PINCODES.includes(cleanPin)) {
+      setFormError('Delivery is currently only available in Bamitha (471105) and Khajuraho (471606).');
       return;
     }
 
@@ -242,6 +259,27 @@ export default function CheckoutScreen() {
       resetFormForAdd();
       setModalMode('form');
       setShowAddressModal(true);
+      return;
+    }
+
+    const addrPin = (selectedAddress.pinCode || '').replace(/\D/g, '');
+    const ALLOWED_PINCODES = ['471105', '471606'];
+    if (!ALLOWED_PINCODES.includes(addrPin)) {
+      Alert.alert(
+        'Delivery Area Restricted',
+        `Delivery is currently only available for Bamitha (471105) and Khajuraho (471606).\n\nYour address has PIN ${addrPin || 'empty'}. Please change your delivery address to Bamitha or Khajuraho to proceed.`,
+        [
+          {
+            text: 'Change Address',
+            onPress: () => {
+              resetFormForAdd();
+              setModalMode('form');
+              setShowAddressModal(true);
+            }
+          },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
       return;
     }
 
@@ -512,7 +550,12 @@ export default function CheckoutScreen() {
             <Text style={styles.deliveryAddressText}>
               {selectedAddress.houseNo}, {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.state} – {selectedAddress.pinCode}
             </Text>
-            <Text style={styles.deliveryPhoneText}>📞 {selectedAddress.mobile}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+              <Text style={styles.deliveryPhoneText}>📞 {selectedAddress.mobile}</Text>
+              <Text style={{ fontSize: 10, color: '#047857', fontWeight: '700', backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                Bamitha & Khajuraho Only (471105 / 471606)
+              </Text>
+            </View>
           </View>
         ) : (
           <View style={styles.noAddressCard}>
@@ -705,10 +748,10 @@ export default function CheckoutScreen() {
                     </View>
                   </View>
 
-                  <Text style={styles.fieldLabel}>PIN Code *</Text>
+                  <Text style={styles.fieldLabel}>PIN Code * (Bamitha: 471105 / Khajuraho: 471606)</Text>
                   <TextInput
                     style={styles.modalInput}
-                    placeholder="6-digit PIN"
+                    placeholder="471105 or 471606"
                     placeholderTextColor="#9c7a8a"
                     keyboardType="number-pad"
                     maxLength={6}

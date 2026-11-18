@@ -111,10 +111,16 @@ export const Checkout: React.FC = () => {
       return;
     }
 
-    // 0. Validate 6-digit PIN code
+    // 0. Validate 6-digit PIN code (Bamitha: 471105 / Khajuraho: 471606)
+    const cleanPin = formData.pinCode.trim();
     const pinRegex = /^[1-9][0-9]{5}$/;
-    if (!pinRegex.test(formData.pinCode.trim())) {
-      alert('Please enter a valid 6-digit PIN code (e.g. 462001).');
+    if (!pinRegex.test(cleanPin)) {
+      alert('Please enter a valid 6-digit PIN code.');
+      return;
+    }
+    const ALLOWED_PINCODES = ['471105', '471606'];
+    if (!ALLOWED_PINCODES.includes(cleanPin)) {
+      alert('Delivery is currently only available for Bamitha (471105) and Khajuraho (471606).');
       return;
     }
 

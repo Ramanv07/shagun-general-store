@@ -361,11 +361,9 @@ export default function HomeScreen() {
         <MapPin size={16} color={THEME.colors.maroon700} strokeWidth={2} />
         <View style={s.deliveryTextContainer}>
           <Text style={s.deliveryTitle}>Deliver to Home</Text>
-          {addr ? (
-            <Text style={s.deliverySubtitle} numberOfLines={1}>
-              {addr.city}, {addr.state} – {addr.pinCode}
-            </Text>
-          ) : null}
+          <Text style={s.deliverySubtitle} numberOfLines={1}>
+            {addr ? `${addr.city}, ${addr.state} – ${addr.pinCode}` : 'Khajuraho Road, Bamitha – 471105'}
+          </Text>
         </View>
         <ChevronDown size={16} color={THEME.colors.ink500} strokeWidth={1.5} />
       </View>
@@ -739,17 +737,18 @@ const s = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     backgroundColor: THEME.colors.white,
-    borderWidth: 1.5,
-    borderColor: THEME.colors.line,
-    padding: 3,
+    borderWidth: 0,
+    outlineStyle: 'none' as any,
+    padding: 0,
     alignItems: 'center',
     justifyContent: 'center',
     ...THEME.shadow,
+    elevation: 3,
   },
   catTileImg: {
     width: '100%',
     height: '100%',
-    borderRadius: 18,
+    borderRadius: 22,
   },
   catLabel: {
     fontSize: 11,

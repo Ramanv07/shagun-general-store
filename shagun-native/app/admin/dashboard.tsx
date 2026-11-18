@@ -30,6 +30,7 @@ export default function AdminDashboard() {
 
   // Product form state
   const [showForm, setShowForm] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyProduct);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -136,6 +137,22 @@ export default function AdminDashboard() {
     });
   };
 
+  const startEditProduct = (p: Product) => {
+    setEditingProductId(p._id);
+    const existingImgs = p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
+    setForm({
+      name: p.name || '',
+      price: String(p.price || ''),
+      mrp: p.mrp ? String(p.mrp) : '',
+      category: p.category || 'General Use',
+      stock: String(p.stock ?? ''),
+      description: p.description || '',
+      image: p.image || '',
+      images: existingImgs,
+    });
+    setShowForm(true);
+  };
+
   // ── Save product ──
   const handleSaveProduct = async () => {
     const primaryImg = (form.images && form.images[0]) || form.image;
@@ -146,7 +163,8 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const allImages = form.images && form.images.length > 0 ? form.images : [primaryImg];
-      const newProduct = await api.saveProduct({
+      const payload: Partial<Product> = {
+        ...(editingProductId ? { _id: editingProductId } : {}),
         name: form.name.trim(),
         price: Number(form.price),
         mrp: form.mrp ? Number(form.mrp) : undefined,
@@ -155,11 +173,18 @@ export default function AdminDashboard() {
         description: form.description.trim(),
         image: primaryImg,
         images: allImages,
-      });
-      setProducts(prev => [newProduct, ...prev]);
+      };
+      const saved = await api.saveProduct(payload);
+      if (editingProductId) {
+        setProducts(prev => prev.map(p => p._id === editingProductId ? saved : p));
+        Alert.alert('✅ Product Updated', `"${saved.name}" has been updated successfully.`);
+      } else {
+        setProducts(prev => [saved, ...prev]);
+        Alert.alert('✅ Product Added', `"${saved.name}" has been added successfully.`);
+      }
+      setEditingProductId(null);
       setForm(emptyProduct);
       setShowForm(false);
-      Alert.alert('✅ Product Added', `"${newProduct.name}" has been added successfully.`);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
@@ -223,7 +248,14 @@ export default function AdminDashboard() {
 
       {/* Add Product Button (only on Products tab) */}
       {tab === 'products' && (
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => {
+            setEditingProductId(null);
+            setForm(emptyProduct);
+            setShowForm(true);
+          }}
+        >
           <Ionicons name="add-circle" size={20} color="#fff" />
           <Text style={styles.addBtnText}>Add New Product</Text>
         </TouchableOpacity>
@@ -270,9 +302,22 @@ export default function AdminDashboard() {
                     <Text style={styles.listCardTitle}>{product.name}</Text>
                     <Text style={styles.listCardSub}>{product.category} • ₹{product.price.toLocaleString('en-IN')} • Stock: {product.stock}</Text>
                   </View>
-                  <TouchableOpacity onPress={() => deleteProduct(product._id, product.name)}>
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => startEditProduct(product)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ padding: 4 }}
+                    >
+                      <Ionicons name="create-outline" size={22} color="#047857" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => deleteProduct(product._id, product.name)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ padding: 4 }}
+                    >
+                      <Ionicons name="trash-outline" size={22} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             );
@@ -287,12 +332,12 @@ export default function AdminDashboard() {
         }}
       />
 
-      {/* ── Add Product Modal ── */}
+      {/* ── Add / Edit Product Modal ── */}
       <Modal visible={showForm} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add New Product</Text>
-            <TouchableOpacity onPress={() => { setShowForm(false); setForm(emptyProduct); }}>
+            <Text style={styles.modalTitle}>{editingProductId ? 'Edit Product' : 'Add New Product'}</Text>
+            <TouchableOpacity onPress={() => { setShowForm(false); setEditingProductId(null); setForm(emptyProduct); }}>
               <Ionicons name="close" size={26} color="#047857" />
             </TouchableOpacity>
           </View>
@@ -465,7 +510,7 @@ export default function AdminDashboard() {
               {saving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.saveBtnText}>Save Product</Text>
+                <Text style={styles.saveBtnText}>{editingProductId ? 'Update Product' : 'Save Product'}</Text>
               )}
             </TouchableOpacity>
           </ScrollView>
