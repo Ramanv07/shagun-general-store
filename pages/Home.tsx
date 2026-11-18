@@ -51,10 +51,10 @@ const Typewriter = ({ texts, delay = 110 }: { texts: string[]; delay?: number })
 // STORE LOCATION & DELIVERY COVERAGE SOURCE: Delivery area and radius defaults.
 // Configured default: Bamitha local radius; marked [FILL: delivery area / coverage radius] until connected to dynamic store settings.
 const FEATURES = [
-  { icon: 'fa-truck-fast', title: 'Fast Delivery', desc: 'Same-day delivery within [FILL: delivery area, e.g. Bamitha & surrounding 10 km] on orders above ₹399.' },
-  { icon: 'fa-shield-check', title: 'Secure Payments', desc: 'Pay via UPI, cards or Netbanking — fully encrypted & safe.' },
-  { icon: 'fa-gem', title: 'Premium Quality', desc: 'Carefully sourced products from trusted suppliers only.' },
-  { icon: 'fa-arrows-rotate', title: 'Easy Returns', desc: '[FILL: return policy period, e.g. 7-day] return policy on eligible items.' },
+  { icon: 'fa-truck-fast', title: 'Local Delivery', desc: 'Fast local delivery in Bamitha & nearby wedding venues on Khajuraho Road.' },
+  { icon: 'fa-shield-check', title: 'Secure Payments', desc: 'Pay via UPI, QR code, cards or Cash on Delivery — 100% safe.' },
+  { icon: 'fa-gem', title: 'Bridal & Ethnic Quality', desc: 'Handpicked bridal lehengas, authentic glass/lac bangles & salon services.' },
+  { icon: 'fa-arrows-rotate', title: 'Fitting & Alteration', desc: 'In-store trial support and custom size adjustment for your special day.' },
 ];
 
 /* ── Category icons ────────────────────────────────────── */
@@ -377,13 +377,18 @@ export const Home: React.FC = () => {
                   <span className="font-serif font-bold text-gold-400">S</span>
                 </div>
                 <div>
-                  <div className="font-serif font-bold text-lg text-white">SHAGUN</div>
-                  <div className="text-[9px] tracking-widest text-cream-400">MART</div>
+                  <div className="font-serif font-bold text-lg text-white">SHAGUN MART</div>
+                  <div className="text-[10px] tracking-widest text-gold-400">SAGUN LENGHA CHUNARI CENTER</div>
                 </div>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: 'rgba(251,243,231,0.6)' }}>
-                Your trusted neighbourhood store for all daily needs. Quality products, honest prices.
+              <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(251,243,231,0.75)' }}>
+                Bamitha's premier bridal lehenga, festive churi (bangles) &amp; bridal makeup center on Khajuraho Road, Chhatarpur (MP).
               </p>
+              <div className="text-xs space-y-1" style={{ color: 'rgba(251,243,231,0.6)' }}>
+                <p>📍 Khajuraho Road, Bamitha, MP - 471105</p>
+                <p>📞 Phone/WhatsApp: +91 88272 59023</p>
+                <p>⏰ Open 7 Days: 7:00 AM – 9:00 PM</p>
+              </div>
             </div>
 
             {/* Quick Links */}
@@ -393,9 +398,12 @@ export const Home: React.FC = () => {
                 {[
                   ['/', 'Home'],
                   ['/shop', 'Shop Products'],
-                  ['/bridal-lehenga', 'Bridal Lehenga Rentals'],
-                  ['/beauty-parlor', 'Beauty Parlor'],
-                  ['/orders', 'My Orders'],
+                  ['/bridal-lehenga', 'Bridal Lehenga Showroom'],
+                  ['/beauty-parlor', 'Bridal Makeup Parlour'],
+                  ['/locations/bamitha', 'Bamitha Store Hub'],
+                  ['/locations/chhatarpur', 'Chhatarpur Shoppers'],
+                  ['/locations/khajuraho', 'Khajuraho (10 Mins)'],
+                  ['/locations/panna', 'Panna District Guide'],
                 ].map(([path, label]) => (
                   <li key={path}>
                     <Link to={path}
@@ -433,25 +441,41 @@ export const Home: React.FC = () => {
 
             {/* Contact */}
             <div>
-              <h4 className="text-gold-400 text-xs font-bold tracking-widest uppercase mb-4">Contact Us</h4>
-              {/* STORE LOCATION SOURCE: Physical address and operating hours. Mark unverified details as [FILL]. */}
+              <h4 className="text-gold-400 text-xs font-bold tracking-widest uppercase mb-4">Store &amp; Location</h4>
               <ul className="space-y-3">
-                {[
-                  { icon: 'fa-whatsapp fab', text: '+91 88272 59023' },
-                  { icon: 'fa-map-marker-alt', text: 'Bamitha, Madhya Pradesh [FILL: complete store address / landmark]' },
-                  { icon: 'fa-clock', text: 'Mon–Sat: 9am – 9pm [FILL: store operating hours]' },
-                ].map(c => (
-                  <li key={c.text} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(251,243,231,0.65)' }}>
-                    <i className={`fas ${c.icon} text-gold-500 w-4 text-center`} />
-                    {c.text}
-                  </li>
-                ))}
+                <li className="flex items-center gap-3 text-sm" style={{ color: 'rgba(251,243,231,0.75)' }}>
+                  <i className="fab fa-whatsapp text-emerald-400 w-4 text-center" />
+                  <a href="https://wa.me/918827259023" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-300">
+                    +91 88272 59023 (WhatsApp)
+                  </a>
+                </li>
+                <li className="flex items-center gap-3 text-sm" style={{ color: 'rgba(251,243,231,0.75)' }}>
+                  <i className="fas fa-phone text-gold-400 w-4 text-center" />
+                  <a href="tel:+918827259023" className="hover:text-gold-300">
+                    +91 88272 59023 (Direct Call)
+                  </a>
+                </li>
+                <li className="flex items-center gap-3 text-sm" style={{ color: 'rgba(251,243,231,0.75)' }}>
+                  <i className="fas fa-map-marker-alt text-rose-400 w-4 text-center" />
+                  <a href="https://maps.google.com/?cid=854452174360343884" target="_blank" rel="noopener noreferrer" className="hover:text-rose-300">
+                    Khajuraho Road, Bamitha, MP
+                  </a>
+                </li>
+                <li className="flex items-center gap-3 text-sm" style={{ color: 'rgba(251,243,231,0.75)' }}>
+                  <i className="fas fa-clock text-amber-400 w-4 text-center" />
+                  <span>Mon–Sun: 7:00 AM – 9:00 PM</span>
+                </li>
               </ul>
 
               <div className="mt-4">
-                <Link to="/contact-us" className="text-xs text-gold-400 font-semibold underline hover:text-gold-300">
-                  Store details &amp; Grievance Redressal →
-                </Link>
+                <a
+                  href="https://maps.google.com/?cid=854452174360343884"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-gold-400 font-semibold underline hover:text-gold-300"
+                >
+                  📍 Open Google Maps Directions →
+                </a>
               </div>
 
               <div className="flex items-center gap-4 mt-6">

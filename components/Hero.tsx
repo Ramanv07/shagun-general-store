@@ -10,11 +10,11 @@ export const Hero: React.FC = () => {
         <picture className="absolute inset-0 w-full h-full block">
           <img
             src="/images/hero-vanity-hq.jpg"
-            alt="Shagun Mart high quality vanity display featuring makeup, bridal lehengas, jewelry and essentials"
+            alt="Shagun Mart Bamitha - Sagun Lengha Chunari Center bridal vanity display"
             width={800}
             height={480}
             loading="eager"
-            fetchpriority="high"
+            fetchPriority="high"
             className="w-full h-full object-cover object-left lg:object-center"
             style={{
               // Seamless fade on the left edge into the solid cream background
@@ -59,15 +59,17 @@ export const Hero: React.FC = () => {
           {/* Left Column: ~45% width */}
           <div className="w-full lg:w-[46%] flex flex-col justify-center pt-2 sm:pt-4">
 
-            {/* Eyebrow */}
-            <div className="text-[11px] sm:text-[12px] font-sans font-semibold tracking-[0.25em] text-ink-500 uppercase mb-3">
-              EVERYTHING UNDER ONE ROOF
+            {/* Eyebrow with target regional towns */}
+            <div className="text-[11px] sm:text-[12px] font-sans font-semibold tracking-[0.25em] text-emerald-800 uppercase mb-3">
+              BAMITHA · KHAJURAHO · CHHATARPUR · PANNA
             </div>
 
-            {/* H1 Heading (two lines, tight leading, serif) */}
-            <h1 className="font-serif text-maroon-900 text-[38px] sm:text-[50px] lg:text-[58px] xl:text-[62px] font-semibold leading-[1.05] tracking-tight drop-shadow-sm">
-              Everything You Need,<br />
-              Beautifully Sorted
+            {/* H1 Heading with exact brand & regional terms */}
+            <h1 className="font-serif text-maroon-900 text-[34px] sm:text-[46px] lg:text-[54px] xl:text-[58px] font-semibold leading-[1.08] tracking-tight drop-shadow-sm">
+              Shagun Mart Bamitha<br />
+              <span className="text-[22px] sm:text-[30px] lg:text-[36px] font-normal block mt-1 text-gold-600">
+                Sagun Lengha Chunari Center
+              </span>
             </h1>
 
             {/* Gold ornament divider under heading */}
@@ -89,9 +91,9 @@ export const Hero: React.FC = () => {
               <span className="h-[1px] bg-gold-500/50 flex-1" />
             </div>
 
-            {/* Paragraph copy */}
+            {/* Paragraph copy with clear local and product signals */}
             <p className="text-ink-600 font-medium text-[15px] sm:text-[16px] leading-[1.65] max-w-[500px] mb-8 font-sans drop-shadow-sm">
-              Personal care, beauty &amp; makeup, bangles, toys, household essentials, bridal lehenga rental and beauty parlour bookings — all in one place.
+              Your premier wedding shopping center on Khajuraho Road, Bamitha (MP). Royal bridal lehengas, custom chudas &amp; bangles, bridal makeup parlour, and festive trousseau for Bundelkhand families.
             </p>
 
             {/* Two Action Buttons */}
