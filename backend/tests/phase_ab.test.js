@@ -44,12 +44,18 @@ describe('Phase A & B: Delivery Strip & Notifications Endpoints', () => {
       { $set: { _id: userBId, name: 'test_user_b', email: 'test_b@example.com', password: 'hash' } },
       { upsert: true }
     );
+    await StoreSetting.updateOne(
+      { key: 'delivery_config' },
+      { $set: { key: 'delivery_config', delivery_strip_enabled: true, delivery_eta_min: 10, delivery_eta_max: 20 } },
+      { upsert: true }
+    );
   });
 
   afterAll(async () => {
     const User = (await import('../models/User.js')).default;
     await User.deleteMany({ _id: { $in: [userAId, userBId] } });
     await Notification.deleteMany({ user_id: { $in: [userAId, userBId] } });
+    await StoreSetting.deleteOne({ key: 'delivery_config' });
     await mongoose.disconnect();
     if (mongod) await mongod.stop();
   });
