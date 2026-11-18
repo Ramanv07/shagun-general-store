@@ -10,6 +10,7 @@ import { api } from '../../services/api';
 import { Address } from '../../types';
 import { PRIVACY_POLICY_URL } from '../../constants';
 import { useBackToHome } from '../../components/useAndroidBackHandler';
+import * as Updates from 'expo-updates';
 
 export default function AccountScreen() {
   useBackToHome();
@@ -35,6 +36,31 @@ export default function AccountScreen() {
   const [addrIsDefault, setAddrIsDefault] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressError, setAddressError] = useState('');
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+
+  const handleCheckUpdates = async () => {
+    if (__DEV__) {
+      Alert.alert('Development Mode', 'OTA Updates only run in installed mobile APK builds.');
+      return;
+    }
+    setCheckingUpdate(true);
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        Alert.alert('Update Found', 'Downloading the latest version in the background...');
+        await Updates.fetchUpdateAsync();
+        Alert.alert('Update Ready', 'Restart app now to apply the latest changes?', [
+          { text: 'Restart Now', onPress: () => Updates.reloadAsync() }
+        ]);
+      } else {
+        Alert.alert('Up to Date', 'Your app is already running the latest version!');
+      }
+    } catch (e: any) {
+      Alert.alert('Update Status', e.message || 'Unable to check for updates right now.');
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   if (!isAuthenticated || !user) {
     return (
@@ -397,7 +423,7 @@ export default function AccountScreen() {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
           <View style={styles.menuIconContainer}>
             <Ionicons name="document-text-outline" size={20} color="#047857" />
           </View>
@@ -406,6 +432,23 @@ export default function AccountScreen() {
             <Text style={styles.menuItemSub}>Read our privacy terms and data policy</Text>
           </View>
           <Ionicons name="open-outline" size={18} color="#d4b5a0" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={handleCheckUpdates} disabled={checkingUpdate}>
+          <View style={styles.menuIconContainer}>
+            <Ionicons name="cloud-download-outline" size={20} color="#047857" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.menuItemText}>Check for Updates</Text>
+            <Text style={styles.menuItemSub}>
+              {checkingUpdate ? 'Checking for updates...' : 'Tap to sync the latest features & fixes'}
+            </Text>
+          </View>
+          {checkingUpdate ? (
+            <ActivityIndicator size="small" color="#047857" />
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color="#d4b5a0" />
+          )}
         </TouchableOpacity>
       </View>
 
