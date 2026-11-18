@@ -35,9 +35,7 @@
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 4000
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.4",
     "web": {
       "favicon": "./assets/favicon.png"
     },
