@@ -618,4 +618,45 @@ export const api = {
     }
     return res.json();
   },
+
+  sendFeedback: async (data: { category: string; message: string; appVersion?: string; deviceModel?: string; platform?: string }) => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/feedback`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to submit feedback');
+    }
+    return res.json();
+  },
+
+  reportReview: async (reviewId: string, data: { reason: string; details?: string }) => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/reviews/${reviewId}/report`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to submit review report');
+    }
+    return res.json();
+  },
+
+  deleteTestOrders: async () => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${BASE}/api/orders/admin/test-orders`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to delete test orders');
+    }
+    return res.json();
+  },
 };

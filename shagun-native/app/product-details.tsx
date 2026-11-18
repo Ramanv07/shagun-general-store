@@ -11,6 +11,7 @@ import {
   Share,
   StatusBar,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { FALLBACK_IMAGE, API_BASE_URL } from '../constants';
 import { THEME } from '../constants/theme';
 
@@ -53,9 +55,53 @@ export default function ProductDetailsScreen() {
 
   const [product, setProduct] = useState<Product | null>(() => parsedFromParams);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(() => !parsedFromParams);
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  const loadReviews = async (prodId: string) => {
+    try {
+      const data = await api.getProductReviews(prodId);
+      if (data && data.reviews) {
+        setReviewsList(data.reviews);
+      }
+    } catch (e) {
+      console.warn('Could not load reviews:', e);
+    }
+  };
+
+  const handleReportReview = (review: any) => {
+    if (!isAuthenticated) {
+      Alert.alert('Login Required', 'Please log in to report a review.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Login', onPress: () => router.push('/login') }
+      ]);
+      return;
+    }
+
+    Alert.alert(
+      'Report Review',
+      'Why are you reporting this review?',
+      [
+        { text: 'Inappropriate content', onPress: () => submitReport(review._id || review.id, 'Inappropriate content') },
+        { text: 'Spam / Advertising', onPress: () => submitReport(review._id || review.id, 'Spam / Advertising') },
+        { text: 'Harassment or hate speech', onPress: () => submitReport(review._id || review.id, 'Harassment or hate speech') },
+        { text: 'Misleading / Fake', onPress: () => submitReport(review._id || review.id, 'Misleading / Fake') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const submitReport = async (reviewId: string, reason: string) => {
+    try {
+      await api.reportReview(reviewId, { reason });
+      Alert.alert('Report Submitted', 'Thank you. Our moderation team will review this content.');
+    } catch (err: any) {
+      Alert.alert('Report Error', err.message || 'Unable to submit report.');
+    }
+  };
 
   useEffect(() => {
     let current: Product | null = parsedFromParams;
@@ -87,6 +133,9 @@ export default function ProductDetailsScreen() {
 
         if (activeProduct) {
           setLoading(false);
+          if (activeProduct._id) {
+            loadReviews(activeProduct._id);
+          }
         }
 
         if (activeProduct?.category) {
@@ -310,6 +359,53 @@ export default function ProductDetailsScreen() {
             <Text style={styles.descriptionText}>{product.description}</Text>
           </View>
         ) : null}
+
+        {/* Customer Reviews Section (UGC Moderation & Reporting) */}
+        <View style={styles.descCard}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={styles.sectionHeading}>Customer Reviews</Text>
+            <Text style={{ fontSize: 12, color: '#7c1f3e', fontWeight: '600' }}>
+              {reviewsList.length} {reviewsList.length === 1 ? 'Review' : 'Reviews'}
+            </Text>
+          </View>
+
+          {reviewsList.length === 0 ? (
+            <Text style={{ fontSize: 13, color: '#6b7280', fontStyle: 'italic', paddingVertical: 8 }}>
+              No reviews yet. Be the first verified customer to review this product after delivery!
+            </Text>
+          ) : (
+            reviewsList.map((rev) => (
+              <View key={rev.id || rev._id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#1f2937' }}>
+                    {rev.user || 'Customer'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleReportReview(rev)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                  >
+                    <Ionicons name="flag-outline" size={13} color="#dc2626" />
+                    <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600' }}>Report</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginVertical: 3 }}>
+                  <Text style={{ fontSize: 12, color: '#f59e0b', fontWeight: '700' }}>
+                    {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                  </Text>
+                  {rev.createdAt && (
+                    <Text style={{ fontSize: 10, color: '#9ca3af' }}>
+                      • {new Date(rev.createdAt).toLocaleDateString()}
+                    </Text>
+                  )}
+                </View>
+                <Text style={{ fontSize: 13, color: '#4b5563', lineHeight: 18 }}>
+                  {rev.comment}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
 
         {/* ── Flipkart-Style "Similar Products" Strip ── */}
         {similarProducts.length > 0 && (
