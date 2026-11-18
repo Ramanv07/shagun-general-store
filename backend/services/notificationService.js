@@ -55,6 +55,10 @@ export async function sendExpoPushNotifications(tokens, { title, body, data = {}
  */
 export async function sendCustomerOrderNotification(order, statusEvent = 'Placed') {
   try {
+    if (order?.isTestOrder) {
+      // Tester orders do not trigger customer notifications or SMS
+      return;
+    }
     const orderId = order._id?.toString() || 'N/A';
     const shortId = orderId.slice(-6).toUpperCase();
     const total = order.totalAmount?.toLocaleString('en-IN') || '0';
@@ -183,6 +187,10 @@ export async function broadcastCustomerNotification({ title, body, data = {} }) 
  */
 export async function sendAdminOrderNotification(order) {
   try {
+    if (order?.isTestOrder) {
+      // Tester orders do not trigger WhatsApp or ntfy admin alerts
+      return;
+    }
     const adminPhone = process.env.ADMIN_WHATSAPP || '918827259023';
     const ntfyTopic = process.env.NTFY_TOPIC || 'shagun-mart-orders-8827';
     const callMeBotKey = process.env.CALLMEBOT_API_KEY;

@@ -68,6 +68,8 @@ router.get('/', protect, async (req, res) => {
                     { legacyUserId: req.user._id.toString() }
                 ]
             };
+        } else if (req.query.isTestOrder !== undefined) {
+            query.isTestOrder = req.query.isTestOrder === 'true';
         }
         const orders = await Order.find(query)
             .populate('user', 'name email phone role')
@@ -721,34 +723,6 @@ router.post('/', protect, async (req, res) => {
 
         const serverGrandTotal = Math.max(0, serverSubtotal - appliedDiscountAmount) + serverDeliveryFee;
 
-        // 2. Decrement stock atomically with rollback on collision (W1-06)
-        const decrementedList = [];
-        for (const item of verifiedItems) {
-            const updated = await Product.findOneAndUpdate(
-                { _id: item.product, stock: { $gte: item.quantity } },
-                { $inc: { stock: -item.quantity } },
-                { new: true }
-            );
-
-            if (!updated) {
-                // Rollback all prior decrements to prevent overselling
-                for (const d of decrementedList) {
-                    await Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } });
-                }
-                if (couponDoc) {
-                    await Coupon.findByIdAndUpdate(couponDoc._id, {
-                        $inc: { usedCount: -1 },
-                        $pull: { redeemedUsers: req.user._id }
-                    }).catch(() => {});
-                }
-                return res.status(409).json({
-                    message: `Inventory for "${item.name}" was just reserved by another customer. Please adjust quantity.`
-                });
-            }
-
-            decrementedList.push({ id: item.product, qty: item.quantity });
-        }
-
         // Normalize payment method to uppercase enum
         let normalizedPayment = 'COD';
         if (paymentMethod) {
@@ -759,7 +733,51 @@ router.post('/', protect, async (req, res) => {
             else normalizedPayment = paymentMethod;
         }
 
+        const isTesterUser = Boolean(req.user?.isTester);
         const isUpi = normalizedPayment === 'UPI';
+
+        // Disallow UPI for tester accounts (COD only, no real money)
+        if (isTesterUser && isUpi) {
+            if (couponDoc) {
+                await Coupon.findByIdAndUpdate(couponDoc._id, {
+                    $inc: { usedCount: -1 },
+                    $pull: { redeemedUsers: req.user._id }
+                }).catch(() => {});
+            }
+            return res.status(400).json({
+                message: 'UPI payments are disabled for tester accounts. Please select Cash on Delivery (COD).'
+            });
+        }
+
+        // 2. Decrement stock atomically with rollback on collision (W1-06) (Bypassed for tester-safe orders)
+        const decrementedList = [];
+        if (!isTesterUser) {
+            for (const item of verifiedItems) {
+                const updated = await Product.findOneAndUpdate(
+                    { _id: item.product, stock: { $gte: item.quantity } },
+                    { $inc: { stock: -item.quantity } },
+                    { new: true }
+                );
+
+                if (!updated) {
+                    // Rollback all prior decrements to prevent overselling
+                    for (const d of decrementedList) {
+                        await Product.findByIdAndUpdate(d.id, { $inc: { stock: d.qty } });
+                    }
+                    if (couponDoc) {
+                        await Coupon.findByIdAndUpdate(couponDoc._id, {
+                            $inc: { usedCount: -1 },
+                            $pull: { redeemedUsers: req.user._id }
+                        }).catch(() => {});
+                    }
+                    return res.status(409).json({
+                        message: `Inventory for "${item.name}" was just reserved by another customer. Please adjust quantity.`
+                    });
+                }
+
+                decrementedList.push({ id: item.product, qty: item.quantity });
+            }
+        }
         let upiConfig = null;
 
         if (isUpi) {
@@ -813,6 +831,7 @@ router.post('/', protect, async (req, res) => {
             paymentStatus: initialPaymentStatus,
             couponCode: appliedCouponCode,
             discountAmount: appliedDiscountAmount,
+            isTestOrder: isTesterUser,
             status: 'Processing'
         });
 
@@ -868,7 +887,23 @@ router.post('/', protect, async (req, res) => {
             .populate('items.product', 'name price image');
 
         const alertTarget = populatedOrder || savedOrder;
-        if (!isUpi) {
+        if (isTesterUser) {
+            // Tester order: never trigger external WhatsApp/ntfy alerts or customer SMS. Admin gets an in-app notice only.
+            await User.updateMany(
+                { role: 'admin' },
+                {
+                    $push: {
+                        notifications: {
+                            title: 'Tester Order Placed',
+                            body: `Tester (${req.user?.name || req.user?.email || 'User'}) placed test order #${savedOrder._id.toString().slice(-6)}. Stock was preserved.`,
+                            type: 'system',
+                            createdAt: new Date(),
+                            data: { orderId: savedOrder._id, isTestOrder: true }
+                        }
+                    }
+                }
+            ).catch(() => {});
+        } else if (!isUpi) {
             // For COD and card/online orders: dispatch owner & customer alerts
             await Promise.allSettled([
                 withTimeout(sendAdminOrderNotification(alertTarget), 5000, 'sendAdminOrderNotification'),
@@ -914,13 +949,15 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
         }
         const beforeSnapshot = existingOrder.toObject ? existingOrder.toObject() : existingOrder;
 
-        // If transitioning to Cancelled and was not cancelled before, restore stock
+        // If transitioning to Cancelled and was not cancelled before, restore stock (only for non-test orders)
         if (status === 'Cancelled' && existingOrder.status !== 'Cancelled') {
-            for (const item of existingOrder.items) {
-                if (item.product) {
-                    await Product.findByIdAndUpdate(item.product, {
-                        $inc: { stock: item.quantity }
-                    });
+            if (!existingOrder.isTestOrder) {
+                for (const item of existingOrder.items) {
+                    if (item.product) {
+                        await Product.findByIdAndUpdate(item.product, {
+                            $inc: { stock: item.quantity }
+                        });
+                    }
                 }
             }
             if (existingOrder.couponCode) {
@@ -999,12 +1036,14 @@ router.put('/:id/cancel', protect, async (req, res) => {
             return res.status(400).json({ message: 'Order is already cancelled' });
         }
 
-        // Restore stock
-        for (const item of order.items) {
-            if (item.product) {
-                await Product.findByIdAndUpdate(item.product, {
-                    $inc: { stock: item.quantity }
-                });
+        // Restore stock (only for non-test orders)
+        if (!order.isTestOrder) {
+            for (const item of order.items) {
+                if (item.product) {
+                    await Product.findByIdAndUpdate(item.product, {
+                        $inc: { stock: item.quantity }
+                    });
+                }
             }
         }
 
@@ -1014,6 +1053,23 @@ router.put('/:id/cancel', protect, async (req, res) => {
     } catch (error) {
         console.error('Error cancelling order:', error);
         res.status(500).json({ message: 'Failed to cancel order' });
+    }
+});
+
+// @route   DELETE /api/orders/admin/test-orders
+// @desc    Delete all test orders (admin only, AuditLog recorded)
+router.delete('/admin/test-orders', protect, adminOnly, async (req, res) => {
+    try {
+        const testOrders = await Order.find({ isTestOrder: true }).select('_id');
+        const count = testOrders.length;
+        if (count > 0) {
+            await Order.deleteMany({ isTestOrder: true });
+            await logAuditEvent(req.user._id, 'DELETE_TEST_ORDERS', 'Order', 'bulk', { count });
+        }
+        res.json({ success: true, deletedCount: count, message: `Successfully deleted ${count} test order(s)` });
+    } catch (error) {
+        console.error('Error deleting test orders:', error);
+        res.status(500).json({ message: 'Failed to delete test orders' });
     }
 });
 

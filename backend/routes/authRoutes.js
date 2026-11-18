@@ -417,6 +417,7 @@ router.post('/register', async (req, res) => {
             email: user.email,
             phone: user.phone,
             role: user.role,
+            isTester: user.isTester || false,
             addresses: user.addresses,
             token: generateToken(user._id, user.tokenVersion || 0)
         });
@@ -509,6 +510,7 @@ router.post('/google', async (req, res) => {
             phone: user.phone || '',
             avatar: user.avatar || photoUrl || '',
             role: user.role,
+            isTester: user.isTester || false,
             addresses: user.addresses || [],
             token: generateToken(user._id, user.tokenVersion || 0)
         });
@@ -563,6 +565,7 @@ router.post('/login', async (req, res) => {
             email: user.email,
             phone: user.phone || '',
             role: user.role,
+            isTester: user.isTester || false,
             addresses: user.addresses || [],
             token: generateToken(user._id, user.tokenVersion || 0)
         });
@@ -614,6 +617,7 @@ router.put('/profile', protect, async (req, res) => {
             email: updatedUser.email,
             phone: updatedUser.phone,
             role: updatedUser.role,
+            isTester: updatedUser.isTester || false,
             addresses: updatedUser.addresses,
             token: generateToken(updatedUser._id, updatedUser.tokenVersion || 0)
         });
@@ -984,6 +988,40 @@ const handleDeleteAccount = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete account. Please contact support.' });
     }
 };
+
+router.put('/admin/users/:id/tester', protect, adminOnly, async (req, res) => {
+    try {
+        const { isTester } = req.body;
+        if (typeof isTester !== 'boolean') {
+            return res.status(400).json({ message: 'isTester boolean is required' });
+        }
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        user.isTester = isTester;
+        await user.save();
+        await AuditLog.create({
+            admin_id: req.user._id,
+            action: 'USER_TESTER_TOGGLE',
+            entity: 'User',
+            entity_id: String(user._id),
+            before_snapshot: { email: user.email, isTester }
+        }).catch(() => {});
+        res.json({
+            success: true,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isTester: user.isTester
+            }
+        });
+    } catch (error) {
+        console.error('Error toggling tester status:', error);
+        res.status(500).json({ message: 'Failed to update user tester status' });
+    }
+});
 
 router.post('/delete-account', protect, handleDeleteAccount);
 router.delete('/profile', protect, handleDeleteAccount);

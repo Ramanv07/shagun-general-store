@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
     googleId: { type: String, default: '' },
     avatar: { type: String, default: '' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    isTester: { type: Boolean, default: false },
     tokenVersion: { type: Number, default: 0 },
     otpHash: { type: String, default: null },
     otpExpiry: { type: Date, default: null },
