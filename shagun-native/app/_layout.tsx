@@ -4,6 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 import { OrderProvider } from '../context/OrderContext';
@@ -40,6 +41,26 @@ function NotificationListener() {
   return null;
 }
 
+function OtaUpdateChecker() {
+  useEffect(() => {
+    async function checkOta() {
+      if (__DEV__) return;
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        // silent fallback if offline or up to date
+      }
+    }
+    checkOta();
+  }, []);
+
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <ErrorBoundary fallbackTitle="Shagun Mart Notice">
@@ -47,6 +68,7 @@ export default function RootLayout() {
         <OrderProvider>
           <CartProvider>
             <NotificationListener />
+            <OtaUpdateChecker />
             <View style={styles.container}>
               <StatusBar style="dark" />
               <SafeAreaView edges={['top']} style={styles.safeArea}>
