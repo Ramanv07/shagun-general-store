@@ -1,10 +1,26 @@
-
-\
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /checkout
 Disallow: /orders
 Disallow: /account
+Disallow: /api/
 
+# AI Search & Answer Engine Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+Sitemap: https://www.shagunmart.shop/sitemap.xml
 Sitemap: https://shagun-general-store.vercel.app/sitemap.xml

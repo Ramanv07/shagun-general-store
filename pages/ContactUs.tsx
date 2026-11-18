@@ -5,45 +5,43 @@ export const ContactUs: React.FC = () => {
     <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto bg-white p-8 sm:p-12 rounded-2xl shadow-sm border border-stone-200">
         
-        {/* Draft Notice Banner */}
-        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-8">
-          <div className="flex items-start">
-            <span className="text-amber-800 font-bold text-sm">
-              Draft — pending final review by owner and legal counsel. Parameter check: [FILL: business registration number, trade license number, official grievance email].
-            </span>
-          </div>
-        </div>
-
         <h1 className="text-3xl font-bold text-stone-900 mb-2">Contact Us &amp; Store Location</h1>
-        <p className="text-sm text-stone-500 mb-8">We are here to assist with store orders, beauty parlour bookings, and rentals.</p>
+        <p className="text-sm text-stone-500 mb-8">We are here to assist with bridal lehenga trials, churi matching, beauty parlour bookings, and store orders.</p>
 
         <section className="space-y-6 text-stone-700 leading-relaxed text-sm sm:text-base">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200 space-y-3">
               <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                <i className="fas fa-store text-maroon-700"></i>
+                <i className="fas fa-store text-emerald-700"></i>
                 Store Physical Address
               </h2>
               <p className="text-stone-600">
-                <strong>Shagun Mart / Shagun General Store</strong><br />
-                Main Market Road, Near SBI,<br />
-                Bamitha, District Chhatarpur,<br />
-                Madhya Pradesh — 471105, India
+                <strong>Shagun Mart – Lehenga &amp; Churi Center</strong><br />
+                <em>(Google Maps: Sagun Lengha Chunari Center)</em><br />
+                Khajuraho Road, Bamitha,<br />
+                District Chhatarpur, Madhya Pradesh — 471105, India
               </p>
-              <p className="text-xs text-stone-500">
-                Business Registration / GSTIN: [FILL: 23XXXXXXXXXXXZX]
-              </p>
+              <div className="pt-2">
+                <a
+                  href="https://maps.google.com/?cid=854452174360343884"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-emerald-800 hover:text-emerald-950 transition bg-emerald-100/70 px-3 py-1.5 rounded-lg"
+                >
+                  <i className="fas fa-directions"></i> View on Google Maps / Directions
+                </a>
+              </div>
             </div>
 
             <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200 space-y-3">
               <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                <i className="fas fa-clock text-maroon-700"></i>
+                <i className="fas fa-clock text-emerald-700"></i>
                 Store Timings
               </h2>
               <p className="text-stone-600">
-                <strong>Monday to Saturday:</strong> 9:00 AM – 9:00 PM<br />
-                <strong>Sunday:</strong> 10:00 AM – 2:00 PM (Emergency rentals only)<br />
-                <strong>Customer Support:</strong> 9:00 AM – 8:00 PM IST
+                <strong>Monday to Sunday:</strong> 7:00 AM – 9:00 PM<br />
+                <strong>Open All 7 Days</strong> (including festive and wedding seasons)<br />
+                <strong>WhatsApp / Phone Support:</strong> 7:00 AM – 9:00 PM IST
               </p>
             </div>
           </div>

@@ -24,6 +24,7 @@ import { RefundPolicy } from './pages/RefundPolicy';
 import { ShippingPolicy } from './pages/ShippingPolicy';
 import { RentalTerms } from './pages/RentalTerms';
 import { ContactUs } from './pages/ContactUs';
+import { LocationPage } from './pages/LocationPage';
 import { ConfirmingPayment } from './pages/ConfirmingPayment';
 import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -45,10 +46,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement; adminOnly?: boole
 };
 
 const PAGE_TITLES: Record<string, string> = {
-  '/': 'Home — Everything You Need Under One Roof | Shagun Mart',
+  '/': 'Shagun Mart Bamitha | Bridal Lehenga, Churi & Beauty Center MP',
   '/shop': 'Shop Products | Shagun Mart',
-  '/beauty-parlor': 'Beauty Parlor & Salon Appointments | Shagun Mart',
-  '/bridal-lehenga': 'Bridal Lehenga Rentals | Shagun Mart',
+  '/beauty-parlor': 'Bridal Makeup & Beauty Parlor Bamitha, Khajuraho | Shagun Mart',
+  '/bridal-lehenga': 'Bridal Lehenga & Wedding Showroom Bamitha | Shagun Mart',
   '/cart': 'Shopping Cart | Shagun Mart',
   '/checkout': 'Shipping & Checkout | Shagun Mart',
   '/orders': 'My Orders | Shagun Mart',
@@ -60,15 +61,15 @@ const PAGE_TITLES: Record<string, string> = {
   '/refund-policy': 'Refund & Cancellation Policy | Shagun Mart',
   '/shipping-policy': 'Shipping & Delivery Policy | Shagun Mart',
   '/rental-terms': 'Bridal Lehenga Rental Terms | Shagun Mart',
-  '/contact-us': 'Contact Us & Store Location | Shagun Mart',
+  '/contact-us': 'Contact Shagun Mart Bamitha | Khajuraho Road, Phone: 8827259023',
   '/admin': 'Admin Dashboard | Shagun Mart',
 };
 
 const PAGE_DESCRIPTIONS: Record<string, string> = {
-  '/': 'Shagun Mart — Bamitha, Madhya Pradesh. Everything you need, beautifully sorted. Bridal lehenga on rent, makeup, daily essentials and cosmetics.',
-  '/shop': 'Browse cosmetics, personal care, household essentials, and gifts available for quick delivery at Shagun Mart.',
-  '/beauty-parlor': 'Book salon and bridal makeup appointments with professional beauty experts at Shagun Beauty Parlor.',
-  '/bridal-lehenga': 'Rent premium designer bridal lehengas, bridal jewelry, and accessories for weddings and receptions.',
+  '/': 'Shagun Mart (Sagun Lengha Chunari Center) on Khajuraho Road, Bamitha. Bridal lehengas, bridal chuda, bangles & bridal makeup for Bamitha, Chhatarpur, Panna & Khajuraho.',
+  '/shop': 'Browse cosmetics, personal care, bangles, and bridal essentials available at Shagun Mart Bamitha.',
+  '/beauty-parlor': 'Book professional bridal makeup, makeover packages, and beauty parlour services at Shagun Mart Bamitha.',
+  '/bridal-lehenga': 'Royal red velvet, pastel & designer bridal lehengas with in-store trials on Khajuraho Road, Bamitha.',
   '/cart': 'Review selected items in your Shagun Mart shopping cart before checking out.',
   '/checkout': 'Safe and fast checkout with cash on delivery and UPI payment options at Shagun Mart.',
   '/orders': 'Track your order status and view recent purchases from Shagun Mart.',
@@ -141,6 +142,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/shipping-policy" element={<ShippingPolicy />} />
           <Route path="/rental-terms" element={<RentalTerms />} />
           <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/locations/:town" element={<LocationPage />} />
 
           <Route
             path="/checkout"
