@@ -50,7 +50,7 @@ export const TopBar: React.FC = () => {
             </a>
           )}
 
-          <a href="/shagun-app.apk" download className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
+          <a href="https://expo.dev/artifacts/eas/fmzfJelqlPvtp_RtQIsKFPcNetUTX2LahCH-dtf-yxg.apk" download className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
             <Smartphone size={15} strokeWidth={1.5} />
             <span>Download App</span>
           </a>

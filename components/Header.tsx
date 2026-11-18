@@ -526,8 +526,8 @@ export const Header: React.FC = () => {
       {/* Android app download: intentionally visible only in the mobile web layout. */}
       <div className="lg:hidden px-5 pb-3">
         <a
-          href="/shagun-app.apk"
-          download="shagun-mart.apk"
+          href="https://expo.dev/artifacts/eas/fmzfJelqlPvtp_RtQIsKFPcNetUTX2LahCH-dtf-yxg.apk"
+          download="shagun-mart-v1.0.3.apk"
           className="w-full min-h-11 rounded-xl bg-maroon-900 text-white flex items-center justify-center gap-2.5 px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors hover:bg-maroon-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon-900"
           aria-label="Download the Shagun Mart Android app APK"
         >
