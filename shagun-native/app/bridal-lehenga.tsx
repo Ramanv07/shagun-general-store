@@ -11,10 +11,12 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Product, ActiveRentalInfo, RentalBooking } from '../types';
 import { ADMIN_WHATSAPP } from '../constants';
+import { useSmartBack } from '../components/useAndroidBackHandler';
 
 const { width } = Dimensions.get('window');
 
 export default function BridalLehengaScreen() {
+  useSmartBack('/(tabs)');
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [lehengas, setLehengas] = useState<Product[]>([]);

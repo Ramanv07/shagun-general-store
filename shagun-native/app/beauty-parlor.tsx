@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ADMIN_WHATSAPP } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { useSmartBack } from '../components/useAndroidBackHandler';
 
 const DEFAULT_SERVICES = [
   { id: 'bridal', name: 'Bridal Makeup', price: 6500, desc: 'Complete bridal package — trial & wedding day', icon: 'heart-outline' as const },
@@ -19,6 +20,7 @@ const DEFAULT_SERVICES = [
 ];
 
 export default function BeautyParlorScreen() {
+  useSmartBack('/(tabs)');
   const router = useRouter();
   const { user } = useAuth();
 

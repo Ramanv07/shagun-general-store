@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
@@ -61,6 +61,27 @@ function OtaUpdateChecker() {
   return null;
 }
 
+function GlobalAndroidBackHandler() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const onBackPress = () => {
+      if (router.canGoBack()) {
+        router.back();
+        return true;
+      }
+      return false; // let home screen handle double tap to exit
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [router]);
+
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <ErrorBoundary fallbackTitle="Shagun Mart Notice">
@@ -69,6 +90,7 @@ export default function RootLayout() {
           <CartProvider>
             <NotificationListener />
             <OtaUpdateChecker />
+            <GlobalAndroidBackHandler />
             <View style={styles.container}>
               <StatusBar style="dark" />
               <SafeAreaView edges={['top']} style={styles.safeArea}>

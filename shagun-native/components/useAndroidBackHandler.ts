@@ -31,7 +31,7 @@ export function useDoubleBackToExit() {
 }
 
 /**
- * Hook for Sub-screens/Tabs: Pressing back button goes to Home instead of closing app
+ * Hook for Sub-screens/Tabs: Pressing back button goes back if possible, or redirects to Home instead of closing app
  */
 export function useBackToHome() {
   const router = useRouter();
@@ -39,6 +39,10 @@ export function useBackToHome() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
+        if (router.canGoBack()) {
+          router.back();
+          return true;
+        }
         router.navigate('/(tabs)');
         return true; // Handled, redirected to Home
       };
@@ -46,5 +50,29 @@ export function useBackToHome() {
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => subscription.remove();
     }, [router])
+  );
+}
+
+/**
+ * Hook for Details / Search / Checkout screens:
+ * Always goes back to the previous screen. If no history, navigates to fallback route.
+ */
+export function useSmartBack(fallbackRoute: string = '/(tabs)') {
+  const router = useRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (router.canGoBack()) {
+          router.back();
+          return true;
+        }
+        router.navigate(fallbackRoute as any);
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router, fallbackRoute])
   );
 }

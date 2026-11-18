@@ -28,6 +28,7 @@ import { storage } from '../services/storage';
 import { Product } from '../types';
 import { CATEGORIES, FALLBACK_IMAGE } from '../constants';
 import ProductCard from '../components/ProductCard';
+import { useSmartBack } from '../components/useAndroidBackHandler';
 
 const RECENT_SEARCHES_KEY = 'shagun_recent_searches';
 
@@ -45,6 +46,7 @@ const POPULAR_SEARCHES = [
 ];
 
 export default function SearchScreen() {
+  useSmartBack();
   const router = useRouter();
   const params = useLocalSearchParams<{ q?: string }>();
   const inputRef = useRef<TextInput>(null);

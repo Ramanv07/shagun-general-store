@@ -12,10 +12,12 @@ import { Address, Order } from '../types';
 import { ADMIN_WHATSAPP, API_BASE_URL, APP_ENV, PRODUCTION_API_HOST } from '../constants';
 import { api } from '../services/api';
 import { isHostBlocked } from '../utils/hostSafety';
+import { useSmartBack } from '../components/useAndroidBackHandler';
 
 const PAYMENT_METHODS = ['COD', 'UPI', 'Online'] as const;
 
 export default function CheckoutScreen() {
+  useSmartBack('/(tabs)/cart');
   const { cart, totalPrice, clearCart } = useCart();
   const { addOrder } = useOrders();
   const { user, isAuthenticated, updateUser } = useAuth();

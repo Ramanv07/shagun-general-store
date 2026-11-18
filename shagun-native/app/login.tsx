@@ -37,8 +37,10 @@ import { THEME } from '../constants/theme';
 import { ADMIN_WHATSAPP } from '../constants';
 import { signInWithGoogleWeb } from '../services/firebaseAuth';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useSmartBack } from '../components/useAndroidBackHandler';
 
 function LoginScreenInner() {
+  useSmartBack('/(tabs)');
   const { login } = useAuth();
   const router = useRouter();
 

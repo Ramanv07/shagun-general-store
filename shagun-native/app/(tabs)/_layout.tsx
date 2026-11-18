@@ -1,12 +1,18 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '../../constants/theme';
 import { Home, LayoutGrid, Tag, ShoppingBag, User } from 'lucide-react-native';
 import { useCart } from '../../context/CartContext';
 
 export default function TabsLayout() {
   const { cartCount } = useCart();
+  const insets = useSafeAreaInsets();
+
+  // Dynamic bottom padding to safely clear Android 3-button navigation bar (or iOS home bar)
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 8);
+  const tabHeight = 56 + bottomInset;
 
   return (
     <Tabs
@@ -16,9 +22,15 @@ export default function TabsLayout() {
           backgroundColor: THEME.colors.white,
           borderTopColor: THEME.colors.line,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 84 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-          paddingTop: 8,
+          height: tabHeight,
+          paddingBottom: bottomInset,
+          paddingTop: 6,
+          elevation: 8,
+        },
+        tabBarItemStyle: {
+          height: 48,
+          justifyContent: 'center',
+          alignItems: 'center',
         },
         tabBarActiveTintColor: THEME.colors.maroon700,
         tabBarInactiveTintColor: THEME.colors.ink500,

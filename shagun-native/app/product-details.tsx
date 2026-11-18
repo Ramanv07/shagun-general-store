@@ -12,7 +12,7 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
@@ -20,13 +20,16 @@ import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { FALLBACK_IMAGE, API_BASE_URL } from '../constants';
 import { THEME } from '../constants/theme';
+import { useSmartBack } from '../components/useAndroidBackHandler';
 
 const { width } = Dimensions.get('window');
 
 export default function ProductDetailsScreen() {
+  useSmartBack();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string; productJson?: string }>();
   const { addToCart, cartCount } = useCart();
+  const insets = useSafeAreaInsets();
 
   const parsedFromParams = React.useMemo(() => {
     if (params.productJson) {
@@ -355,7 +358,7 @@ export default function ProductDetailsScreen() {
       </ScrollView>
 
       {/* ── Fixed Flipkart-Style Sticky Bottom Bar ── */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <TouchableOpacity
           style={[
             styles.cartActionBtn,
