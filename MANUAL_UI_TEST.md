@@ -4,7 +4,29 @@ This manual verification plan tests all frontend screens and backend integration
 
 ---
 
-## 0. Exact Commands to Run Locally
+## 11. Smart Product Search Verification (App & Web)
+
+- [ ] **A. Multi-Word & Word-Order Search:**
+  - Search `"mamaearth face wash"` in mobile app and web -> Verifies Mamaearth Face Wash appears first, in stock before out-of-stock.
+  - Search `"face wash mamaearth"` (reversed word order) -> Verifies identical relevant products appear.
+- [ ] **B. Typo-Tolerance & Correction:**
+  - Search `"mamarth"` -> Displays Mamaearth products with banner: *"Showing results for mamaearth"*.
+  - Search `"fae wash"` or `"fase wash"` -> Shows Face Wash products with banner.
+  - Search `"nivea crem"` -> Shows Nivea cream items.
+  - Tap *"Search instead for <original>"* on the banner -> Re-runs search with strict original term.
+- [ ] **C. Compound Words & Units:**
+  - Search `"mamaearth facewash"` (joined) -> Matches face wash products (not body washes).
+  - Search `"vaseline 400ml"` and `"vaseline 400 ml"` -> Both match Vaseline 400ml products.
+- [ ] **D. Live Suggestions (Mobile & Web):**
+  - Type `"mama"` -> Instant dropdown overlay suggests *"Mamaearth"* (Brand) and top products.
+  - Tapping a suggestion immediately populates search query and displays results.
+- [ ] **E. Zero-Results & Miss Logging:**
+  - Search complete nonsense `"xqzvw"` -> Empty state displays friendly message, category shortcut chips, and *"Need something we don't have? Send feedback"* button.
+  - In Admin Dashboard (`/admin`), open **Zero Searches** tab -> `"xqzvw"` is logged with count and timestamp.
+- [ ] **F. Admin Synonyms & Draft Protection:**
+  - In Admin Dashboard (`/admin`), open **Synonyms** tab -> Verify default synonyms list is editable and can be saved.
+  - Toggle a product to **Draft** in Admin Products -> Public search in app and web never returns the draft product.
+
 
 Follow these 5 steps in separate PowerShell terminals to run the entire staging stack locally without reaching MongoDB Atlas or external services:
 
