@@ -58,7 +58,7 @@ export const api = {
     throw new Error((err as any).message || 'Registration failed');
   },
 
-  loginWithGoogle: async (data: { name: string; email: string; googleId?: string; photoUrl?: string }): Promise<User> => {
+  loginWithGoogle: async (data: { name?: string; email?: string; googleId?: string; photoUrl?: string; idToken?: string; token?: string; credential?: string }): Promise<User> => {
     const res = await fetch(`${BASE}/api/auth/google`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

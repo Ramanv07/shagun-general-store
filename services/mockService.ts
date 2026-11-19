@@ -207,7 +207,7 @@ export const mockApi = {
     throw new Error(err.message || 'Registration failed');
   },
 
-  loginWithGoogle: async (googleData: { name: string; email: string; googleId?: string; photoUrl?: string }): Promise<User> => {
+  loginWithGoogle: async (googleData: { name?: string; email?: string; googleId?: string; photoUrl?: string; avatar?: string; idToken?: string; token?: string; credential?: string }): Promise<User> => {
     const res = await fetch('/api/auth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

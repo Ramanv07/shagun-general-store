@@ -453,7 +453,9 @@ router.post('/google', async (req, res) => {
                 process.env.GOOGLE_CLIENT_ID_WEB,
                 process.env.GOOGLE_CLIENT_ID_ANDROID,
                 process.env.GOOGLE_CLIENT_ID_IOS,
-                process.env.GOOGLE_CLIENT_ID
+                process.env.GOOGLE_CLIENT_ID,
+                '156770476319-nppam5is29ap7gvav7gup1slkffjvovg.apps.googleusercontent.com',
+                '156770476319-ehps2jqltr552lnirg9jrv3t3ahq3efb.apps.googleusercontent.com'
             ].filter(Boolean);
 
             const ticket = await googleClient.verifyIdToken({
@@ -508,7 +510,7 @@ router.post('/google', async (req, res) => {
             name: user.name,
             email: user.email,
             phone: user.phone || '',
-            avatar: user.avatar || photoUrl || '',
+            avatar: user.avatar || verifiedPhotoUrl || '',
             role: user.role,
             isTester: user.isTester || false,
             addresses: user.addresses || [],
@@ -813,7 +815,10 @@ const handleDeleteAccount = async (req, res) => {
                             audience: [
                                 process.env.GOOGLE_CLIENT_ID_WEB,
                                 process.env.GOOGLE_CLIENT_ID_ANDROID,
-                                process.env.GOOGLE_CLIENT_ID_IOS
+                                process.env.GOOGLE_CLIENT_ID_IOS,
+                                process.env.GOOGLE_CLIENT_ID,
+                                '156770476319-nppam5is29ap7gvav7gup1slkffjvovg.apps.googleusercontent.com',
+                                '156770476319-ehps2jqltr552lnirg9jrv3t3ahq3efb.apps.googleusercontent.com'
                             ].filter(Boolean)
                         });
                         const payload = ticket.getPayload();

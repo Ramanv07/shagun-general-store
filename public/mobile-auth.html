@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Google Sign-In - Shagun Mart</title>
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #FAF6F0;
+      color: #2D2D2D;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+    .card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 36px 24px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      border: 1px solid #EFEAE2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .logo-container {
+      width: 80px;
+      height: 80px;
+      background: #FAF6F0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      border: 2px solid #E8DFD1;
+    }
+    .logo-img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1A1A1A;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    p.subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+    #google-btn-wrapper {
+      min-height: 44px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .status-box {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      display: none;
+      width: 100%;
+      line-height: 1.4;
+    }
+    .status-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #795548;
+      background: #F5EFEB;
+    }
+    .status-success {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border: 1px solid #C8E6C9;
+    }
+    .status-error {
+      background: #FFEBEE;
+      color: #C62828;
+      border: 1px solid #FFCDD2;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #D47343;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .return-btn {
+      display: none;
+      margin-top: 20px;
+      background: #D47343;
+      color: #FFF;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-size: 15px;
+      box-shadow: 0 4px 12px rgba(212, 115, 67, 0.3);
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .return-btn:active {
+      background: #BC5E30;
+    }
+    .footer-note {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-container">
+      <img src="/favicon.png" alt="Shagun Mart" class="logo-img" onerror="this.src='/images/app-icon.png'">
+    </div>
+    <h1>Shagun Mart</h1>
+    <p class="subtitle">1-Click Google Sign-In for your mobile app</p>
+
+    <div id="google-btn-wrapper"></div>
+
+    <div id="status-loading" class="status-box status-loading">
+      <div class="spinner"></div>
+      <span>Verifying your account...</span>
+    </div>
+
+    <div id="status-success" class="status-box status-success">
+      ✓ Login successful! Redirecting to app...
+    </div>
+
+    <div id="status-error" class="status-box status-error"></div>
+
+    <a id="return-link" href="#" class="return-btn">Open Shagun Mart App</a>
+  </div>
+
+  <p class="footer-note">Secure Google Authentication • Shagun General Store</p>
+
+  <script>
+    const CLIENT_ID = '156770476319-nppam5is29ap7gvav7gup1slkffjvovg.apps.googleusercontent.com';
+    const params = new URLSearchParams(window.location.search);
+    const redirectScheme = params.get('redirect') || 'shagun://login-callback';
+
+    function setStatus(type, msg) {
+      document.getElementById('status-loading').style.display = type === 'loading' ? 'flex' : 'none';
+      const successBox = document.getElementById('status-success');
+      const errorBox = document.getElementById('status-error');
+
+      if (type === 'success') {
+        successBox.style.display = 'block';
+        if (msg) successBox.textContent = msg;
+        errorBox.style.display = 'none';
+      } else if (type === 'error') {
+        errorBox.style.display = 'block';
+        errorBox.textContent = msg || 'Sign in failed. Please try again.';
+        successBox.style.display = 'none';
+      } else if (type === 'idle') {
+        successBox.style.display = 'none';
+        errorBox.style.display = 'none';
+      }
+    }
+
+    async function handleCredentialResponse(response) {
+      if (!response || !response.credential) {
+        setStatus('error', 'Google did not return credentials. Please try again.');
+        return;
+      }
+      setStatus('loading');
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: response.credential })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Google authentication failed on server');
+        }
+
+        setStatus('success', '✓ Welcome, ' + (data.name || 'User') + '! Opening app...');
+        
+        const returnUrl = redirectScheme + (redirectScheme.includes('?') ? '&' : '?') +
+          'token=' + encodeURIComponent(data.token || '') +
+          '&user=' + encodeURIComponent(JSON.stringify(data));
+
+        const returnBtn = document.getElementById('return-link');
+        returnBtn.href = returnUrl;
+        returnBtn.style.display = 'block';
+
+        // Automatically trigger deep-link back into the native app
+        window.location.href = returnUrl;
+
+        // Fallback timeout: if still on page after 1.5s, keep button prominent
+        setTimeout(() => {
+          returnBtn.textContent = 'Tap to Open App';
+        }, 1500);
+      } catch (err) {
+        console.error('Auth error:', err);
+        setStatus('error', err.message || 'Login failed. Please try again.');
+      }
+    }
+
+    window.onload = function () {
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({
+          client_id: CLIENT_ID,
+          callback: handleCredentialResponse,
+          auto_select: true
+        });
+
+        google.accounts.id.renderButton(
+          document.getElementById('google-btn-wrapper'),
+          { theme: 'outline', size: 'large', type: 'standard', shape: 'pill', width: 280, text: 'signin_with' }
+        );
+
+        // Prompt Google One Tap automatically on mobile Chrome
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.log('One tap skipped or suppressed, button is visible');
+          }
+        });
+      } else {
+        // Fallback retry if script loading delayed
+        setTimeout(() => {
+          if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+            google.accounts.id.initialize({
+              client_id: CLIENT_ID,
+              callback: handleCredentialResponse,
+              auto_select: true
+            });
+            google.accounts.id.renderButton(
+              document.getElementById('google-btn-wrapper'),
+              { theme: 'outline', size: 'large', type: 'standard', shape: 'pill', width: 280, text: 'signin_with' }
+            );
+            google.accounts.id.prompt();
+          } else {
+            setStatus('error', 'Google service could not load. Check network connection.');
+          }
+        }, 1200);
+      }
+    };
+  </script>
+</body>
+</html>

@@ -124,11 +124,15 @@ export const Login: React.FC = () => {
       const fbUser = result.user;
       if (!fbUser) throw new Error('Google sign-in was cancelled');
 
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const idToken = credential?.idToken || (await fbUser.getIdToken?.());
+
       const user = await mockApi.loginWithGoogle({
         name: fbUser.displayName || 'Google User',
         email: fbUser.email || '',
         avatar: fbUser.photoURL || undefined,
-        googleId: fbUser.uid
+        googleId: fbUser.uid,
+        idToken: idToken || undefined,
       });
 
       login(user);

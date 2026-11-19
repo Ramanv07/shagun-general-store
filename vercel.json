@@ -35,6 +35,14 @@
       "destination": "/api/index.js"
     },
     {
+      "source": "/mobile-auth.html",
+      "destination": "/mobile-auth.html"
+    },
+    {
+      "source": "/mobile-google-auth.html",
+      "destination": "/mobile-google-auth.html"
+    },
+    {
       "source": "/((?!api/|.*\\.apk$).*)",
       "destination": "/index.html"
     }

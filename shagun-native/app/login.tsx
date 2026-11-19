@@ -34,7 +34,7 @@ import {
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { THEME } from '../constants/theme';
-import { ADMIN_WHATSAPP } from '../constants';
+import { ADMIN_WHATSAPP, API_BASE_URL } from '../constants';
 import { signInWithGoogleWeb } from '../services/firebaseAuth';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useSmartBack } from '../components/useAndroidBackHandler';
@@ -132,20 +132,63 @@ function LoginScreenInner() {
           throw new Error('Google sign-in was cancelled or returned no email.');
         }
 
+        const idToken = fbUser.idToken || (await fbUser.getIdToken?.());
         const user = await api.loginWithGoogle({
           name: fbUser.displayName || 'Google User',
           email: fbUser.email,
           photoUrl: fbUser.photoURL || undefined,
           googleId: fbUser.uid,
+          idToken: idToken || undefined,
         });
 
         await login(user);
         router.replace('/(tabs)');
       } else {
-        Alert.alert(
-          'Google Sign-In',
-          'Google 1-click sign-in is available in web browser mode. On mobile, please sign in with your email or mobile number.'
-        );
+        // Mobile Google Sign-In via OAuth Deep Link Bridge
+        const webBase = (API_BASE_URL || 'https://shagun-general-store.vercel.app/api').replace(/\/api\/?$/, '');
+        const authUrl = `${webBase}/mobile-auth.html?redirect=shagun://login-callback`;
+
+        // Deep link listener in case the app is already in foreground when redirected
+        const sub = Linking.addEventListener('url', async (event) => {
+          try {
+            const url = event.url;
+            if (url && url.includes('login-callback')) {
+              const queryPart = url.split('?')[1];
+              if (queryPart) {
+                const searchParams = new URLSearchParams(queryPart);
+                const userParam = searchParams.get('user');
+                const token = searchParams.get('token');
+                if (userParam) {
+                  const parsedUser = JSON.parse(decodeURIComponent(userParam));
+                  if (token && !parsedUser.token) {
+                    parsedUser.token = token;
+                  }
+                  await login(parsedUser);
+                  router.replace('/(tabs)');
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Failed to parse deep link user in login screen:', e);
+          } finally {
+            setGoogleLoading(false);
+            sub.remove();
+          }
+        });
+
+        const canOpen = await Linking.canOpenURL(authUrl);
+        if (canOpen) {
+          await Linking.openURL(authUrl);
+        } else {
+          sub.remove();
+          throw new Error('Could not open browser for Google authentication.');
+        }
+
+        // Keep loading briefly then release if user returns without completing
+        setTimeout(() => {
+          sub.remove();
+          setGoogleLoading(false);
+        }, 30000);
       }
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
@@ -155,7 +198,9 @@ function LoginScreenInner() {
         setError(err.message || 'Failed to sign in with Google.');
       }
     } finally {
-      setGoogleLoading(false);
+      if (Platform.OS === 'web') {
+        setGoogleLoading(false);
+      }
     }
   };
 
