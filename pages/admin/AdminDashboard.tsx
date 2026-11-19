@@ -48,7 +48,15 @@ const rentalStatusColors: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'upi' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews' | 'banners' | 'coupons' | 'brands' | 'feedback'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'upi' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews' | 'banners' | 'coupons' | 'brands' | 'feedback' | 'searchMisses' | 'synonyms'>('overview');
+    const [adminProductSearch, setAdminProductSearch] = useState('');
+    const [adminDraftFilter, setAdminDraftFilter] = useState(false);
+    const [searchMisses, setSearchMisses] = useState<any[]>([]);
+    const [loadingMisses, setLoadingMisses] = useState(false);
+    const [synonymsMap, setSynonymsMap] = useState<Record<string, string[]>>({});
+    const [synonymInputKey, setSynonymInputKey] = useState('');
+    const [synonymInputValue, setSynonymInputValue] = useState('');
+    const [savingSynonyms, setSavingSynonyms] = useState(false);
     const [orderTypeFilter, setOrderTypeFilter] = useState<'all' | 'real' | 'test'>('all');
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
     const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'pending' | 'reviewed' | 'resolved'>('all');
@@ -354,6 +362,88 @@ export const AdminDashboard: React.FC = () => {
             alert('Error deleting test orders: ' + err.message);
         }
     };
+
+    const fetchSearchMisses = async () => {
+        setLoadingMisses(true);
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/products/admin/search-misses', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSearchMisses(data);
+            }
+        } catch (err) {
+            console.error('Failed to load search misses', err);
+        } finally {
+            setLoadingMisses(false);
+        }
+    };
+
+    const handleClearSearchMisses = async () => {
+        if (!confirm('Are you sure you want to clear all recorded search misses?')) return;
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/products/admin/search-misses', {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                setSearchMisses([]);
+            }
+        } catch (err) {
+            console.error('Failed to clear search misses', err);
+        }
+    };
+
+    const fetchSynonyms = async () => {
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/settings/search-synonyms', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSynonymsMap(data);
+            }
+        } catch (err) {
+            console.error('Failed to load search synonyms', err);
+        }
+    };
+
+    const handleSaveSynonyms = async (newMap: Record<string, string[]>) => {
+        setSavingSynonyms(true);
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/settings/search-synonyms', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ synonyms: newMap })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSynonymsMap(data.synonyms || newMap);
+                alert('Synonyms updated successfully!');
+            }
+        } catch (err) {
+            console.error('Failed to update synonyms', err);
+            alert('Failed to update synonyms');
+        } finally {
+            setSavingSynonyms(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'searchMisses') {
+            fetchSearchMisses();
+        } else if (activeTab === 'synonyms') {
+            fetchSynonyms();
+        }
+    }, [activeTab]);
 
     const handleDeleteService = async (id: string) => {
         if (confirm('Are you sure you want to delete this service?')) {
@@ -691,6 +781,8 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'parlorServices', label: 'Parlor Services' },
                         { id: 'reviews', label: '⭐ Reviews' },
                         { id: 'feedback', label: '💬 Feedback' },
+                        { id: 'searchMisses', label: '🔍 Zero Searches' },
+                        { id: 'synonyms', label: '📚 Synonyms' },
                         { id: 'users', label: 'Users' }
                     ].map(tab => (
                         <button
@@ -749,6 +841,31 @@ export const AdminDashboard: React.FC = () => {
                                     className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors"
                                 >
                                     + Add Product
+                                </button>
+                            </div>
+
+                            {/* Product Search & Draft Filter Bar */}
+                            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between mb-4 bg-gray-900/60 p-3 rounded-xl border border-gray-700">
+                                <div className="relative w-full sm:max-w-md">
+                                    <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input
+                                        type="text"
+                                        placeholder="Search products by name, category, or brand..."
+                                        value={adminProductSearch}
+                                        onChange={e => setAdminProductSearch(e.target.value)}
+                                        className="w-full bg-gray-800 text-white pl-9 pr-8 py-2 rounded-lg text-sm border border-gray-600 focus:border-gold-500 outline-none"
+                                    />
+                                    {adminProductSearch && (
+                                        <button onClick={() => setAdminProductSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                            <i className="fas fa-times text-xs"></i>
+                                        </button>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setAdminDraftFilter(!adminDraftFilter)}
+                                    className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${adminDraftFilter ? 'bg-gold-500 text-black border-gold-400' : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'}`}
+                                >
+                                    Drafts: {adminDraftFilter ? 'Showing Only Drafts' : 'All Products'}
                                 </button>
                             </div>
 
@@ -1056,7 +1173,13 @@ export const AdminDashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/10">
-                                        {products.map(p => (
+                                        {products.filter(p => {
+                                            if (adminDraftFilter && !(p as any).isDraft) return false;
+                                            if (!adminProductSearch.trim()) return true;
+                                            const tokens = adminProductSearch.trim().toLowerCase().split(/\s+/).filter(Boolean);
+                                            const full = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+                                            return tokens.every(t => full.includes(t));
+                                        }).map(p => (
                                             <tr key={p._id} className="hover:bg-white/5">
                                                 <td className="p-3"><img src={p.image} className="w-10 h-10 rounded object-cover" alt={p.name} /></td>
                                                 <td className="p-3 font-medium text-white">
@@ -2430,6 +2553,163 @@ export const AdminDashboard: React.FC = () => {
                                     </table>
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* SEARCH MISSES TAB */}
+                    {activeTab === 'searchMisses' && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 className="text-xl text-white font-bold">Zero-Result Searches</h2>
+                                    <p className="text-xs text-gray-400">Search queries that returned 0 products. Use this to identify missing products or missing synonyms.</p>
+                                </div>
+                                {searchMisses.length > 0 && (
+                                    <button
+                                        onClick={handleClearSearchMisses}
+                                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold"
+                                    >
+                                        Clear Misses Log
+                                    </button>
+                                )}
+                            </div>
+
+                            {loadingMisses ? (
+                                <p className="text-gray-400 text-sm">Loading search misses...</p>
+                            ) : searchMisses.length === 0 ? (
+                                <p className="text-gray-400 text-sm">No zero-result searches recorded yet. Search engine is matching smoothly!</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-gray-300 text-sm">
+                                        <thead className="bg-white/5 uppercase text-xs">
+                                            <tr>
+                                                <th className="p-3">Query</th>
+                                                <th className="p-3">Search Count</th>
+                                                <th className="p-3">Last Searched</th>
+                                                <th className="p-3">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/10">
+                                            {searchMisses.map(m => (
+                                                <tr key={m._id} className="hover:bg-white/5">
+                                                    <td className="p-3 font-semibold text-white">"{m.query}"</td>
+                                                    <td className="p-3"><span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-xs">{m.count} times</span></td>
+                                                    <td className="p-3 text-xs text-gray-400">{new Date(m.lastSearchedAt).toLocaleString()}</td>
+                                                    <td className="p-3">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSynonymInputValue(m.query);
+                                                                setActiveTab('synonyms');
+                                                            }}
+                                                            className="px-2.5 py-1 bg-gold-500 hover:bg-gold-400 text-black rounded text-xs font-bold"
+                                                        >
+                                                            + Add As Synonym
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* SYNONYMS TAB */}
+                    {activeTab === 'synonyms' && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 className="text-xl text-white font-bold">Search Synonyms & Aliases</h2>
+                                    <p className="text-xs text-gray-400">Map local, colloquial, or Hinglish spellings to products (e.g. "saabun" = soap, "lotoin" = lotion).</p>
+                                </div>
+                            </div>
+
+                            {/* Add Synonym Group Form */}
+                            <div className="bg-gray-900/60 p-4 rounded-xl border border-gray-700 space-y-4">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Add or Edit Synonym Group</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs text-gray-400 block mb-1">Target Keyword / Product (e.g. mamaearth, soap, lotion)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Canonical keyword..."
+                                            value={synonymInputKey}
+                                            onChange={e => setSynonymInputKey(e.target.value)}
+                                            className="w-full bg-gray-800 text-white p-2.5 rounded text-sm border border-gray-600 focus:border-gold-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400 block mb-1">Synonyms / Misspellings (comma separated)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. mama earth, mamaarth, mamarth"
+                                            value={synonymInputValue}
+                                            onChange={e => setSynonymInputValue(e.target.value)}
+                                            className="w-full bg-gray-800 text-white p-2.5 rounded text-sm border border-gray-600 focus:border-gold-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    disabled={savingSynonyms}
+                                    onClick={() => {
+                                        const k = synonymInputKey.trim().toLowerCase();
+                                        if (!k) { alert('Please enter a target keyword'); return; }
+                                        const variants = synonymInputValue.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                                        const updated = { ...synonymsMap, [k]: Array.from(new Set([...(synonymsMap[k] || []), ...variants])) };
+                                        handleSaveSynonyms(updated);
+                                        setSynonymInputKey('');
+                                        setSynonymInputValue('');
+                                    }}
+                                    className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                >
+                                    {savingSynonyms ? 'Saving...' : 'Save Synonym Group'}
+                                </button>
+                            </div>
+
+                            {/* Current Synonyms Groups */}
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Configured Synonym Groups ({Object.keys(synonymsMap).length})</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {Object.entries(synonymsMap).map(([key, list]) => (
+                                        <div key={key} className="bg-gray-900/40 border border-gray-700/60 p-3.5 rounded-xl flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="font-bold text-gold-400 text-sm uppercase">{key}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm(`Remove synonym group "${key}"?`)) {
+                                                                const copy = { ...synonymsMap };
+                                                                delete copy[key];
+                                                                handleSaveSynonyms(copy);
+                                                            }
+                                                        }}
+                                                        className="text-red-400 hover:text-red-300 text-xs"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {(list || []).map((syn, sIdx) => (
+                                                        <span key={sIdx} className="bg-white/10 text-gray-200 text-xs px-2 py-0.5 rounded">
+                                                            {syn}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setSynonymInputKey(key);
+                                                    setSynonymInputValue((list || []).join(', '));
+                                                }}
+                                                className="text-left text-xs text-blue-400 hover:underline mt-3"
+                                            >
+                                                Edit Group
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
 

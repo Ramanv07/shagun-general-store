@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator, Alert, TextInput, Image, Modal,
@@ -27,6 +27,10 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Product search & draft filter state
+  const [productSearch, setProductSearch] = useState('');
+  const [showDraftsOnly, setShowDraftsOnly] = useState(false);
 
   // Product form state
   const [showForm, setShowForm] = useState(false);
@@ -167,6 +171,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const filteredAdminProducts = useMemo(() => {
+    let list = products;
+    if (showDraftsOnly) {
+      list = list.filter(p => (p as any).isDraft);
+    }
+    const cleanSearch = productSearch.trim().toLowerCase();
+    if (!cleanSearch) return list;
+    const tokens = cleanSearch.split(/\s+/).filter(Boolean);
+    return list.filter(p => {
+      const full = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+      return tokens.every(t => full.includes(t));
+    });
+  }, [products, productSearch, showDraftsOnly]);
+
   const TABS: { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { key: 'orders', label: 'Orders', icon: 'receipt-outline' },
     { key: 'products', label: 'Products', icon: 'cube-outline' },
@@ -221,12 +239,42 @@ export default function AdminDashboard() {
         ))}
       </View>
 
-      {/* Add Product Button (only on Products tab) */}
+      {/* Add Product Button & Search (only on Products tab) */}
       {tab === 'products' && (
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
-          <Ionicons name="add-circle" size={20} color="#fff" />
-          <Text style={styles.addBtnText}>Add New Product</Text>
-        </TouchableOpacity>
+        <View style={{ paddingHorizontal: 12, marginBottom: 8, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#3d1627', borderRadius: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: '#5e2338' }}>
+              <Ionicons name="search" size={16} color="#d4a853" style={{ marginRight: 6 }} />
+              <TextInput
+                style={{ flex: 1, color: '#fff', fontSize: 13, paddingVertical: 6 }}
+                placeholder="Search products..."
+                placeholderTextColor="#9c7a8a"
+                value={productSearch}
+                onChangeText={setProductSearch}
+              />
+              {productSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setProductSearch('')}>
+                  <Ionicons name="close-circle" size={16} color="#9c7a8a" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[
+                { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#5e2338', justifyContent: 'center' },
+                showDraftsOnly ? { backgroundColor: '#d4a853' } : { backgroundColor: '#3d1627' }
+              ]}
+              onPress={() => setShowDraftsOnly(!showDraftsOnly)}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '700', color: showDraftsOnly ? '#1a050d' : '#d4a853' }}>
+                Drafts {showDraftsOnly ? 'ON' : 'OFF'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
+            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Text style={styles.addBtnText}>Add New Product</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* Content */}
@@ -235,7 +283,7 @@ export default function AdminDashboard() {
         contentContainerStyle={{ padding: 12, gap: 10 }}
         onRefresh={loadData}
         refreshing={loading}
-        data={tab === 'orders' ? orders : tab === 'products' ? products : users}
+        data={tab === 'orders' ? orders : tab === 'products' ? filteredAdminProducts : users}
         keyExtractor={(item: any) => item._id}
         renderItem={({ item }: { item: any }) => {
           if (tab === 'orders') {
