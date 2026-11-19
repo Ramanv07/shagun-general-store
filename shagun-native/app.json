@@ -54,6 +54,12 @@
       ]
     ],
     "scheme": "shagun",
+    "updates": {
+      "url": "https://u.expo.dev/b5f0f01b-d17c-477f-a261-11ccda7be2e6"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true
     },
