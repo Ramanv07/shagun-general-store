@@ -98,7 +98,11 @@ export default function ShopScreen() {
 
   const filtered = products.filter(p => {
     const matchCat = selectedCategory === 'All' || p.category === selectedCategory;
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const searchTerms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matchSearch = searchTerms.length === 0 || searchTerms.every(term => {
+      const full = `${p.name} ${p.category || ''} ${p.description || ''}`.toLowerCase();
+      return full.includes(term);
+    });
     const matchBrand = !selectedBrand || selectedBrand === 'All' ||
       (typeof p.brand_id === 'object' && p.brand_id ? (p.brand_id.slug === selectedBrand || p.brand_id._id === selectedBrand) : false) ||
       (typeof p.brand_id === 'string' && p.brand_id === selectedBrand) ||

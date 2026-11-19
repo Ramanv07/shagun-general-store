@@ -114,6 +114,47 @@ export const api = {
     return res.json();
   },
 
+  searchProductsDetailed: async (query: string, options: { category?: string; brand?: string; page?: number; limit?: number; includeDrafts?: boolean } = {}): Promise<{
+    products: Product[];
+    totalCount: number;
+    mode: 'exact' | 'fuzzy' | 'partial';
+    correctedQuery: string;
+  }> => {
+    const params = new URLSearchParams();
+    if (query && query.trim()) params.append('search', query.trim());
+    if (options.category && options.category !== 'All') params.append('category', options.category);
+    if (options.brand && options.brand !== 'All') params.append('brand', options.brand);
+    if (options.page) params.append('page', String(options.page));
+    if (options.limit) params.append('limit', String(options.limit));
+    if (options.includeDrafts) params.append('includeDrafts', 'true');
+    const qs = params.toString();
+    const url = qs ? `${BASE}/api/products?${qs}` : `${BASE}/api/products`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to search products');
+    const products: Product[] = await res.json();
+    const totalCount = parseInt(res.headers.get('X-Total-Count') || '0', 10) || products.length;
+    const mode = (res.headers.get('X-Search-Mode') || 'exact') as 'exact' | 'fuzzy' | 'partial';
+    const correctedEncoded = res.headers.get('X-Search-Corrected') || '';
+    const correctedQuery = correctedEncoded ? decodeURIComponent(correctedEncoded) : '';
+    return { products, totalCount, mode, correctedQuery };
+  },
+
+  getSuggestions: async (query: string): Promise<{
+    products: Array<{ _id: string; name: string; category: string; price: number; image: string }>;
+    brands: string[];
+    categories: string[];
+    didYouMean: string;
+  }> => {
+    if (!query || !query.trim()) return { products: [], brands: [], categories: [], didYouMean: '' };
+    try {
+      const res = await fetch(`${BASE}/api/products/suggest?q=${encodeURIComponent(query.trim())}`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      // ignore
+    }
+    return { products: [], brands: [], categories: [], didYouMean: '' };
+  },
+
   getProductById: async (id: string): Promise<Product> => {
     const res = await fetch(`${BASE}/api/products/${id}`);
     if (!res.ok) throw new Error('Failed to fetch product');
