@@ -2,8 +2,10 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Brand from '../models/Brand.js';
+import SearchMiss from '../models/SearchMiss.js';
 import { protect, adminOnly, optionalAuth } from '../middleware/authMiddleware.js';
 import { logAuditEvent } from '../services/auditService.js';
+import { searchProducts, getSuggestions, invalidateSearchCache, normalizeText } from '../utils/searchEngine.js';
 
 const router = express.Router();
 
@@ -36,9 +38,47 @@ router.get('/', async (req, res) => {
             }
         }
 
-        if (search) {
-            const escaped = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            query.name = { $regex: escaped, $options: 'i' };
+        const searchQuery = search || req.query.q;
+        if (searchQuery) {
+            const pageNum = parseInt(req.query.page, 10) || 1;
+            let limitNum = parseInt(req.query.limit, 10) || 20;
+            if (limitNum > 50) limitNum = 50;
+            if (limitNum < 1) limitNum = 20;
+
+            const searchRes = await searchProducts(searchQuery, {
+                category,
+                brand,
+                page: pageNum,
+                limit: limitNum,
+                includeDrafts: req.query.includeDrafts === 'true'
+            });
+
+            res.setHeader('X-Total-Count', searchRes.totalCount.toString());
+            res.setHeader('X-Search-Mode', searchRes.mode);
+            res.setHeader('X-Search-Corrected', encodeURIComponent(searchRes.correctedQuery || ''));
+
+            // Log zero-result miss asynchronously (no user id, no IP)
+            if (searchRes.results.length === 0) {
+                const trimmedQ = String(searchQuery).slice(0, 60).trim();
+                const cleanQ = normalizeText(trimmedQ);
+                if (cleanQ) {
+                    SearchMiss.updateOne(
+                        { query: cleanQ },
+                        { $inc: { count: 1 }, $set: { lastSearchedAt: new Date() } },
+                        { upsert: true }
+                    ).catch(err => console.warn('SearchMiss log error:', err.message));
+                }
+            }
+
+            const formatted = searchRes.results.map(p => {
+                const doc = p.toObject ? p.toObject() : { ...p };
+                if (!doc.mrp || doc.mrp <= doc.price) {
+                    doc.mrp = Math.round(doc.price * 1.25);
+                }
+                return doc;
+            });
+
+            return res.json(formatted);
         }
 
         // Filter out soft-deleted products for public lists & search (W2-10)
@@ -156,6 +196,52 @@ router.get('/', async (req, res) => {
     }
 });
 
+// @route   GET /api/products/suggest
+// @desc    Fast search suggestions (max 8 items: products, brands, categories, didYouMean)
+router.get('/suggest', async (req, res) => {
+    try {
+        const q = req.query.q || req.query.search || '';
+        const suggestions = await getSuggestions(q);
+        res.setHeader('Cache-Control', 'public, max-age=30');
+        res.json(suggestions);
+    } catch (err) {
+        console.error('Error fetching suggestions:', err);
+        res.status(500).json({ message: 'Failed to fetch suggestions' });
+    }
+});
+
+// @route   GET /api/products/admin/search-misses
+// @desc    Admin: Get zero-result searches to identify missing catalog items or synonyms
+router.get('/admin/search-misses', protect, adminOnly, async (req, res) => {
+    try {
+        const misses = await SearchMiss.find()
+            .sort({ count: -1, lastSearchedAt: -1 })
+            .limit(50)
+            .lean();
+        res.json(misses);
+    } catch (err) {
+        console.error('Error fetching search misses:', err);
+        res.status(500).json({ message: 'Failed to fetch search misses' });
+    }
+});
+
+// @route   DELETE /api/products/admin/search-misses
+// @desc    Admin: Clear search misses log (or delete a specific miss)
+router.delete('/admin/search-misses', protect, adminOnly, async (req, res) => {
+    try {
+        const { id } = req.query;
+        if (id) {
+            await SearchMiss.findByIdAndDelete(id);
+        } else {
+            await SearchMiss.deleteMany({});
+        }
+        res.json({ message: 'Search misses cleared successfully' });
+    } catch (err) {
+        console.error('Error clearing search misses:', err);
+        res.status(500).json({ message: 'Failed to clear search misses' });
+    }
+});
+
 // @route   GET /api/products/:id
 // @desc    Get single product by ID
 router.get('/:id', async (req, res) => {
@@ -206,6 +292,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
         });
 
         const createdProduct = await product.save();
+        invalidateSearchCache();
         res.status(201).json(createdProduct);
     } catch (error) {
         console.error('Error creating product:', error);
@@ -239,6 +326,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
             { new: true, runValidators: true }
         );
 
+        invalidateSearchCache();
         res.json(updatedProduct);
     } catch (error) {
         console.error('Error updating product:', error);
@@ -260,6 +348,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
         await product.save();
 
         await logAuditEvent(req.user._id, 'PRODUCT_SOFT_DELETE', 'Product', product._id, beforeSnapshot);
+        invalidateSearchCache();
         res.json({ message: 'Product removed successfully', product });
     } catch (error) {
         console.error('Error deleting product:', error);

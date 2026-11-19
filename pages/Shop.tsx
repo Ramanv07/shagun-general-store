@@ -42,6 +42,7 @@ export const Shop: React.FC = () => {
   const [brand, setBrand]                     = useState(params.get('brand') || '');
   const [sort, setSort]                       = useState('newest');
   const [showFilters, setShowFilters]         = useState(false);
+  const [correctedQuery, setCorrectedQuery]   = useState('');
 
   useEffect(() => {
     const p = new URLSearchParams(location.search);
@@ -89,48 +90,66 @@ export const Shop: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    let result = [...products];
+    let cancel = false;
     if (search.trim()) {
-      const terms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      result = result.filter(p => {
-        const text = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
-        return terms.every(term => text.includes(term));
-      });
-      const q = search.trim().toLowerCase();
-      result.sort((a, b) => {
-        const aStarts = a.name.toLowerCase().startsWith(q) ? 1 : 0;
-        const bStarts = b.name.toLowerCase().startsWith(q) ? 1 : 0;
-        return bStarts - aStarts;
-      });
-    }
-    if (category === 'Wishlist') {
-      try {
-        const wishIds = JSON.parse(localStorage.getItem('shagun_wishlist') || '[]');
-        result = result.filter(p => wishIds.includes(p._id));
-      } catch {
-        result = [];
+      const controller = new AbortController();
+      const params = new URLSearchParams();
+      params.append('search', search.trim());
+      if (category !== 'All' && category !== 'Wishlist' && category !== 'Offers') {
+        params.append('category', category);
       }
-    } else if (category === 'Offers') {
-      // Show bestsellers and top-rated items as special offers
-      result = result.filter(p => p.isBestseller || (p.rating && p.rating >= 4.5));
-    } else if (category !== 'All') {
-      result = result.filter(p => p.category === category);
-    }
-    if (brand.trim()) {
-      const bLower = brand.trim().toLowerCase();
-      result = result.filter(p => {
-        const pb: any = (p as any).brand;
-        if (!pb) return false;
-        if (typeof pb === 'string') {
-          return pb.toLowerCase() === bLower || pb === brand;
+      if (brand.trim()) params.append('brand', brand.trim());
+
+      fetch(`/api/products?${params.toString()}`, { signal: controller.signal })
+        .then(res => {
+          const corrected = res.headers.get('X-Search-Corrected');
+          if (corrected) setCorrectedQuery(decodeURIComponent(corrected));
+          else setCorrectedQuery('');
+          return res.json();
+        })
+        .then(data => {
+          if (!cancel && Array.isArray(data)) {
+            let resList = [...data];
+            if (sort === 'low-high') resList.sort((a, b) => a.price - b.price);
+            else if (sort === 'high-low') resList.sort((a, b) => b.price - a.price);
+            else if (sort === 'rating') resList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            setFiltered(resList);
+          }
+        })
+        .catch(() => {});
+
+      return () => { cancel = true; controller.abort(); };
+    } else {
+      setCorrectedQuery('');
+      let result = [...products];
+      if (category === 'Wishlist') {
+        try {
+          const wishIds = JSON.parse(localStorage.getItem('shagun_wishlist') || '[]');
+          result = result.filter(p => wishIds.includes(p._id));
+        } catch {
+          result = [];
         }
-        return pb._id === brand || pb.slug === brand || (pb.name && pb.name.toLowerCase() === bLower);
-      });
+      } else if (category === 'Offers') {
+        result = result.filter(p => p.isBestseller || (p.rating && p.rating >= 4.5));
+      } else if (category !== 'All') {
+        result = result.filter(p => p.category === category);
+      }
+      if (brand.trim()) {
+        const bLower = brand.trim().toLowerCase();
+        result = result.filter(p => {
+          const pb: any = (p as any).brand;
+          if (!pb) return false;
+          if (typeof pb === 'string') {
+            return pb.toLowerCase() === bLower || pb === brand;
+          }
+          return pb._id === brand || pb.slug === brand || (pb.name && pb.name.toLowerCase() === bLower);
+        });
+      }
+      if (sort === 'low-high') result.sort((a, b) => a.price - b.price);
+      else if (sort === 'high-low') result.sort((a, b) => b.price - a.price);
+      else if (sort === 'rating') result.sort((a, b) => b.rating - a.rating);
+      setFiltered(result);
     }
-    if (sort === 'low-high') result.sort((a, b) => a.price - b.price);
-    else if (sort === 'high-low') result.sort((a, b) => b.price - a.price);
-    else if (sort === 'rating') result.sort((a, b) => b.rating - a.rating);
-    setFiltered(result);
   }, [search, category, brand, sort, products]);
 
   return (
@@ -250,6 +269,20 @@ export const Shop: React.FC = () => {
 
           {/* ── Product Grid ── */}
           <div className="flex-1 min-w-0">
+            {/* Typo Correction Banner */}
+            {correctedQuery && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-2.5 rounded-xl text-xs mb-4 flex items-center justify-between">
+                <span>Showing results for <strong>{correctedQuery}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => setCorrectedQuery('')}
+                  className="text-maroon-700 underline font-semibold ml-2 cursor-pointer hover:text-maroon-800"
+                >
+                  Search "{search}" instead
+                </button>
+              </div>
+            )}
+
             {/* Active filters display */}
             {(category !== 'All' || search) && (
               <div className="flex flex-wrap gap-2 mb-6">

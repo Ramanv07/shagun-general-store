@@ -153,4 +153,59 @@ router.put('/upi', protect, adminOnly, async (req, res) => {
   }
 });
 
+// @route   GET /api/settings/search-synonyms
+// @desc    Admin: Get search synonyms dictionary
+router.get('/search-synonyms', protect, adminOnly, async (req, res) => {
+  try {
+    const { getSynonymsMap } = await import('../utils/searchEngine.js');
+    const synonyms = await getSynonymsMap();
+    res.json(synonyms);
+  } catch (err) {
+    console.error('Error fetching search synonyms:', err);
+    res.status(500).json({ message: 'Failed to fetch search synonyms' });
+  }
+});
+
+// @route   PUT /api/settings/search-synonyms
+// @desc    Admin: Update search synonyms dictionary
+router.put('/search-synonyms', protect, adminOnly, async (req, res) => {
+  try {
+    const { synonyms } = req.body;
+    if (!synonyms || typeof synonyms !== 'object' || Array.isArray(synonyms)) {
+      return res.status(400).json({ message: 'Synonyms must be a key-value object' });
+    }
+
+    const cleanMap = {};
+    for (const [key, list] of Object.entries(synonyms)) {
+      if (typeof key === 'string' && key.trim()) {
+        const k = key.trim().toLowerCase();
+        const arr = Array.isArray(list) ? list.map(s => String(s).trim().toLowerCase()).filter(Boolean) : [];
+        cleanMap[k] = arr;
+      }
+    }
+
+    const updated = await StoreSetting.findOneAndUpdate(
+      { key: 'search_synonyms' },
+      { $set: { value: cleanMap } },
+      { upsert: true, new: true }
+    );
+
+    const { invalidateSynonymsCache } = await import('../utils/searchEngine.js');
+    invalidateSynonymsCache();
+
+    await logAuditEvent(req.user._id, 'SETTINGS_UPDATE', 'StoreSetting', 'search_synonyms', {
+      groupCount: Object.keys(cleanMap).length
+    });
+
+    res.json({
+      success: true,
+      message: 'Search synonyms updated successfully',
+      synonyms: updated.value
+    });
+  } catch (err) {
+    console.error('Error updating search synonyms:', err);
+    res.status(500).json({ message: 'Failed to update search synonyms' });
+  }
+});
+
 export default router;

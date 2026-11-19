@@ -10,7 +10,6 @@ import {
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -19,8 +18,10 @@ import {
   X,
   ArrowRight,
   Clock,
-  TrendingUp,
+  Sparkles,
   Tag,
+  MessageSquare,
+  HelpCircle,
 } from 'lucide-react-native';
 import { THEME } from '../constants/theme';
 import { api } from '../services/api';
@@ -33,16 +34,16 @@ import { useSmartBack } from '../components/useAndroidBackHandler';
 const RECENT_SEARCHES_KEY = 'shagun_recent_searches';
 
 const POPULAR_SEARCHES = [
-  'Oil',
+  'Mamaearth',
+  'Face Wash',
   'Nivea',
-  'Moisturizer',
-  'Shower Gel',
+  'Vaseline',
+  'Ponds',
+  'Lotion',
+  'Soap',
+  'Shampoo',
+  'Hair Oil',
   'Cream',
-  'Toilet Cleaner',
-  'Jhadu',
-  'Amla',
-  'Bridal',
-  'Personal Care',
 ];
 
 export default function SearchScreen() {
@@ -54,25 +55,22 @@ export default function SearchScreen() {
   const [query, setQuery] = useState(params.q || '');
   const [submittedQuery, setSubmittedQuery] = useState(params.q || '');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchMode, setSearchMode] = useState<'exact' | 'fuzzy' | 'partial'>('exact');
+  const [correctedQuery, setCorrectedQuery] = useState<string>('');
+  const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [liveSuggestions, setLiveSuggestions] = useState<{
+    products: Array<{ _id: string; name: string; category: string; price: number; image: string }>;
+    brands: string[];
+    categories: string[];
+    didYouMean: string;
+  }>({ products: [], brands: [], categories: [], didYouMean: '' });
 
-  // Load products
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api.getProducts();
-      setProducts(data);
-    } catch (e) {
-      console.error('Failed to load products for search:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const reqSequenceRef = useRef<number>(0);
 
-  // Load recent searches
+  // Load recent searches on mount
   useEffect(() => {
     (async () => {
       try {
@@ -108,34 +106,74 @@ export default function SearchScreen() {
     }
   };
 
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+  // Perform search with race condition prevention
+  const performSearch = useCallback(async (searchTerm: string, categoryFilter: string = 'All') => {
+    const term = searchTerm.trim();
+    if (!term) {
+      setSearchResults([]);
+      setCorrectedQuery('');
+      setLoading(false);
+      return;
+    }
 
-  // Debounced server search
+    const currentReqId = ++reqSequenceRef.current;
+    setLoading(true);
+
+    try {
+      const res = await api.searchProductsDetailed(term, {
+        category: categoryFilter !== 'All' ? categoryFilter : undefined,
+        limit: 50,
+      });
+
+      // Ignore stale responses if a newer request was dispatched
+      if (currentReqId !== reqSequenceRef.current) return;
+
+      setSearchResults(res.products);
+      setSearchMode(res.mode);
+      setCorrectedQuery(res.correctedQuery);
+    } catch (err) {
+      if (currentReqId === reqSequenceRef.current) {
+        console.warn('Search execution failed', err);
+        setSearchResults([]);
+      }
+    } finally {
+      if (currentReqId === reqSequenceRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  // Debounced live suggestions when typing
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query.trim()) {
-        api.getProducts(selectedCategory !== 'All' ? selectedCategory : undefined, undefined, query.trim())
-          .then(data => setProducts(data))
-          .catch(err => console.warn('Search query error', err));
-      } else {
-        loadProducts();
+    const term = query.trim();
+    if (!term || !isFocused) {
+      setLiveSuggestions({ products: [], brands: [], categories: [], didYouMean: '' });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await api.getSuggestions(term);
+        setLiveSuggestions(data);
+      } catch (e) {
+        // ignore
       }
     }, 300);
-    return () => clearTimeout(timer);
-  }, [query, selectedCategory, loadProducts]);
 
-  // Sync if query param changes
+    return () => clearTimeout(timer);
+  }, [query, isFocused]);
+
+  // Sync if query param passed from navigation
   useEffect(() => {
     if (params.q !== undefined && params.q !== query) {
       setQuery(params.q);
       setSubmittedQuery(params.q);
-      if (params.q) saveRecentSearch(params.q);
+      saveRecentSearch(params.q);
+      performSearch(params.q, 'All');
     }
-  }, [params.q]);
+  }, [params.q, performSearch]);
 
-  // Focus input automatically if opened without query
+  // Auto-focus input if launched fresh
   useEffect(() => {
     if (!params.q) {
       const timer = setTimeout(() => {
@@ -145,68 +183,6 @@ export default function SearchScreen() {
     }
   }, [params.q]);
 
-  // Relative suggestions (matching as user types)
-  const suggestions = useMemo(() => {
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return { matchingProducts: [], matchingCategories: [] };
-
-    const matchingProducts = products.filter(p => {
-      const name = (p.name || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-      return name.includes(trimmed) || cat.includes(trimmed) || desc.includes(trimmed);
-    }).slice(0, 6);
-
-    const matchingCategories = CATEGORIES.filter(c =>
-      c !== 'All' && c.toLowerCase().includes(trimmed)
-    ).slice(0, 3);
-
-    return { matchingProducts, matchingCategories };
-  }, [query, products]);
-
-  // Filtered products for committed search
-  const filteredProducts = useMemo(() => {
-    const q = submittedQuery.trim().toLowerCase();
-    if (!q) return [];
-
-    const words = q.split(/\s+/).filter(Boolean);
-
-    return products.filter(p => {
-      const name = (p.name || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-      const brand = typeof p.brand_id === 'object' && p.brand_id ? (p.brand_id.name || '').toLowerCase() : '';
-
-      const matchesQuery = words.every(w =>
-        name.includes(w) || cat.includes(w) || desc.includes(w) || brand.includes(w)
-      );
-
-      const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
-
-      return matchesQuery && matchesCat;
-    });
-  }, [submittedQuery, selectedCategory, products]);
-
-  // Available categories for current search results
-  const availableCategories = useMemo(() => {
-    const q = submittedQuery.trim().toLowerCase();
-    if (!q) return [];
-
-    const words = q.split(/\s+/).filter(Boolean);
-    const matched = products.filter(p => {
-      const name = (p.name || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-      return words.every(w => name.includes(w) || cat.includes(w) || desc.includes(w));
-    });
-
-    const set = new Set<string>();
-    matched.forEach(p => {
-      if (p.category) set.add(p.category);
-    });
-    return Array.from(set);
-  }, [submittedQuery, products]);
-
   const handleSearchCommit = (term: string) => {
     const clean = term.trim();
     if (!clean) return;
@@ -215,12 +191,20 @@ export default function SearchScreen() {
     setSelectedCategory('All');
     setIsFocused(false);
     saveRecentSearch(clean);
+    performSearch(clean, 'All');
+  };
+
+  const handleCategorySelect = (cat: string) => {
+    setSelectedCategory(cat);
+    performSearch(submittedQuery, cat);
   };
 
   const handleClear = () => {
     setQuery('');
     setSubmittedQuery('');
     setSelectedCategory('All');
+    setSearchResults([]);
+    setCorrectedQuery('');
     inputRef.current?.focus();
   };
 
@@ -232,16 +216,24 @@ export default function SearchScreen() {
     }
   };
 
-  const handleSelectProduct = (product: Product) => {
-    saveRecentSearch(product.name);
+  const handleSelectProduct = (productId: string, productObj?: Product) => {
     router.push({
       pathname: '/product-details' as any,
       params: {
-        id: product._id,
-        productJson: JSON.stringify(product),
+        id: productId,
+        productJson: productObj ? JSON.stringify(productObj) : undefined,
       },
     });
   };
+
+  // Available categories derived from results
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    searchResults.forEach(p => {
+      if (p.category) set.add(p.category);
+    });
+    return Array.from(set);
+  }, [searchResults]);
 
   const showSuggestions = isFocused && query.trim().length > 0;
   const isSearchActive = submittedQuery.trim().length > 0;
@@ -250,7 +242,7 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={THEME.colors.blush50} />
 
-      {/* ── Top Bar with Search Input ── */}
+      {/* Top Bar with Search Input */}
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -266,18 +258,13 @@ export default function SearchScreen() {
           <TextInput
             ref={inputRef}
             style={styles.searchInput}
-            placeholder="Search products, brands, categories..."
+            placeholder="Search products, brands, daily items..."
             placeholderTextColor={THEME.colors.ink500}
             value={query}
             onChangeText={setQuery}
             onFocus={() => setIsFocused(true)}
             returnKeyType="search"
             onSubmitEditing={() => handleSearchCommit(query)}
-            onKeyPress={(e: any) => {
-              if (e?.key === 'Enter' || e?.nativeEvent?.key === 'Enter') {
-                handleSearchCommit(query);
-              }
-            }}
           />
           {query.length > 0 && (
             <TouchableOpacity
@@ -301,7 +288,7 @@ export default function SearchScreen() {
         )}
       </View>
 
-      {/* ── Live Relative Suggestions Overlay ── */}
+      {/* Live Suggestions Overlay While Typing */}
       {showSuggestions && (
         <View style={styles.suggestionsContainer}>
           <ScrollView
@@ -309,7 +296,7 @@ export default function SearchScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.suggestionsScroll}
           >
-            {/* Action to search current query */}
+            {/* Search current query action */}
             <TouchableOpacity
               style={styles.suggestionActionRow}
               activeOpacity={0.7}
@@ -322,18 +309,31 @@ export default function SearchScreen() {
               <ArrowRight size={14} color={THEME.colors.ink500} />
             </TouchableOpacity>
 
-            {/* Category matches */}
-            {suggestions.matchingCategories.length > 0 && (
+            {/* Did you mean suggestion */}
+            {liveSuggestions.didYouMean && liveSuggestions.didYouMean !== query.trim().toLowerCase() && (
+              <TouchableOpacity
+                style={styles.didYouMeanBox}
+                activeOpacity={0.8}
+                onPress={() => handleSearchCommit(liveSuggestions.didYouMean)}
+              >
+                <Sparkles size={16} color={THEME.colors.maroon700} />
+                <Text style={styles.didYouMeanText}>
+                  Did you mean: <Text style={styles.boldText}>{liveSuggestions.didYouMean}</Text>?
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Matching Categories */}
+            {liveSuggestions.categories.length > 0 && (
               <View style={styles.suggestionSection}>
-                <Text style={styles.suggestionSectionTitle}>MATCHING CATEGORIES</Text>
+                <Text style={styles.suggestionSectionTitle}>CATEGORIES</Text>
                 <View style={styles.catChipsRow}>
-                  {suggestions.matchingCategories.map(cat => (
+                  {liveSuggestions.categories.map(cat => (
                     <TouchableOpacity
                       key={cat}
                       style={styles.catChip}
                       onPress={() => {
-                        setSubmittedQuery(query.trim());
-                        setSelectedCategory(cat);
+                        handleCategorySelect(cat);
                         setIsFocused(false);
                       }}
                     >
@@ -345,48 +345,53 @@ export default function SearchScreen() {
               </View>
             )}
 
-            {/* Product matches */}
-            {suggestions.matchingProducts.length > 0 && (
+            {/* Matching Brands */}
+            {liveSuggestions.brands.length > 0 && (
               <View style={styles.suggestionSection}>
-                <Text style={styles.suggestionSectionTitle}>RELATIVE PRODUCTS</Text>
-                {suggestions.matchingProducts.map(p => {
-                  const imgUri = p.images && p.images[0] ? p.images[0] : FALLBACK_IMAGE;
-                  return (
+                <Text style={styles.suggestionSectionTitle}>BRANDS</Text>
+                <View style={styles.catChipsRow}>
+                  {liveSuggestions.brands.map(brand => (
                     <TouchableOpacity
-                      key={p._id}
-                      style={styles.productSuggestionRow}
-                      activeOpacity={0.7}
-                      onPress={() => handleSelectProduct(p)}
+                      key={brand}
+                      style={styles.catChip}
+                      onPress={() => handleSearchCommit(brand)}
                     >
-                      <Image source={{ uri: imgUri }} style={styles.productThumb} resizeMode="cover" />
-                      <View style={styles.productInfoCol}>
-                        <Text style={styles.productSuggestionName} numberOfLines={1}>
-                          {p.name}
-                        </Text>
-                        <View style={styles.productMetaRow}>
-                          <Text style={styles.productCategoryBadge}>{p.category}</Text>
-                          <Text style={styles.productSuggestionPrice}>₹{p.price}</Text>
-                        </View>
-                      </View>
-                      <ArrowRight size={14} color={THEME.colors.ink500} />
+                      <Sparkles size={12} color={THEME.colors.maroon700} />
+                      <Text style={styles.catChipText}>{brand}</Text>
                     </TouchableOpacity>
-                  );
-                })}
+                  ))}
+                </View>
               </View>
             )}
 
-            {suggestions.matchingProducts.length === 0 && suggestions.matchingCategories.length === 0 && (
-              <View style={styles.noSuggestionBox}>
-                <Text style={styles.noSuggestionText}>
-                  Press <Text style={styles.boldText}>Enter</Text> to search for "{query.trim()}"
-                </Text>
+            {/* Relative Products */}
+            {liveSuggestions.products.length > 0 && (
+              <View style={styles.suggestionSection}>
+                <Text style={styles.suggestionSectionTitle}>POPULAR MATCHES</Text>
+                {liveSuggestions.products.map(p => (
+                  <TouchableOpacity
+                    key={p._id}
+                    style={styles.productSuggestionRow}
+                    activeOpacity={0.7}
+                    onPress={() => handleSelectProduct(p._id)}
+                  >
+                    <Image source={{ uri: p.image || FALLBACK_IMAGE }} style={styles.productThumb} resizeMode="cover" />
+                    <View style={styles.productInfoCol}>
+                      <Text style={styles.productNameText} numberOfLines={1}>
+                        {p.name}
+                      </Text>
+                      <Text style={styles.productCategoryText}>{p.category} • ₹{p.price}</Text>
+                    </View>
+                    <ArrowRight size={14} color={THEME.colors.ink500} />
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </ScrollView>
         </View>
       )}
 
-      {/* ── Main Content View (When suggestions overlay is not active) ── */}
+      {/* Main Content View */}
       {!showSuggestions && (
         <ScrollView
           style={styles.scroll}
@@ -394,9 +399,31 @@ export default function SearchScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* STATE A: ACTIVE SEARCH RESULTS */}
           {isSearchActive ? (
             <View style={styles.resultsContainer}>
+              {/* Corrected Query / Typo Notice */}
+              {correctedQuery ? (
+                <View style={styles.correctedBanner}>
+                  <Sparkles size={16} color={THEME.colors.maroon700} style={{ marginRight: 6 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.correctedText}>
+                      Showing results for <Text style={styles.boldText}>{correctedQuery}</Text>
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        performSearch(submittedQuery, selectedCategory);
+                        setCorrectedQuery('');
+                      }}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Text style={styles.originalQueryLink}>
+                        Search original: "{submittedQuery}"
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+
               {/* Results summary header */}
               <View style={styles.resultsHeader}>
                 <View>
@@ -404,7 +431,7 @@ export default function SearchScreen() {
                     Results for "<Text style={styles.highlightText}>{submittedQuery}</Text>"
                   </Text>
                   <Text style={styles.resultsSubtitle}>
-                    {loading ? 'Searching...' : `${filteredProducts.length} product${filteredProducts.length === 1 ? '' : 's'} found`}
+                    {loading ? 'Searching...' : `${searchResults.length} product${searchResults.length === 1 ? '' : 's'} found (${searchMode} match)`}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -426,7 +453,7 @@ export default function SearchScreen() {
                 >
                   <TouchableOpacity
                     style={[styles.filterChip, selectedCategory === 'All' && styles.filterChipActive]}
-                    onPress={() => setSelectedCategory('All')}
+                    onPress={() => handleCategorySelect('All')}
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.filterChipText, selectedCategory === 'All' && styles.filterChipTextActive]}>
@@ -439,7 +466,7 @@ export default function SearchScreen() {
                       <TouchableOpacity
                         key={cat}
                         style={[styles.filterChip, active && styles.filterChipActive]}
-                        onPress={() => setSelectedCategory(active ? 'All' : cat)}
+                        onPress={() => handleCategorySelect(active ? 'All' : cat)}
                         activeOpacity={0.7}
                       >
                         <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
@@ -454,7 +481,7 @@ export default function SearchScreen() {
               {/* Products Grid or Empty State */}
               {loading ? (
                 <ActivityIndicator size="large" color={THEME.colors.maroon700} style={{ marginVertical: 48 }} />
-              ) : filteredProducts.length === 0 ? (
+              ) : searchResults.length === 0 ? (
                 <View style={styles.emptyStateBox}>
                   <View style={styles.emptyIconCircle}>
                     <Search size={32} color={THEME.colors.maroon700} strokeWidth={1.5} />
@@ -462,8 +489,35 @@ export default function SearchScreen() {
                   <Text style={styles.emptyTitle}>No matching products</Text>
                   <Text style={styles.emptySubtitle}>
                     We couldn't find any products matching "{submittedQuery}".{'\n'}
-                    Try checking the spelling or searching for general terms like "oil", "cream", or "shampoo".
+                    Try checking the spelling or browse our popular categories below.
                   </Text>
+
+                  {/* Quick Browse Categories */}
+                  <View style={styles.popularCategoriesRow}>
+                    {['Skin Care', 'Hair Care', 'Personal Care', 'Daily Use'].map(cat => (
+                      <TouchableOpacity
+                        key={cat}
+                        style={styles.popularCategoryBtn}
+                        onPress={() => handleCategorySelect(cat)}
+                      >
+                        <Tag size={12} color={THEME.colors.maroon700} />
+                        <Text style={styles.popularCategoryText}>{cat}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* Feedback Link for Missed Products */}
+                  <TouchableOpacity
+                    style={styles.feedbackLinkBox}
+                    onPress={() => router.push('/(tabs)/account' as any)}
+                    activeOpacity={0.7}
+                  >
+                    <MessageSquare size={16} color={THEME.colors.maroon700} style={{ marginRight: 6 }} />
+                    <Text style={styles.feedbackLinkText}>
+                      Can't find an item? Tell us what you were looking for
+                    </Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={styles.browseAllBtn}
                     onPress={handleClear}
@@ -474,7 +528,7 @@ export default function SearchScreen() {
                 </View>
               ) : (
                 <View style={styles.productsGrid}>
-                  {filteredProducts.map(p => (
+                  {searchResults.map(p => (
                     <View key={p._id} style={styles.gridItemWrapper}>
                       <ProductCard product={p} />
                     </View>
@@ -483,7 +537,7 @@ export default function SearchScreen() {
               )}
             </View>
           ) : (
-            /* STATE B: EMPTY SEARCH SCREEN (Recent + Popular) */
+            /* STATE B: INITIAL SEARCH SCREEN (Recent + Popular) */
             <View style={styles.initialContainer}>
               {/* Recent Searches */}
               {recentSearches.length > 0 && (
@@ -516,41 +570,44 @@ export default function SearchScreen() {
               {/* Popular Searches */}
               <View style={styles.section}>
                 <View style={styles.sectionTitleRow}>
-                  <TrendingUp size={16} color={THEME.colors.maroon700} />
+                  <Sparkles size={16} color={THEME.colors.maroon700} />
                   <Text style={styles.sectionHeading}>Popular Searches</Text>
                 </View>
                 <View style={styles.tagsTrack}>
-                  {POPULAR_SEARCHES.map((tag, idx) => (
+                  {POPULAR_SEARCHES.map((item, idx) => (
                     <TouchableOpacity
                       key={idx}
                       style={styles.popularTag}
-                      onPress={() => handleSearchCommit(tag)}
+                      onPress={() => handleSearchCommit(item)}
                       activeOpacity={0.7}
                     >
-                      <TrendingUp size={12} color={THEME.colors.maroon700} style={{ marginRight: 5 }} />
-                      <Text style={styles.popularTagText}>{tag}</Text>
+                      <Text style={styles.popularTagText}>{item}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
-              {/* Quick Categories */}
+              {/* Browse All Categories */}
               <View style={styles.section}>
                 <View style={styles.sectionTitleRow}>
-                  <Tag size={16} color={THEME.colors.ink900} />
-                  <Text style={styles.sectionHeading}>Browse by Category</Text>
+                  <Tag size={16} color={THEME.colors.maroon700} />
+                  <Text style={styles.sectionHeading}>Browse Categories</Text>
                 </View>
-                <View style={styles.categoryGrid}>
-                  {CATEGORIES.filter(c => c !== 'All').slice(0, 8).map((cat, idx) => (
+                <View style={styles.categoriesGrid}>
+                  {CATEGORIES.filter(c => c !== 'All').map((cat, idx) => (
                     <TouchableOpacity
                       key={idx}
                       style={styles.categoryCard}
                       onPress={() => {
-                        router.push({ pathname: '/(tabs)/shop', params: { category: cat } } as any);
+                        router.push({
+                          pathname: '/(tabs)/shop',
+                          params: { category: cat },
+                        });
                       }}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.categoryCardText} numberOfLines={1}>{cat}</Text>
+                      <Text style={styles.categoryCardText}>{cat}</Text>
+                      <ArrowRight size={14} color={THEME.colors.ink500} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -571,28 +628,26 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: THEME.colors.blush50,
+    backgroundColor: THEME.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: THEME.colors.line,
+    gap: 10,
   },
   backBtn: {
-    padding: 6,
-    marginRight: 6,
+    padding: 4,
   },
   searchBarContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius.pill,
-    paddingHorizontal: 14,
-    height: 44,
+    backgroundColor: THEME.colors.blush50,
+    borderRadius: 24,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: THEME.colors.line,
-    ...THEME.shadow,
-    elevation: 2,
+    height: 42,
   },
   searchIcon: {
     marginRight: 8,
@@ -602,53 +657,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: THEME.colors.ink900,
     paddingVertical: 0,
-    outlineStyle: 'none',
-  } as any,
+  },
   clearBtn: {
     padding: 4,
-    marginLeft: 6,
   },
   searchActionBtn: {
-    marginLeft: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     backgroundColor: THEME.colors.maroon700,
-    borderRadius: THEME.radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   searchActionText: {
-    color: THEME.colors.white,
+    color: '#fff',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   suggestionsContainer: {
     flex: 1,
     backgroundColor: THEME.colors.white,
   },
   suggestionsScroll: {
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   suggestionActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: THEME.colors.blush50,
-    marginHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.colors.line,
+    gap: 10,
   },
   suggestionActionText: {
     flex: 1,
-    marginLeft: 10,
     fontSize: 14,
-    color: THEME.colors.maroon900,
+    color: THEME.colors.ink900,
   },
   boldText: {
     fontWeight: '700',
+    color: THEME.colors.maroon700,
+  },
+  didYouMeanBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginVertical: 10,
+    gap: 8,
+  },
+  didYouMeanText: {
+    fontSize: 13,
+    color: '#92400e',
   },
   suggestionSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 16,
   },
   suggestionSectionTitle: {
     fontSize: 11,
@@ -665,90 +729,88 @@ const styles = StyleSheet.create({
   catChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: THEME.colors.blushCard,
+    backgroundColor: THEME.colors.blush50,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: THEME.colors.line,
+    gap: 6,
   },
   catChipText: {
-    fontSize: 13,
+    fontSize: 12,
+    color: THEME.colors.maroon700,
     fontWeight: '600',
-    color: THEME.colors.maroon900,
   },
   productSuggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f2eae8',
+    borderBottomColor: THEME.colors.line,
+    gap: 10,
   },
   productThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: THEME.colors.peach100,
   },
   productInfoCol: {
     flex: 1,
   },
-  productSuggestionName: {
-    fontSize: 14,
-    fontWeight: '500',
+  productNameText: {
+    fontSize: 13,
     color: THEME.colors.ink900,
-    marginBottom: 3,
+    fontWeight: '600',
   },
-  productMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  productCategoryBadge: {
+  productCategoryText: {
     fontSize: 11,
     color: THEME.colors.ink500,
-    backgroundColor: THEME.colors.blush50,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  productSuggestionPrice: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: THEME.colors.maroon700,
-  },
-  noSuggestionBox: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  noSuggestionText: {
-    fontSize: 14,
-    color: THEME.colors.ink500,
-    textAlign: 'center',
+    marginTop: 2,
   },
   scroll: {
     flex: 1,
-    backgroundColor: THEME.colors.blush50,
   },
   scrollContent: {
     paddingBottom: 40,
   },
   resultsContainer: {
+    paddingHorizontal: 14,
     paddingTop: 12,
+  },
+  correctedBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fffbeb',
+    borderColor: '#fef3c7',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  correctedText: {
+    fontSize: 13,
+    color: THEME.colors.ink900,
+  },
+  originalQueryLink: {
+    fontSize: 12,
+    color: THEME.colors.maroon700,
+    textDecorationLine: 'underline',
+    marginTop: 4,
   },
   resultsHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    alignItems: 'center',
     marginBottom: 12,
   },
   resultsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 15,
     color: THEME.colors.ink900,
   },
   highlightText: {
+    fontWeight: '700',
     color: THEME.colors.maroon700,
   },
   resultsSubtitle: {
@@ -758,27 +820,24 @@ const styles = StyleSheet.create({
   },
   resetFilterBtn: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: THEME.colors.blush200,
+    paddingVertical: 4,
   },
   resetFilterText: {
-    fontSize: 12,
+    fontSize: 13,
+    color: THEME.colors.maroon700,
     fontWeight: '600',
-    color: THEME.colors.maroon900,
   },
   filterChipsScroll: {
     marginBottom: 14,
   },
   filterChipsTrack: {
-    paddingHorizontal: 16,
     gap: 8,
   },
   filterChip: {
+    backgroundColor: THEME.colors.white,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: THEME.colors.white,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: THEME.colors.line,
   },
@@ -788,40 +847,37 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: THEME.colors.ink500,
+    color: THEME.colors.ink900,
+    fontWeight: '600',
   },
   filterChipTextActive: {
-    color: THEME.colors.white,
-    fontWeight: '600',
+    color: '#fff',
   },
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    justifyContent: 'space-between',
+    marginHorizontal: -6,
   },
   gridItemWrapper: {
-    width: '48%',
-    marginBottom: 14,
+    width: '50%',
+    padding: 6,
   },
   emptyStateBox: {
-    paddingHorizontal: 24,
-    paddingVertical: 48,
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 36,
+    paddingHorizontal: 20,
   },
   emptyIconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: THEME.colors.blushCard,
+    backgroundColor: THEME.colors.peach100,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: THEME.colors.ink900,
     marginBottom: 8,
@@ -830,37 +886,77 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: THEME.colors.ink500,
     textAlign: 'center',
-    lineHeight: 19,
+    lineHeight: 18,
     marginBottom: 20,
+  },
+  popularCategoriesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  popularCategoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.colors.white,
+    borderWidth: 1,
+    borderColor: THEME.colors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  popularCategoryText: {
+    fontSize: 12,
+    color: THEME.colors.maroon700,
+    fontWeight: '600',
+  },
+  feedbackLinkBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f3ff',
+    borderColor: '#ddd6fe',
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  feedbackLinkText: {
+    fontSize: 12,
+    color: '#6d28d9',
+    fontWeight: '600',
   },
   browseAllBtn: {
     backgroundColor: THEME.colors.maroon700,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: THEME.radius.pill,
+    borderRadius: 20,
   },
   browseAllBtnText: {
-    color: THEME.colors.white,
+    color: '#fff',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   initialContainer: {
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingTop: 16,
   },
   section: {
     marginBottom: 24,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
+    gap: 8,
+    marginBottom: 12,
   },
   sectionHeading: {
     fontSize: 14,
@@ -869,7 +965,8 @@ const styles = StyleSheet.create({
   },
   clearAllText: {
     fontSize: 12,
-    color: THEME.colors.ink500,
+    color: THEME.colors.maroon700,
+    fontWeight: '600',
   },
   tagsTrack: {
     flexDirection: 'row',
@@ -881,7 +978,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: THEME.colors.white,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: THEME.colors.line,
@@ -891,37 +988,38 @@ const styles = StyleSheet.create({
     color: THEME.colors.ink900,
   },
   popularTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.colors.blushCard,
+    backgroundColor: THEME.colors.white,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: THEME.colors.line,
   },
   popularTagText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: THEME.colors.maroon900,
+    color: THEME.colors.ink900,
+    fontWeight: '500',
   },
-  categoryGrid: {
+  categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   categoryCard: {
+    width: '48%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: THEME.colors.white,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: THEME.colors.line,
-    width: '48%',
   },
   categoryCardText: {
     fontSize: 13,
-    fontWeight: '500',
     color: THEME.colors.ink900,
-    textAlign: 'center',
+    fontWeight: '600',
   },
 });
-

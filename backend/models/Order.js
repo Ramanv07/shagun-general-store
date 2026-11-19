@@ -36,6 +36,7 @@ const orderSchema = new mongoose.Schema({
     rejectionReason: { type: String, default: null },
     couponCode: { type: String, default: null },
     discountAmount: { type: Number, default: 0 },
+    isTestOrder: { type: Boolean, default: false },
     status: { 
         type: String, 
         enum: ['Processing', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'], 

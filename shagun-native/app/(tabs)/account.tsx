@@ -11,6 +11,8 @@ import { Address } from '../../types';
 import { PRIVACY_POLICY_URL } from '../../constants';
 import { useBackToHome } from '../../components/useAndroidBackHandler';
 import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 
 export default function AccountScreen() {
   useBackToHome();
@@ -59,6 +61,36 @@ export default function AccountScreen() {
       Alert.alert('Update Status', e.message || 'Unable to check for updates right now.');
     } finally {
       setCheckingUpdate(false);
+    }
+  };
+
+  // Feedback Modal States
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState<'Bug' | 'Feature Request' | 'Product / Store Experience' | 'Other'>('Bug');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [sendingFeedback, setSendingFeedback] = useState(false);
+
+  const handleSendFeedback = async () => {
+    if (!feedbackMessage.trim() || feedbackMessage.trim().length < 5) {
+      Alert.alert('Required', 'Please enter at least 5 characters describing your feedback.');
+      return;
+    }
+    setSendingFeedback(true);
+    try {
+      await api.sendFeedback({
+        category: feedbackCategory,
+        message: feedbackMessage.trim(),
+        appVersion: Constants.expoConfig?.version || '1.0.0',
+        deviceModel: Device.modelName || Platform.OS,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android'
+      });
+      Alert.alert('Feedback Sent', 'Thank you! Your feedback helps us improve Shagun Mart.');
+      setFeedbackMessage('');
+      setFeedbackModalVisible(false);
+    } catch (err: any) {
+      Alert.alert('Submission Error', err.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setSendingFeedback(false);
     }
   };
 
@@ -423,9 +455,20 @@ export default function AccountScreen() {
           </TouchableOpacity>
         )}
 
+        <TouchableOpacity style={styles.menuItem} onPress={() => setFeedbackModalVisible(true)}>
+          <View style={styles.menuIconContainer}>
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#7c1f3e" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.menuItemText}>Send Feedback</Text>
+            <Text style={styles.menuItemSub}>Report a bug or suggest improvements</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#d4b5a0" />
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
           <View style={styles.menuIconContainer}>
-            <Ionicons name="document-text-outline" size={20} color="#047857" />
+            <Ionicons name="document-text-outline" size={20} color="#7c1f3e" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.menuItemText}>Privacy Policy</Text>
@@ -669,6 +712,69 @@ export default function AccountScreen() {
               </View>
             )}
             <View style={{ height: 30 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ── Feedback Modal ─────────────────────────────────────────── */}
+      <Modal visible={feedbackModalVisible} animationType="slide" onRequestClose={() => setFeedbackModalVisible(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#f5ede8' }}>
+          <View style={styles.modalHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="chatbubble-ellipses" size={22} color="#7c1f3e" />
+              <Text style={styles.modalTitle}>Send App Feedback</Text>
+            </View>
+            <TouchableOpacity onPress={() => setFeedbackModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={26} color="#7c1f3e" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ flex: 1, padding: 14 }}>
+            <View style={styles.modalCard}>
+              <Text style={styles.fieldLabel}>Category</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                {(['Bug', 'Feature Request', 'Product / Store Experience', 'Other'] as const).map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#d4b5a0', backgroundColor: '#fff' },
+                      feedbackCategory === cat && { backgroundColor: '#7c1f3e', borderColor: '#7c1f3e' }
+                    ]}
+                    onPress={() => setFeedbackCategory(cat)}
+                  >
+                    <Text style={[{ fontSize: 12, fontWeight: '600', color: '#7c1f3e' }, feedbackCategory === cat && { color: '#fff' }]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.fieldLabel}>Your Feedback / Bug Description *</Text>
+              <TextInput
+                style={[styles.modalInput, { height: 120, textAlignVertical: 'top' }]}
+                placeholder="Tell us what happened or suggest a feature..."
+                placeholderTextColor="#9c7a8a"
+                multiline
+                maxLength={1000}
+                value={feedbackMessage}
+                onChangeText={setFeedbackMessage}
+              />
+              <Text style={{ fontSize: 11, color: '#9c7a8a', textAlign: 'right', marginBottom: 14 }}>
+                {feedbackMessage.length}/1000
+              </Text>
+
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={handleSendFeedback}
+                disabled={sendingFeedback}
+                activeOpacity={0.85}
+              >
+                {sendingFeedback ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryBtnText}>Submit Feedback</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>

@@ -24,6 +24,7 @@ import brandRoutes from './routes/brandRoutes.js';
 import paymentPreferenceRoutes from './routes/paymentPreferenceRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
+import feedbackRoutes from './routes/feedbackRoutes.js';
 import { createMongoRateLimiter } from './middleware/mongoRateLimiter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -186,6 +187,7 @@ app.use('/api/brands', brandRoutes);
 app.use('/api/payment-preferences', paymentPreferenceRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Root informational endpoint
 app.get('/', (_req, res) => {

@@ -16,7 +16,7 @@
     "android": {
       "package": "com.raman.shagunmart",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#FAF6F0",
@@ -25,7 +25,8 @@
       "permissions": [
         "INTERNET",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS"
       ],
       "softwareKeyboardLayoutMode": "pan"
     },
@@ -60,6 +61,12 @@
       ]
     ],
     "scheme": "shagun",
+    "updates": {
+      "url": "https://u.expo.dev/b5f0f01b-d17c-477f-a261-11ccda7be2e6"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true
     },

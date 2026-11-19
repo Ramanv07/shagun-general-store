@@ -14,6 +14,12 @@ const reviewWriteLimiter = rateLimit({
   message: { message: 'Too many review actions, please try again later' },
 });
 
+const reportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many reports submitted. Please wait a few minutes.' },
+});
+
 // @route   GET /api/reviews/product/:productId
 // @desc    Get reviews and aggregate rating for a product (approved only)
 router.get('/product/:productId', async (req, res) => {
@@ -36,9 +42,11 @@ router.get('/product/:productId', async (req, res) => {
     res.json({
       reviews: reviews.map(r => ({
         id: r._id,
+        _id: r._id,
         user: r.user_id?.name || 'Customer',
         rating: r.rating,
         comment: r.comment,
+        reportCount: r.reportCount || 0,
         createdAt: r.created_at,
       })),
       averageRating: avg ? parseFloat(avg.toFixed(1)) : null,
@@ -207,6 +215,61 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+// @route   POST /api/reviews/:id/report
+// @desc    Report an inappropriate review (UGC moderation, login required)
+router.post('/:id/report', protect, reportLimiter, async (req, res) => {
+  try {
+    const { reason, details } = req.body;
+    const validReasons = [
+      'Inappropriate content',
+      'Spam / Advertising',
+      'Harassment or hate speech',
+      'Misleading / Fake',
+      'Other'
+    ];
+
+    if (!reason || !validReasons.includes(reason)) {
+      return res.status(400).json({
+        message: `Please select a valid reason: ${validReasons.join(', ')}`
+      });
+    }
+
+    const cleanDetails = (details || '').trim();
+    if (cleanDetails.length > 500) {
+      return res.status(400).json({ message: 'Details must be 500 characters or fewer' });
+    }
+
+    const review = await Review.findById(req.params.id);
+    if (!review) {
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    const alreadyReported = (review.reports || []).some(
+      r => r.user_id && r.user_id.toString() === req.user._id.toString()
+    );
+    if (alreadyReported) {
+      return res.status(409).json({ message: 'You have already reported this review' });
+    }
+
+    review.reports.push({
+      user_id: req.user._id,
+      reason,
+      details: cleanDetails,
+      created_at: new Date()
+    });
+    review.reportCount = (review.reportCount || 0) + 1;
+    await review.save();
+
+    res.json({
+      success: true,
+      message: 'Thank you. The review has been reported and submitted for moderation.'
+    });
+  } catch (err) {
+    console.error('Error reporting review:', err);
+    res.status(500).json({ message: 'Failed to submit report' });
+  }
+});
+
 // @route   GET /api/reviews/admin
 // @desc    Get all reviews for moderation (Admin only)
 router.get('/admin', protect, adminOnly, async (req, res) => {
@@ -219,7 +282,7 @@ router.get('/admin', protect, adminOnly, async (req, res) => {
     const reviews = await Review.find(query)
       .populate('user_id', 'name email phone')
       .populate('product_id', 'name image category price')
-      .sort({ created_at: -1 })
+      .sort({ reportCount: -1, created_at: -1 })
       .lean();
 
     res.json(reviews);

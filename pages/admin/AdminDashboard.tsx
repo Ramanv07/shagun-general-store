@@ -48,7 +48,19 @@ const rentalStatusColors: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'upi' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews' | 'banners' | 'coupons' | 'brands'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'upi' | 'rentals' | 'lehengas' | 'users' | 'parlor' | 'parlorServices' | 'notifications' | 'reviews' | 'banners' | 'coupons' | 'brands' | 'feedback' | 'searchMisses' | 'synonyms'>('overview');
+    const [adminProductSearch, setAdminProductSearch] = useState('');
+    const [adminDraftFilter, setAdminDraftFilter] = useState(false);
+    const [searchMisses, setSearchMisses] = useState<any[]>([]);
+    const [loadingMisses, setLoadingMisses] = useState(false);
+    const [synonymsMap, setSynonymsMap] = useState<Record<string, string[]>>({});
+    const [synonymInputKey, setSynonymInputKey] = useState('');
+    const [synonymInputValue, setSynonymInputValue] = useState('');
+    const [savingSynonyms, setSavingSynonyms] = useState(false);
+    const [orderTypeFilter, setOrderTypeFilter] = useState<'all' | 'real' | 'test'>('all');
+    const [feedbacks, setFeedbacks] = useState<any[]>([]);
+    const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'pending' | 'reviewed' | 'resolved'>('all');
+    const [loadingFeedback, setLoadingFeedback] = useState(false);
     const [adminReviews, setAdminReviews] = useState<any[]>([]);
     const [loadingReviews, setLoadingReviews] = useState(false);
     const [reviewFilter, setReviewFilter] = useState<'all' | 'approved' | 'hidden'>('all');
@@ -264,6 +276,174 @@ export const AdminDashboard: React.FC = () => {
             console.error('Failed to update review status', err);
         }
     };
+
+    const fetchAdminFeedback = async () => {
+        try {
+            setLoadingFeedback(true);
+            const token = getAuthToken();
+            const url = feedbackFilter === 'all' ? '/api/feedback/admin' : `/api/feedback/admin?status=${feedbackFilter}`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setFeedbacks(data);
+            }
+        } catch (err) {
+            console.error('Failed to load feedback', err);
+        } finally {
+            setLoadingFeedback(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'feedback') {
+            fetchAdminFeedback();
+        }
+    }, [activeTab, feedbackFilter]);
+
+    const handleUpdateFeedbackStatus = async (id: string, status: string) => {
+        try {
+            const token = getAuthToken();
+            const res = await fetch(`/api/feedback/admin/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) {
+                fetchAdminFeedback();
+            }
+        } catch (err) {
+            console.error('Failed to update feedback status', err);
+        }
+    };
+
+    const handleExportFeedbackCsv = async () => {
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/feedback/admin/export', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `shagun_feedback_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+        } catch (err) {
+            console.error('Failed to export feedback CSV', err);
+        }
+    };
+
+    const handleDeleteTestOrders = async () => {
+        if (!confirm('Are you sure you want to delete all tester orders? This action will be recorded in the audit log.')) return;
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/orders/admin/test-orders', {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Deleted test orders');
+                const ordersRes = await fetch('/api/orders', { headers: { 'Authorization': 'Bearer ' + token } });
+                if (ordersRes.ok) setOrders(await ordersRes.json());
+            } else {
+                alert(data.message || 'Failed to delete test orders');
+            }
+        } catch (err: any) {
+            alert('Error deleting test orders: ' + err.message);
+        }
+    };
+
+    const fetchSearchMisses = async () => {
+        setLoadingMisses(true);
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/products/admin/search-misses', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSearchMisses(data);
+            }
+        } catch (err) {
+            console.error('Failed to load search misses', err);
+        } finally {
+            setLoadingMisses(false);
+        }
+    };
+
+    const handleClearSearchMisses = async () => {
+        if (!confirm('Are you sure you want to clear all recorded search misses?')) return;
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/products/admin/search-misses', {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                setSearchMisses([]);
+            }
+        } catch (err) {
+            console.error('Failed to clear search misses', err);
+        }
+    };
+
+    const fetchSynonyms = async () => {
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/settings/search-synonyms', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSynonymsMap(data);
+            }
+        } catch (err) {
+            console.error('Failed to load search synonyms', err);
+        }
+    };
+
+    const handleSaveSynonyms = async (newMap: Record<string, string[]>) => {
+        setSavingSynonyms(true);
+        try {
+            const token = getAuthToken();
+            const res = await fetch('/api/settings/search-synonyms', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ synonyms: newMap })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSynonymsMap(data.synonyms || newMap);
+                alert('Synonyms updated successfully!');
+            }
+        } catch (err) {
+            console.error('Failed to update synonyms', err);
+            alert('Failed to update synonyms');
+        } finally {
+            setSavingSynonyms(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'searchMisses') {
+            fetchSearchMisses();
+        } else if (activeTab === 'synonyms') {
+            fetchSynonyms();
+        }
+    }, [activeTab]);
 
     const handleDeleteService = async (id: string) => {
         if (confirm('Are you sure you want to delete this service?')) {
@@ -524,9 +704,16 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
-    const filteredOrders = orders.filter(order =>
-        order._id.toLowerCase().includes(orderSearch.toLowerCase())
-    );
+    const filteredOrders = orders
+        .filter(order => {
+            if (orderTypeFilter === 'test') return order.isTestOrder;
+            if (orderTypeFilter === 'real') return !order.isTestOrder;
+            return true;
+        })
+        .filter(order =>
+            order._id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+            order.shippingAddress?.fullName?.toLowerCase().includes(orderSearch.toLowerCase())
+        );
 
     const filteredRentals = rentals
         .filter(r => rentalFilter === 'all' || r.status === rentalFilter)
@@ -593,6 +780,9 @@ export const AdminDashboard: React.FC = () => {
                         { id: 'parlor', label: 'Parlor Bookings' },
                         { id: 'parlorServices', label: 'Parlor Services' },
                         { id: 'reviews', label: '⭐ Reviews' },
+                        { id: 'feedback', label: '💬 Feedback' },
+                        { id: 'searchMisses', label: '🔍 Zero Searches' },
+                        { id: 'synonyms', label: '📚 Synonyms' },
                         { id: 'users', label: 'Users' }
                     ].map(tab => (
                         <button
@@ -612,12 +802,12 @@ export const AdminDashboard: React.FC = () => {
                     {activeTab === 'overview' && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                             <div className="bg-blue-600/20 border border-blue-500/30 p-6 rounded-xl">
-                                <h3 className="text-blue-400 mb-2 font-medium">Total Sales</h3>
-                                <p className="text-3xl font-bold text-white">₹{orders.reduce((acc, o) => acc + o.totalAmount, 0).toLocaleString()}</p>
+                                <h3 className="text-blue-400 mb-2 font-medium">Total Sales (Real)</h3>
+                                <p className="text-3xl font-bold text-white">₹{orders.filter(o => !o.isTestOrder).reduce((acc, o) => acc + o.totalAmount, 0).toLocaleString()}</p>
                             </div>
                             <div className="bg-purple-600/20 border border-purple-500/30 p-6 rounded-xl">
-                                <h3 className="text-purple-400 mb-2 font-medium">Orders</h3>
-                                <p className="text-3xl font-bold text-white">{orders.length}</p>
+                                <h3 className="text-purple-400 mb-2 font-medium">Orders (Real)</h3>
+                                <p className="text-3xl font-bold text-white">{orders.filter(o => !o.isTestOrder).length}</p>
                             </div>
                             <div className="bg-gold-600/20 border border-gold-500/30 p-6 rounded-xl">
                                 <h3 className="text-gold-400 mb-2 font-medium">Products</h3>
@@ -651,6 +841,31 @@ export const AdminDashboard: React.FC = () => {
                                     className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg transition-colors"
                                 >
                                     + Add Product
+                                </button>
+                            </div>
+
+                            {/* Product Search & Draft Filter Bar */}
+                            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between mb-4 bg-gray-900/60 p-3 rounded-xl border border-gray-700">
+                                <div className="relative w-full sm:max-w-md">
+                                    <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input
+                                        type="text"
+                                        placeholder="Search products by name, category, or brand..."
+                                        value={adminProductSearch}
+                                        onChange={e => setAdminProductSearch(e.target.value)}
+                                        className="w-full bg-gray-800 text-white pl-9 pr-8 py-2 rounded-lg text-sm border border-gray-600 focus:border-gold-500 outline-none"
+                                    />
+                                    {adminProductSearch && (
+                                        <button onClick={() => setAdminProductSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                            <i className="fas fa-times text-xs"></i>
+                                        </button>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setAdminDraftFilter(!adminDraftFilter)}
+                                    className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${adminDraftFilter ? 'bg-gold-500 text-black border-gold-400' : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'}`}
+                                >
+                                    Drafts: {adminDraftFilter ? 'Showing Only Drafts' : 'All Products'}
                                 </button>
                             </div>
 
@@ -958,7 +1173,13 @@ export const AdminDashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/10">
-                                        {products.map(p => (
+                                        {products.filter(p => {
+                                            if (adminDraftFilter && !(p as any).isDraft) return false;
+                                            if (!adminProductSearch.trim()) return true;
+                                            const tokens = adminProductSearch.trim().toLowerCase().split(/\s+/).filter(Boolean);
+                                            const full = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+                                            return tokens.every(t => full.includes(t));
+                                        }).map(p => (
                                             <tr key={p._id} className="hover:bg-white/5">
                                                 <td className="p-3"><img src={p.image} className="w-10 h-10 rounded object-cover" alt={p.name} /></td>
                                                 <td className="p-3 font-medium text-white">
@@ -1011,8 +1232,38 @@ export const AdminDashboard: React.FC = () => {
                     {/* ORDERS */}
                     {activeTab === 'orders' && (
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center mb-4">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                                 <h2 className="text-xl text-white font-bold">Manage Orders</h2>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <button
+                                        onClick={() => setOrderTypeFilter('all')}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${orderTypeFilter === 'all' ? 'bg-gold-500 text-black' : 'bg-gray-700 text-gray-300'}`}
+                                    >
+                                        All ({orders.length})
+                                    </button>
+                                    <button
+                                        onClick={() => setOrderTypeFilter('real')}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${orderTypeFilter === 'real' ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    >
+                                        Real ({orders.filter(o => !o.isTestOrder).length})
+                                    </button>
+                                    <button
+                                        onClick={() => setOrderTypeFilter('test')}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${orderTypeFilter === 'test' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    >
+                                        Test Orders ({orders.filter(o => o.isTestOrder).length})
+                                    </button>
+                                    {orders.some(o => o.isTestOrder) && (
+                                        <button
+                                            onClick={handleDeleteTestOrders}
+                                            className="px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 ml-2"
+                                            title="Permanently remove all test orders placed by testers"
+                                        >
+                                            <i className="fas fa-trash-alt text-[10px]" />
+                                            Delete Test Orders
+                                        </button>
+                                    )}
+                                </div>
                                 <input
                                     type="text"
                                     placeholder="Search by Order ID..."
@@ -1028,6 +1279,11 @@ export const AdminDashboard: React.FC = () => {
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <h4 className="text-gold-500 font-bold text-lg">#{order._id}</h4>
+                                            {order.isTestOrder && (
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                                    TEST ORDER
+                                                </span>
+                                            )}
                                             <span className="text-xs text-gray-400">• {new Date(order.createdAt).toLocaleDateString()}</span>
                                         </div>
                                         <div className="space-y-1">
@@ -2161,6 +2417,11 @@ export const AdminDashboard: React.FC = () => {
                                                         )}>
                                                             {r.status || 'approved'}
                                                         </span>
+                                                        {r.reportCount > 0 && (
+                                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/40 ml-2">
+                                                                ⚠️ Reported ({r.reportCount})
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td className="p-3 text-right space-x-2">
                                                         {r.status !== 'approved' && (
@@ -2186,6 +2447,269 @@ export const AdminDashboard: React.FC = () => {
                                     </table>
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* FEEDBACK TAB */}
+                    {activeTab === 'feedback' && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 className="text-xl text-white font-bold">In-App & Web Feedback</h2>
+                                    <p className="text-xs text-gray-400">User feedback and bug reports submitted by closed testers and customers.</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {(['all', 'pending', 'reviewed', 'resolved'] as const).map(st => (
+                                        <button
+                                            key={st}
+                                            onClick={() => setFeedbackFilter(st)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${feedbackFilter === st ? 'bg-gold-500 text-black' : 'bg-gray-700 text-gray-300'}`}
+                                        >
+                                            {st}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={handleExportFeedbackCsv}
+                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white ml-2 flex items-center gap-1.5"
+                                    >
+                                        <i className="fas fa-file-csv" />
+                                        Export CSV
+                                    </button>
+                                </div>
+                            </div>
+
+                            {loadingFeedback ? (
+                                <div className="text-center py-12 text-gray-400">
+                                    <i className="fas fa-spinner fa-spin mr-2"></i> Loading feedback...
+                                </div>
+                            ) : feedbacks.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500 bg-white/5 rounded-xl border border-white/10">
+                                    <i className="fas fa-inbox text-3xl mb-2 text-gray-600 block"></i>
+                                    No feedback messages found for this filter.
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-gray-300 text-sm">
+                                        <thead className="bg-white/5 text-xs uppercase text-gray-400">
+                                            <tr>
+                                                <th className="p-3">User</th>
+                                                <th className="p-3">Category</th>
+                                                <th className="p-3">Message</th>
+                                                <th className="p-3">Platform / Device</th>
+                                                <th className="p-3">Status</th>
+                                                <th className="p-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {feedbacks.map(f => (
+                                                <tr key={f._id} className="hover:bg-white/5 transition-colors">
+                                                    <td className="p-3">
+                                                        <div className="font-semibold text-white">{f.user_id?.name || 'User'}</div>
+                                                        <div className="text-xs text-gray-500">{f.user_id?.email || f.user_id?.phone || 'N/A'}</div>
+                                                        <div className="text-[10px] text-gray-500">{new Date(f.created_at || f.createdAt).toLocaleDateString()}</div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                            {f.category}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 max-w-sm">
+                                                        <p className="text-white text-xs whitespace-pre-wrap">{f.message}</p>
+                                                    </td>
+                                                    <td className="p-3 text-xs text-gray-400">
+                                                        <div>{f.platform} • v{f.appVersion}</div>
+                                                        <div className="text-[10px] text-gray-500">{f.deviceModel || 'N/A'}</div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                                            f.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                                            f.status === 'reviewed' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                                                            'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                                        }`}>
+                                                            {f.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 text-right space-x-2">
+                                                        {f.status === 'pending' && (
+                                                            <button
+                                                                onClick={() => handleUpdateFeedbackStatus(f._id, 'reviewed')}
+                                                                className="px-2.5 py-1 rounded bg-blue-600/80 hover:bg-blue-600 text-white text-xs font-semibold"
+                                                            >
+                                                                Review
+                                                            </button>
+                                                        )}
+                                                        {f.status !== 'resolved' && (
+                                                            <button
+                                                                onClick={() => handleUpdateFeedbackStatus(f._id, 'resolved')}
+                                                                className="px-2.5 py-1 rounded bg-emerald-600/80 hover:bg-emerald-600 text-white text-xs font-semibold"
+                                                            >
+                                                                Resolve
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* SEARCH MISSES TAB */}
+                    {activeTab === 'searchMisses' && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 className="text-xl text-white font-bold">Zero-Result Searches</h2>
+                                    <p className="text-xs text-gray-400">Search queries that returned 0 products. Use this to identify missing products or missing synonyms.</p>
+                                </div>
+                                {searchMisses.length > 0 && (
+                                    <button
+                                        onClick={handleClearSearchMisses}
+                                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold"
+                                    >
+                                        Clear Misses Log
+                                    </button>
+                                )}
+                            </div>
+
+                            {loadingMisses ? (
+                                <p className="text-gray-400 text-sm">Loading search misses...</p>
+                            ) : searchMisses.length === 0 ? (
+                                <p className="text-gray-400 text-sm">No zero-result searches recorded yet. Search engine is matching smoothly!</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-gray-300 text-sm">
+                                        <thead className="bg-white/5 uppercase text-xs">
+                                            <tr>
+                                                <th className="p-3">Query</th>
+                                                <th className="p-3">Search Count</th>
+                                                <th className="p-3">Last Searched</th>
+                                                <th className="p-3">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/10">
+                                            {searchMisses.map(m => (
+                                                <tr key={m._id} className="hover:bg-white/5">
+                                                    <td className="p-3 font-semibold text-white">"{m.query}"</td>
+                                                    <td className="p-3"><span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-xs">{m.count} times</span></td>
+                                                    <td className="p-3 text-xs text-gray-400">{new Date(m.lastSearchedAt).toLocaleString()}</td>
+                                                    <td className="p-3">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSynonymInputValue(m.query);
+                                                                setActiveTab('synonyms');
+                                                            }}
+                                                            className="px-2.5 py-1 bg-gold-500 hover:bg-gold-400 text-black rounded text-xs font-bold"
+                                                        >
+                                                            + Add As Synonym
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* SYNONYMS TAB */}
+                    {activeTab === 'synonyms' && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 className="text-xl text-white font-bold">Search Synonyms & Aliases</h2>
+                                    <p className="text-xs text-gray-400">Map local, colloquial, or Hinglish spellings to products (e.g. "saabun" = soap, "lotoin" = lotion).</p>
+                                </div>
+                            </div>
+
+                            {/* Add Synonym Group Form */}
+                            <div className="bg-gray-900/60 p-4 rounded-xl border border-gray-700 space-y-4">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Add or Edit Synonym Group</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs text-gray-400 block mb-1">Target Keyword / Product (e.g. mamaearth, soap, lotion)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Canonical keyword..."
+                                            value={synonymInputKey}
+                                            onChange={e => setSynonymInputKey(e.target.value)}
+                                            className="w-full bg-gray-800 text-white p-2.5 rounded text-sm border border-gray-600 focus:border-gold-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400 block mb-1">Synonyms / Misspellings (comma separated)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. mama earth, mamaarth, mamarth"
+                                            value={synonymInputValue}
+                                            onChange={e => setSynonymInputValue(e.target.value)}
+                                            className="w-full bg-gray-800 text-white p-2.5 rounded text-sm border border-gray-600 focus:border-gold-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    disabled={savingSynonyms}
+                                    onClick={() => {
+                                        const k = synonymInputKey.trim().toLowerCase();
+                                        if (!k) { alert('Please enter a target keyword'); return; }
+                                        const variants = synonymInputValue.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                                        const updated = { ...synonymsMap, [k]: Array.from(new Set([...(synonymsMap[k] || []), ...variants])) };
+                                        handleSaveSynonyms(updated);
+                                        setSynonymInputKey('');
+                                        setSynonymInputValue('');
+                                    }}
+                                    className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                >
+                                    {savingSynonyms ? 'Saving...' : 'Save Synonym Group'}
+                                </button>
+                            </div>
+
+                            {/* Current Synonyms Groups */}
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Configured Synonym Groups ({Object.keys(synonymsMap).length})</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {Object.entries(synonymsMap).map(([key, list]) => (
+                                        <div key={key} className="bg-gray-900/40 border border-gray-700/60 p-3.5 rounded-xl flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="font-bold text-gold-400 text-sm uppercase">{key}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm(`Remove synonym group "${key}"?`)) {
+                                                                const copy = { ...synonymsMap };
+                                                                delete copy[key];
+                                                                handleSaveSynonyms(copy);
+                                                            }
+                                                        }}
+                                                        className="text-red-400 hover:text-red-300 text-xs"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {(list || []).map((syn, sIdx) => (
+                                                        <span key={sIdx} className="bg-white/10 text-gray-200 text-xs px-2 py-0.5 rounded">
+                                                            {syn}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setSynonymInputKey(key);
+                                                    setSynonymInputValue((list || []).join(', '));
+                                                }}
+                                                className="text-left text-xs text-blue-400 hover:underline mt-3"
+                                            >
+                                                Edit Group
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
 
