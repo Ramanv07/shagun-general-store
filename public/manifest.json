@@ -1,17 +1,23 @@
 {
   "short_name": "Shagun Mart",
-  "name": "Shagun Mart - Bamitha",
+  "name": "Shagun Mart – Lehenga & Churi Center Bamitha",
   "icons": [
+    {
+      "src": "/favicon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
     {
       "src": "/app-icon.png",
       "type": "image/png",
-      "sizes": "192x192 512x512",
+      "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
   "start_url": "/",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#FAF6F0",
+  "theme_color": "#047857",
   "display": "standalone",
   "orientation": "portrait"
 }
