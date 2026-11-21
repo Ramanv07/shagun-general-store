@@ -179,7 +179,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/parlor-services', parlorServiceRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/notifications', notificationRoutes);
+app.use(['/api/notifications', '/api/api/notifications'], notificationRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reviews', reviewRoutes);

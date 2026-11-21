@@ -35,6 +35,23 @@ router.post('/register-token', async (req, res) => {
         return res.json({ success: true, message: 'Push token registered for user' });
       }
     }
+
+    // Also register in guest device token store so broadcast reaches guest installs
+    try {
+      const StoreSetting = (await import('../models/StoreSetting.js')).default;
+      let setting = await StoreSetting.findOne({ key: 'guest_push_tokens' });
+      if (!setting) {
+        setting = new StoreSetting({ key: 'guest_push_tokens', value: [] });
+      }
+      if (!Array.isArray(setting.value)) setting.value = [];
+      if (!setting.value.includes(pushToken)) {
+        setting.value.push(pushToken);
+        await setting.save();
+      }
+    } catch (e) {
+      console.warn('Guest token store error:', e.message);
+    }
+
     res.json({ success: true, message: 'Token acknowledged' });
   } catch (err) {
     console.error('Error registering push token:', err);

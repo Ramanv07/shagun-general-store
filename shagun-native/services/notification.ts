@@ -5,6 +5,8 @@ import { Platform } from 'react-native';
 import { appStorage } from './storage';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants';
 
+const BASE = (API_BASE_URL || 'https://shagun-general-store.vercel.app/api').replace(/\/api\/?$/, '');
+
 // Configure foreground notification behavior (Flipkart-style banner alert + sound)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -92,7 +94,7 @@ export async function sendTokenToBackend(pushToken: string, userId?: string) {
     };
     if (authHeader) headers['Authorization'] = authHeader;
 
-    const res = await fetch(`${API_BASE_URL}/api/notifications/register-token`, {
+    const res = await fetch(`${BASE}/api/notifications/register-token`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ pushToken, userId: resolvedUserId }),
@@ -116,7 +118,7 @@ export async function fetchCustomerNotifications() {
     const u = JSON.parse(userStr);
     if (!u?.token) return [];
 
-    const res = await fetch(`${API_BASE_URL}/api/notifications`, {
+    const res = await fetch(`${BASE}/api/notifications`, {
       headers: {
         'Authorization': `Bearer ${u.token}`,
       },
@@ -138,7 +140,7 @@ export async function markCustomerNotificationsRead() {
     const u = JSON.parse(userStr);
     if (!u?.token) return;
 
-    await fetch(`${API_BASE_URL}/api/notifications/mark-read`, {
+    await fetch(`${BASE}/api/notifications/mark-read`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${u.token}`,

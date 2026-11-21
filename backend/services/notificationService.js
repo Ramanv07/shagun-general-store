@@ -140,18 +140,29 @@ export async function broadcastCustomerNotification({ title, body, data = {} }) 
       pushTokens: { $exists: true, $not: { $size: 0 } }
     }).select('pushTokens notifications');
 
-    const allTokens = [];
+    const allTokens = new Set();
     usersWithTokens.forEach(u => {
       if (u.pushTokens && u.pushTokens.length > 0) {
-        allTokens.push(...u.pushTokens);
+        u.pushTokens.forEach(t => allTokens.add(t));
       }
     });
 
-    console.log(`[BroadcastNotification] Sending to ${allTokens.length} active devices...`);
+    try {
+      const StoreSetting = (await import('../models/StoreSetting.js')).default;
+      const guestTokensSetting = await StoreSetting.findOne({ key: 'guest_push_tokens' });
+      if (guestTokensSetting && Array.isArray(guestTokensSetting.value)) {
+        guestTokensSetting.value.forEach(t => allTokens.add(t));
+      }
+    } catch (e) {
+      console.warn('Error reading guest tokens for broadcast:', e.message);
+    }
+
+    const tokenList = Array.from(allTokens);
+    console.log(`[BroadcastNotification] Sending to ${tokenList.length} active devices...`);
 
     // Dispatch Expo push
-    if (allTokens.length > 0) {
-      await sendExpoPushNotifications(allTokens, { title, body, data });
+    if (tokenList.length > 0) {
+      await sendExpoPushNotifications(tokenList, { title, body, data });
     }
 
     // Save in in-app notification inbox for all users
@@ -175,7 +186,7 @@ export async function broadcastCustomerNotification({ title, body, data = {} }) 
       }
     );
 
-    return { totalSent: allTokens.length };
+    return { totalSent: tokenList.length };
   } catch (err) {
     console.error('[BroadcastNotification] Error broadcasting:', err.message);
     throw err;
