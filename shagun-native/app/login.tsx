@@ -176,10 +176,9 @@ function LoginScreenInner() {
           }
         });
 
-        const canOpen = await Linking.canOpenURL(authUrl);
-        if (canOpen) {
+        try {
           await Linking.openURL(authUrl);
-        } else {
+        } catch (openErr) {
           sub.remove();
           throw new Error('Could not open browser for Google authentication.');
         }
