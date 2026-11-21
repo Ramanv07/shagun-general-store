@@ -50,7 +50,9 @@ export default defineConfig(({ mode, command }) => {
         // Proxy /api calls to local backend during development
         proxy: {
           '/api': {
-            target: env.VITE_API_URL || 'http://localhost:5000',
+            target: (env.VITE_API_URL && /^https?:\/\//i.test(env.VITE_API_URL))
+              ? env.VITE_API_URL
+              : 'http://localhost:5000',
             changeOrigin: true,
             secure: false,
           }
