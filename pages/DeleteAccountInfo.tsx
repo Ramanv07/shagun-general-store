@@ -16,7 +16,7 @@ export const DeleteAccountInfo: React.FC = () => {
           {/* Draft Notice Banner */}
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
             <span className="text-amber-800 font-bold text-xs sm:text-sm">
-              Draft — pending final review by owner and legal counsel. Support contact: [FILL: support email, e.g. support@shagunmart.com].
+              Support contact: <a href="mailto:ramanvishwari@gmail.com" className="underline font-semibold">ramanvishwari@gmail.com</a> | WhatsApp: +91 88272 59023
             </span>
           </div>
 
@@ -62,7 +62,7 @@ export const DeleteAccountInfo: React.FC = () => {
                 3. What Data Is Retained (Statutory Accounting & Tax Compliance)
               </h2>
               <p className="text-cream-700 leading-relaxed">
-                In compliance with applicable accounting and tax laws, completed order records (purchased item names, quantities, unit prices, total invoice amounts, and transaction timestamps) are retained as required by applicable law [FILL: retention period, confirm with accountant]. All customer-identifying information (full name, phone number, street, house number) is completely redacted from these order records, leaving only non-identifying aggregate geographic data (city, state, PIN code) for tax reporting.
+                In compliance with applicable accounting and tax laws, completed order records (purchased item names, quantities, unit prices, total invoice amounts, and transaction timestamps) are retained as required by applicable tax laws and regulations. All customer-identifying information (full name, phone number, street, house number) is completely redacted from these order records, leaving only non-identifying aggregate geographic data (city, state, PIN code) for tax reporting.
               </p>
             </section>
 
@@ -86,10 +86,10 @@ export const DeleteAccountInfo: React.FC = () => {
                 5. Cannot Access Your Account?
               </h2>
               <p className="text-xs text-rose-700 leading-relaxed mb-3">
-                If you cannot log in or need manual deletion assistance, email us from your registered email address at [FILL: support email, e.g. support@shagunmart.com]:
+                If you cannot log in or need manual deletion assistance, email us from your registered email address at <a href="mailto:ramanvishwari@gmail.com" className="font-semibold underline">ramanvishwari@gmail.com</a>:
               </p>
               <a
-                href="mailto:support@shagunmart.com?subject=Account%20Deletion%20Request"
+                href="mailto:ramanvishwari@gmail.com?subject=Account%20Deletion%20Request"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow transition"
               >
                 <i className="fas fa-envelope" /> Request Deletion via Email
