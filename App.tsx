@@ -56,7 +56,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/account': 'My Account | Shagun Mart',
   '/login': 'Sign In / Register | Shagun Mart',
   '/privacy': 'Privacy Policy | Shagun Mart',
+  '/privacy-policy': 'Privacy Policy | Shagun Mart',
   '/delete-account': 'Account Deletion & Data Retention | Shagun Mart',
+  '/delete-account-info': 'Account Deletion & Data Retention | Shagun Mart',
   '/terms': 'Terms & Conditions | Shagun Mart',
   '/refund-policy': 'Refund & Cancellation Policy | Shagun Mart',
   '/shipping-policy': 'Shipping & Delivery Policy | Shagun Mart',
@@ -76,7 +78,9 @@ const PAGE_DESCRIPTIONS: Record<string, string> = {
   '/account': 'Manage your personal profile, saved delivery addresses, and preferences.',
   '/login': 'Sign in or register for an account at Shagun Mart Bamitha.',
   '/privacy': 'Learn how Shagun Mart collects, uses, and protects your personal information and privacy.',
+  '/privacy-policy': 'Learn how Shagun Mart collects, uses, and protects your personal information and privacy.',
   '/delete-account': 'Information on account deletion, anonymization, and data retention rules at Shagun Mart.',
+  '/delete-account-info': 'Information on account deletion, anonymization, and data retention rules at Shagun Mart.',
   '/terms': 'Terms and conditions governing the use of Shagun Mart website, store, and mobile app.',
   '/refund-policy': 'Official policies on order cancellation, returns, and refunds at Shagun Mart.',
   '/shipping-policy': 'Local shipping coverage, timelines, delivery fees, and free delivery thresholds.',
@@ -136,7 +140,9 @@ const AppRoutes: React.FC = () => {
             }
           />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/delete-account" element={<DeleteAccountInfo />} />
+          <Route path="/delete-account-info" element={<DeleteAccountInfo />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
           <Route path="/shipping-policy" element={<ShippingPolicy />} />

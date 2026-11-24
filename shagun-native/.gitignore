@@ -9,7 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# native keys
+fcm-service-account.json
+google-services.json
 .kotlin/
 *.orig.*
 *.jks
